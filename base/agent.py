@@ -57,9 +57,6 @@ class Agent(mesa.Agent):
     def move(self):
         self.energy = self.energy - self.consumption
 
-    # 计算两点之间移动最少要走多少步
-    def eucli_dist(A, B):
-        return math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(A, B)]))
 
     def step(self, actions=None):
         pass

@@ -22,7 +22,7 @@ class ServiceAgent(Agent):
                  ):
         super().__init__(unique_id, model)
         self.energy = energy  # 企业的初始能量
-        self.service_type = service_type  # 企业类型：A,B,C
+        self.service_type = service_type  # 企业可以处理的订单类型：A,B,C,AB,AC,BC,ABC
         self.difficulty = difficulty  # 可处理的订单的最大难度等级
         self.cooperation = cooperation  # 是否接受合作,接受为1，禁止为0
         self.speed = speed  # 移动速度为3
@@ -36,8 +36,31 @@ class ServiceAgent(Agent):
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
 
     def match_vector(self, service_type, difficulty):
-        self.skills[service_type] = service_type
-        self.skills[difficulty] = difficulty
+        if service_type == "A":
+            self.skills = [[1, 0, 0]]
+        elif service_type == "B":
+            self.skills = [[0, 1, 0]]
+        elif service_type == "C":
+            self.skills = [[0, 0, 1]]
+        elif service_type == "AB":
+            self.skills = [[1, 1, 0]]
+        elif service_type == "AC":
+            self.skills = [[1, 0, 1]]
+        elif service_type == "BC":
+            self.skills = [[0, 1, 1]]
+        elif service_type == "ABC":
+            self.skills = [[1, 1, 1]]
+        else:
+            self.skills = [[0, 0, 0]]  # 出错，000无法与任何订单匹配
+
+        if difficulty == 1:
+            self.skills.append([0, 0, 1])
+        elif difficulty == 2:
+            self.skills.append([0, 1, 0])
+        elif difficulty == 3:
+            self.skills.append([1, 0, 0])
+        else:
+            self.skills.append([0, 0, 0])  # 出错，000无法与任何订单匹配
 
     @property
     def action_space(self):

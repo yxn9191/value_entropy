@@ -7,6 +7,7 @@ from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 
+
 class CloudManufacturing(BaseEnvironment):
 
     def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200):
@@ -42,9 +43,9 @@ class CloudManufacturing(BaseEnvironment):
         organization2 = Organization(2, self, [])
 
         for j in range(math.floor(self.service_num / 3 / 3)):
-            s_A_1 = ServiceAgent(self.next_id(), self, "A", 1,organization1)
-            s_B_1 = ServiceAgent(self.next_id(), self, "B", 1,organization1)
-            s_C_1 = ServiceAgent(self.next_id(), self, "C",1, organization1)
+            s_A_1 = ServiceAgent(self.next_id(), self, "A", 1, organization1)
+            s_B_1 = ServiceAgent(self.next_id(), self, "B", 1, organization1)
+            s_C_1 = ServiceAgent(self.next_id(), self, "C", 1, organization1)
 
             self.random_placeAgent_left_down(s_A_1)
             self.random_placeAgent_left_down(s_B_1)
@@ -85,8 +86,6 @@ class CloudManufacturing(BaseEnvironment):
 
         
 
-
-
     def random_placeAgent(self, agent):
         x = self.random.randrange(self.grid.width)
         y = self.random.randrange(self.grid.height)
@@ -103,7 +102,6 @@ class CloudManufacturing(BaseEnvironment):
         x = self.random.randrange(math.ceil(self.grid.width / 3 * 2), self.grid.width)
         y = self.random.randrange(math.ceil(self.grid.height / 3 * 2), self.grid.height)
         self.grid.place_agent(agent, (x, y))
-        # a.location = (x, y) 这行好像不需要，place_agent就自动将该属性添加到agent中，属性值为pos
 
     def generate_order(self, num_order):
 
@@ -111,18 +109,46 @@ class CloudManufacturing(BaseEnvironment):
         self.order_num = num_order + 25 * math.sin(self.schedule.steps)
 
         for i in range(math.floor(self.order_num / 7)):
-            a_A = OrderAgent(self.next_id(), self,1, "A")
+            a_A = OrderAgent(self.next_id(), self, 1, "A")
             a_B = OrderAgent(self.next_id(), self, 2, "B")
-            a_C = OrderAgent(self.next_id(), self,3, "C")
-            a_AB = OrderAgent(self.next_id(), self,1, "AB")
-            a_BC = OrderAgent(self.next_id(), self,2, "BC")
+            a_C = OrderAgent(self.next_id(), self, 3, "C")
+            a_AB = OrderAgent(self.next_id(), self, 1, "AB")
+            a_BC = OrderAgent(self.next_id(), self, 2, "BC")
             a_AC = OrderAgent(self.next_id(), self, 3, "AC")
-            a_ABC = OrderAgent(self.next_id(), self,1, "ABC")
+            a_ABC = OrderAgent(self.next_id(), self, 1, "ABC")
         return a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC
 
     # 比较两个agent是否彼此符合约束条件
-    def constraint(self,agent1,agent2):
-        pass
+    def constraint(self, order, service):
+        # 空间约束
+        # 时间约束
+        # 预算约束
+        # 技能约束
+        return distance(order.pos, service.pos) <= order.vision and \
+               move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
+               move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
+               self.skill_constraint()
+
+    # 判断是否满足技能向量的约束
+    def skill_constraint(self, order, service):
+        i = 2
+        order_diff = 0
+        j = 2
+        service_diff = 0
+
+        for i in order.skills[1][i]:
+            order_diff = order_diff + order.skills[1][i] * 2 ^ (2 - i)
+            i = i - 1
+
+        for j in service.skills[1][j]:
+            service_diff = service_diff + service_diff[1][j] * 2 ^ (2 - j)
+            j = j - 1
+
+        if all([(b - a) >= 0 for (a, b) in zip(order.skills[0], service.skills[0])]) and \
+                order_diff <= service_diff:
+            return True
+        else:
+            return False
 
     #计算agent 周围订单的
     def compute_order(self, agent):
@@ -157,3 +183,11 @@ class CloudManufacturing(BaseEnvironment):
         pass
 
 
+# 计算两位置的直线距离
+def distance(A, B):
+    return math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(A, B)]))
+
+
+# 计算移动到新位置的路线长度
+def move_len(A, B):
+    return sum([(a - b) for (a, b) in zip(A, B)])
