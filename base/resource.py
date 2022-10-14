@@ -25,13 +25,19 @@ class Resource(mesa.Agent):
                  time_start=None,
                  time_end=None,
                  bonus=None,
-                 cost=None
+                 cost=None,
                  skill_requirements=None,
                  ):
 
         assert self.name is not None
         assert self.collectible is not None
-        
+
+        self.time_start = time_start
+        self.time_end = time_end
+        self.bonus = bonus
+        self.cost = cost
+        self.skill_requirements = dict(skill_requirements)
+
     def step(self):
         pass
 
