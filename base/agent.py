@@ -9,3 +9,4 @@ class Agent(mesa.Agent):
     """
     def __init__():
         
+    def step(self,actions):

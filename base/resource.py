@@ -32,5 +32,9 @@ class Resource(mesa.Agent):
 
         assert self.name is not None
         assert self.collectible is not None
+        
+    def step(self):
+        pass
+
 
 
