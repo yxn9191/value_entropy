@@ -8,13 +8,12 @@ class Resource(mesa.Agent):
     Args:
         unique_id: The unique id of the Resource. It can be None if you don't need it.
         model: Instance of the model that contains the agent.
+        pos: The position of the resource.
         time_start: The time when the resource appears in the environment.
         time_end: The time when the resource disappears in the environment.
-        operate_type: The type of operate to finish the work. It can be None if you don't need to collect the resource.
-        skill_requirements: Skills required to collect this resource。
-
-
-
+        bonus: The bonus of the agent to collect the resource.
+        cost: The cost of the agent to collect the resource.
+        skill_requirements: Skills required to collect this resource.
     """
     name = None
     collectible = None  # 是否可收集
@@ -26,7 +25,7 @@ class Resource(mesa.Agent):
                  time_start=None,
                  time_end=None,
                  bonus=None,
-                 operate_type=None,
+                 cost=None
                  skill_requirements=None,
                  ):
 
