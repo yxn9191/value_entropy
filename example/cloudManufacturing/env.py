@@ -50,6 +50,10 @@ class CloudManufacturing(BaseEnvironment):
             self.random_placeAgent_left_down(s_B_1)
             self.random_placeAgent_left_down(s_C_1)
 
+            self.all_agent.append(s_A_1)
+            self.all_agent.append(s_B_1)
+            self.all_agent.append(s_C_1)
+
         for j in range(math.floor(self.service_num / 3 / 3)):
             s_A_2 = ServiceAgent(self.next_id(), self, "A", 1, organization2)
             s_B_2 = ServiceAgent(self.next_id(), self, "B", 2, organization2)
@@ -59,6 +63,10 @@ class CloudManufacturing(BaseEnvironment):
             self.random_placeAgent_right_up(s_B_2)
             self.random_placeAgent_right_up(s_C_2)
 
+            self.all_agent.append(s_A_2)
+            self.all_agent.append(s_B_2)
+            self.all_agent.append(s_C_2)           
+
         for j in range(math.floor(self.service_num / 3 / 36)):
             s_A_3 = ServiceAgent(self.next_id(), self, "A", 1, None)
             s_B_3 = ServiceAgent(self.next_id(), self, "B", 2, None)
@@ -67,10 +75,15 @@ class CloudManufacturing(BaseEnvironment):
             self.random_placeAgent(s_B_3)
             self.random_placeAgent(s_C_3)
 
+            self.all_agent.append(s_A_3)
+            self.all_agent.append(s_B_3)
+            self.all_agent.append(s_C_3)
+
+        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agent}
         # 环境中每个智能体的当前奖赏值
-        self.curr_optimization_metric = dict()
-        # 环境中所有的企业
-        self.all_service = []
+        self.curr_optimization_metric = {id:0 for id in self._agent_lookup.keys}
+
+        
 
 
 
@@ -111,6 +124,33 @@ class CloudManufacturing(BaseEnvironment):
     def constraint(self,agent1,agent2):
         pass
 
+    #计算agent 周围订单的
+    def compute_order(self, agent):
+
+    #生成观察值（强化学习的输入，待补充）
+    def generate_observations(self):
+        obs = {}
+        #影响选择订单规则的内在属性，待补充
+        agent_encode = {str(agent.unique_id): {} for agent in self.all_service}
+        for agent in self.all_agent:
+            obs[str(agent.unique_id)] = {"time": self.timestep, }
+
+        return obs
+
+    # 生成即时奖赏值（强化学习的输入，待补充）
+    def generate_rewards(self):
+        #具体计算公式待修改，形式如下
+        #上一个时间的奖赏
+        utility_at_last_time_step = deepcopy(self.curr_optimization_metric)
+        #当前奖赏
+        self.curr_optimization_metric = {str(agent.unique_id): agent.compute_reward() for agent in self.all_agent}
+        #即时奖赏
+        reward = {
+            k: float(v - utility_at_last_time_step[k])
+            for k, v in self.curr_optimization_metric.items()
+        }
+        reward = {str(agent.unique_id): 1 for agent in self.all_service}
+        return reward
     def step(self, actions=None):
         """Advance the model by one step."""
         # self.schedule.step()

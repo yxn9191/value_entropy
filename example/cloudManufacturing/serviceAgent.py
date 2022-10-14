@@ -39,5 +39,10 @@ class ServiceAgent(Agent):
         self.skills[service_type] = service_type
         self.skills[difficulty] = difficulty
 
+    @property
+    def action_space(self):
+        return self.vision**2
+
+
     def step(self, actions=None):
         pass

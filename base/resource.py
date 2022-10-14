@@ -31,7 +31,6 @@ class Resource(mesa.Agent):
 
         assert self.name is not None
         assert self.collectible is not None
-        
         super().__init(unique_id, model, pos)
         self.time_start = time_start
         self.time_end = time_end
