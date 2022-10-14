@@ -1,0 +1,115 @@
+import math
+
+import mesa
+
+from example.cloudManufacturing.orderAgent import OrderAgent
+from example.cloudManufacturing.organization import Organization
+from example.cloudManufacturing.serviceAgent import ServiceAgent
+
+class CloudManufacturing(mesa.Model):
+
+    def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200):
+        super().__init__()
+        self.order_num = num_order  # 不同类型订单的数目
+        self.service_num = num_service  # 不同企业的数目
+        self.num_organization = num_organization  # 组织的数目
+        self.episode_length = episode_length  # 一次演化的时长
+        self.timestep = 0  # 环境当前处于的时间点
+        # 服务节点进化阈值
+        self.reproductive_threshold = 300
+        self.schedule = mesa.time.RandomActivationByType(self)
+        self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
+
+        # Create agents（包括企业和订单）
+        a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC = self.generate_order(self.order_num)
+        self.schedule.add(a_A)
+        self.schedule.add(a_B)
+        self.schedule.add(a_C)
+        self.schedule.add(a_AB)
+        self.schedule.add(a_BC)
+        self.schedule.add(a_AC)
+        self.schedule.add(a_ABC)
+
+        self.random_placeAgent(a_A)
+        self.random_placeAgent(a_B)
+        self.random_placeAgent(a_C)
+        self.random_placeAgent(a_AB)
+        self.random_placeAgent(a_BC)
+        self.random_placeAgent(a_AC)
+        self.random_placeAgent(a_ABC)
+
+        organization1 = Organization(1, self, [])
+        organization2 = Organization(2, self, [])
+
+        for j in range(math.floor(self.service_num / 3 / 3)):
+            s_A_1 = ServiceAgent(self.next_id(), self, "A", 1,organization1)
+            s_B_1 = ServiceAgent(self.next_id(), self, "B", 1,organization1)
+            s_C_1 = ServiceAgent(self.next_id(), self, "C",1, organization1)
+
+            self.random_placeAgent_left_down(s_A_1)
+            self.random_placeAgent_left_down(s_B_1)
+            self.random_placeAgent_left_down(s_C_1)
+
+        for j in range(math.floor(self.service_num / 3 / 3)):
+            s_A_2 = ServiceAgent(self.next_id(), self, "A", 1, organization2)
+            s_B_2 = ServiceAgent(self.next_id(), self, "B", 2, organization2)
+            s_C_2 = ServiceAgent(self.next_id(), self, "C", 3, organization2)
+
+            self.random_placeAgent_right_up(s_A_2)
+            self.random_placeAgent_right_up(s_B_2)
+            self.random_placeAgent_right_up(s_C_2)
+
+        for j in range(math.floor(self.service_num / 3 / 36)):
+            s_A_3 = ServiceAgent(self.next_id(), self, "A", 1, None)
+            s_B_3 = ServiceAgent(self.next_id(), self, "B", 2, None)
+            s_C_3 = ServiceAgent(self.next_id(), self, "C", 3, None)
+            self.random_placeAgent(s_A_3)
+            self.random_placeAgent(s_B_3)
+            self.random_placeAgent(s_C_3)
+
+        # 环境中每个智能体的当前奖赏值
+        self.curr_optimization_metric = dict()
+        # 环境中所有的企业
+        self.all_service = []
+
+
+
+    def random_placeAgent(self, agent):
+        x = self.random.randrange(self.grid.width)
+        y = self.random.randrange(self.grid.height)
+        self.grid.place_agent(agent, (x, y))
+        # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
+
+    def random_placeAgent_left_down(self, agent):
+        x = self.random.randrange(math.ceil(self.grid.width / 3))
+        y = self.random.randrange(math.ceil(self.grid.height / 3))
+        self.grid.place_agent(agent, (x, y))
+        # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
+
+    def random_placeAgent_right_up(self, agent):
+        x = self.random.randrange(math.ceil(self.grid.width / 3 * 2), self.grid.width)
+        y = self.random.randrange(math.ceil(self.grid.height / 3 * 2), self.grid.height)
+        self.grid.place_agent(agent, (x, y))
+        # a.location = (x, y) 这行好像不需要，place_agent就自动将该属性添加到agent中，属性值为pos
+
+    def generate_order(self, num_order):
+
+        # 波动公式(200为初始客户数,25为波动值)
+        self.order_num = num_order + 25 * math.sin(self.schedule.steps)
+
+        for i in range(math.floor(self.order_num / 7)):
+            a_A = OrderAgent(self.next_id(), self,1, "A")
+            a_B = OrderAgent(self.next_id(), self, 2, "B")
+            a_C = OrderAgent(self.next_id(), self,3, "C")
+            a_AB = OrderAgent(self.next_id(), self,1, "AB")
+            a_BC = OrderAgent(self.next_id(), self,2, "BC")
+            a_AC = OrderAgent(self.next_id(), self, 3, "AC")
+            a_ABC = OrderAgent(self.next_id(), self,1, "ABC")
+        return a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC
+
+
+
+    def step(self, actions=None):
+        """Advance the model by one step."""
+        # self.schedule.step()
+        pass

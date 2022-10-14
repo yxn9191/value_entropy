@@ -1,9 +1,6 @@
 import math
-from copy import deepcopy
-from random import randint
-from tkinter import N
-import numpy as np
 import mesa
+
 
 class Agent(mesa.Agent):
     """
@@ -20,40 +17,49 @@ class Agent(mesa.Agent):
         multi_action_mode:
     """
     name = ""
-    def __init__(self, unique_id ,
-                 model ,
-                 pos ,
+
+    def __init__(self, unique_id,
+                 model,
                  speed=None,
                  vision=None,
                  energy=None,
                  consumption=None,
                  failure_prob=0,
                  skills=None,
+                 state=0,
                  multi_action_mode=None
                  ):
-
         assert self.name
-        super().__init(unique_id, model, pos)
+        super().__init__(unique_id, model)
         if unique_id is None:
             unique_id = 0
-        
+
         self.speed = speed
         self.vision = vision,
         self.energy = energy
         self.consumption = consumption,
         self.failure_prob = float(failure_prob),
         self.skills = skills
-        self.state = 0 # define the state of the agent
+        self.state = state  # define the state of the agent
         self.multi_action_mode = bool(multi_action_mode)
+
+    # 构造可变长度的技能向量，用于匹配，有了这个向量可以利用约束条件，感觉应该是比较通用的
+    def match_vector(self, **skills):
+        self.skills = skills
+        return self.skills
 
     def action_space(self):
         pass
 
     def reset(self):
         self.state = 0
-    
+
     def move(self):
         self.energy = self.energy - self.consumption
+
+    # 计算两点之间移动最少要走多少步
+    def eucli_dist(A, B):
+        return math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(A, B)]))
 
     def step(self, actions=None):
         pass
