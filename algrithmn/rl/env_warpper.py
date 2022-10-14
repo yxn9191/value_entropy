@@ -37,10 +37,10 @@ def recursive_list_to_np_array(d):
 class RLlibEnvWrapper(MultiAgentEnv):
     """
     """
-    def __init__(self, env_config = default_env_config):
+    def __init__(self, env_config = default_env_config, mesaEnv = BaseEnvironment):
         super(RLlibEnvWrapper, self).__init__
         self.env_config = env_config
-        self.env = BaseEnvironment(**self.env_config)
+        self.env = mesaEnv(**self.env_config)
 
         obs = self.env.reset()
 
