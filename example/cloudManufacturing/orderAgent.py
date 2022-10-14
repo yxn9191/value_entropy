@@ -34,14 +34,9 @@ class OrderAgent(Agent):
         self.create_time = self.model.timestep  # 订单被创建时间
         self.order_satisfaction = 0  # 订单方的满意度
 
-    def action_space(self):
-        pass
-
-    def reset(self):
-        self.state = 0
-
-    def move(self):
-        self.energy = self.energy - self.consumption
+    def match_vector(self, order_type, order_difficulty):
+        self.skills[order_type] = order_type
+        self.skills[order_difficulty] = order_difficulty
 
     def step(self, actions=None):
         pass

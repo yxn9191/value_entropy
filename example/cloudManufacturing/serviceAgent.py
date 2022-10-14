@@ -35,5 +35,9 @@ class ServiceAgent(Agent):
         self.cooperation = []  # 合作处理订单的企业（初始时没有合作的企业）
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
 
+    def match_vector(self, service_type, difficulty):
+        self.skills[service_type] = service_type
+        self.skills[difficulty] = difficulty
+
     def step(self, actions=None):
         pass

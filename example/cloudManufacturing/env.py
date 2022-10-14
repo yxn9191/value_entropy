@@ -107,9 +107,13 @@ class CloudManufacturing(BaseEnvironment):
             a_ABC = OrderAgent(self.next_id(), self,1, "ABC")
         return a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC
 
-
+    # 比较两个agent是否彼此符合约束条件
+    def constraint(self,agent1,agent2):
+        pass
 
     def step(self, actions=None):
         """Advance the model by one step."""
         # self.schedule.step()
         pass
+
+
