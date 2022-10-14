@@ -20,9 +20,9 @@ class Agent(mesa.Agent):
         multi_action_mode:
     """
     name = ""
-    def __init__(self, unique_id=None,
-                 model=None,
-                 pos=None,
+    def __init__(self, unique_id ,
+                 model ,
+                 pos ,
                  speed=None,
                  vision=None,
                  energy=None,
@@ -33,7 +33,7 @@ class Agent(mesa.Agent):
                  ):
 
         assert self.name
-
+        super().__init(unique_id, model, pos)
         if unique_id is None:
             unique_id = 0
         
@@ -48,7 +48,7 @@ class Agent(mesa.Agent):
 
     def action_space(self):
         pass
-    
+
     def reset(self):
         self.state = 0
     
