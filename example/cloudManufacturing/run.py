@@ -12,7 +12,6 @@ def agent_portrayal(agent):
     if agent is None:
         return
 
-
     portrayal = {}
 
     if type(agent) is OrderAgent:

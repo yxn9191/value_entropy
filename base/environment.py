@@ -12,6 +12,7 @@ class BaseEnvironment(mesa.Model):
                  schedule=None,
                  grid=None
                  ):
+        super().__init__()
         self.schedule = schedule
         self.grid = grid
         self.episode_length = episode_length  # 一次演化的时长

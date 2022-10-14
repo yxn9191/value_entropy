@@ -2,11 +2,12 @@ import math
 
 import mesa
 
+from base.environment import BaseEnvironment
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 
-class CloudManufacturing(mesa.Model):
+class CloudManufacturing(BaseEnvironment):
 
     def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200):
         super().__init__()
@@ -15,8 +16,7 @@ class CloudManufacturing(mesa.Model):
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
         self.timestep = 0  # 环境当前处于的时间点
-        # 服务节点进化阈值
-        self.reproductive_threshold = 300
+
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
 
