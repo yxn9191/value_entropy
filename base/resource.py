@@ -21,26 +21,29 @@ class Resource(mesa.Agent):
     def __init__(self,
                  unique_id=None,
                  model=None,
-                 pos=None,
                  time_start=None,
                  time_end=None,
                  bonus=None,
                  cost=None,
-                 skill_requirements=None,
+                 skills=None,
                  ):
 
         assert self.name is not None
         assert self.collectible is not None
         
-        super().__init(unique_id, model, pos)
+        super().__init__(unique_id, model)
         self.time_start = time_start
         self.time_end = time_end
         self.bonus = bonus
         self.cost = cost
-        self.skill_requirements = dict(skill_requirements)
+        self.skills = skills
 
     def step(self):
         pass
 
+    # 构造可变长度的技能向量，用于匹配，有了这个向量可以利用约束条件，感觉应该是比较通用的
+    def match_vector(self, **skills):
+        self.skills = skills
+        return self.skills
 
 

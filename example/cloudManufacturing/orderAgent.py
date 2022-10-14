@@ -1,10 +1,12 @@
 from random import randint
 
 from base.agent import Agent
+from base.resource import Resource
 
 
-class OrderAgent(Agent):
+class OrderAgent(Resource):
     name = "Order"
+    collectible = True  # 是否可收集
 
     def __init__(self, unique_id,
                  model,
