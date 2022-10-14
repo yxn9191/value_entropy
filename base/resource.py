@@ -13,7 +13,7 @@ class Resource(mesa.Agent):
         time_end: The time when the resource disappears in the environment.
         bonus: The bonus of the agent to collect the resource.
         cost: The cost of the agent to collect the resource.
-        skill_requirements: Skills required to collect this resource.
+        skills: Skills required to collect this resource.
     """
     name = None
     collectible = None  # 是否可收集
