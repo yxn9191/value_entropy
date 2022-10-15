@@ -27,10 +27,9 @@ class Resource(mesa.Agent):
                  cost=None,
                  skills=None,
                  ):
-
         assert self.name is not None
         assert self.collectible is not None
-        
+
         super().__init__(unique_id, model)
         self.time_start = time_start
         self.time_end = time_end
@@ -45,5 +44,3 @@ class Resource(mesa.Agent):
     def match_vector(self, **skills):
         self.skills = skills
         return self.skills
-
-

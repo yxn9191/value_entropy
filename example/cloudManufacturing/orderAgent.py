@@ -52,6 +52,5 @@ class OrderAgent(Resource):
         else:
             self.skills.append([0, 0, 0])  # 出错，000无法与任何企业匹配
 
-
-    def step(self, actions=None):
+    def step(self):
         pass

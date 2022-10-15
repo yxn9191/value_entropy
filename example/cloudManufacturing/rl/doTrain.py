@@ -58,10 +58,10 @@ def build_Trainer(run_configuration):
         "env_config": env_config,
         'framework': 'torch',
         "multiagent": {
-                "policies": policies,
-                "policies_to_train": ["a"],
-                "policy_mapping_fn": policy_mapping_fun,
-            },
+            "policies": policies,
+            "policies_to_train": ["a"],
+            "policy_mapping_fn": policy_mapping_fun,
+        },
         "num_workers": trainer_config.get("num_workers")
     })
 

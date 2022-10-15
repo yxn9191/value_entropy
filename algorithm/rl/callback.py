@@ -1,12 +1,11 @@
-from typing import Dict, Optional, Sequence
-
-import pandas as pd
-from ray.rllib.env import BaseEnv
-from ray.rllib.agents.callbacks import DefaultCallbacks
-from ray.rllib.evaluation import MultiAgentEpisode, RolloutWorker
-from ray.rllib.policy import Policy, PolicyID
+from env_wrapper import RLlibEnvWrapper
+from typing import Dict, Sequence
 
 from env_wrapper import RLlibEnvWrapper
+from ray.rllib.agents.callbacks import DefaultCallbacks
+from ray.rllib.env import BaseEnv
+from ray.rllib.evaluation import MultiAgentEpisode, RolloutWorker
+from ray.rllib.policy import Policy, PolicyID
 
 
 class MyCallbacks(DefaultCallbacks):
@@ -14,5 +13,3 @@ class MyCallbacks(DefaultCallbacks):
                        policies: Dict[PolicyID, Policy],
                        episode: MultiAgentEpisode, **kwargs):
         envs: Sequence[RLlibEnvWrapper] = base_env.get_unwrapped()
-
-

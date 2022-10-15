@@ -34,7 +34,8 @@ agent_policy:
   model:
     custom_model: AgentPolicy
     custom_options:
-      fc_dim: 128
+      fc1_dim: 24
+      fc2_dim: 64
   use_gae: true
   vf_clip_param: 50.0
   vf_loss_coeff: 0.05

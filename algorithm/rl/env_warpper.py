@@ -1,4 +1,3 @@
-
 import warnings
 
 import numpy as np
@@ -9,11 +8,12 @@ from base.environment import BaseEnvironment
 
 _BIG_NUMBER = 1e20
 
-default_env_config={
-    width : 200, 
-    height : 200, 
-    episode_length : 100
+default_env_config = {
+    "width": 200,
+    "height": 200,
+    "episode_length": 100
 }
+
 
 def recursive_list_to_np_array(d):
     if isinstance(d, dict):
@@ -37,7 +37,8 @@ def recursive_list_to_np_array(d):
 class RLlibEnvWrapper(MultiAgentEnv):
     """
     """
-    def __init__(self, env_config = default_env_config, mesaEnv = BaseEnvironment):
+
+    def __init__(self, env_config=default_env_config, mesaEnv=BaseEnvironment):
         super(RLlibEnvWrapper, self).__init__
         self.env_config = env_config
         self.env = mesaEnv(**self.env_config)
@@ -107,5 +108,6 @@ class RLlibEnvWrapper(MultiAgentEnv):
 
     def step(self, action_dict):
         # 只优化寻找订单步骤
-        obs, rew, done, info = self.env.step(action_dict)
+        self.env.action_parse(action_dict)
+        obs, rew, done, info = self.env.step()
         return recursive_list_to_np_array(obs), rew, done, info

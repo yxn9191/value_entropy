@@ -1,5 +1,5 @@
-from copy import deepcopy
 import math
+from copy import deepcopy
 
 import mesa
 import numpy as np
@@ -19,8 +19,9 @@ class CloudManufacturing(BaseEnvironment):
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
         self.timestep = 0  # 环境当前处于的时间点
-        self.new_orders = [] #当前时刻产生的订单的数目
-        self.finish_orders = 0 #当前预期可以完成的order的数目（step中可以算到）
+        self.new_orders = []  # 当前时刻产生的订单的数目
+        self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
+        self.actions = None
 
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
@@ -85,6 +86,8 @@ class CloudManufacturing(BaseEnvironment):
             self.all_agent.append(s_C_3)
 
         self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agent}
+        self.all_orders = deepcopy(self.new_orders)  # 当前环境中的所有order
+        self._order_lookup = {str(order.unique_id): order for order in self.all_orders}
 
     def random_placeAgent(self, agent):
         x = self.random.randrange(self.grid.width)
@@ -131,6 +134,7 @@ class CloudManufacturing(BaseEnvironment):
                move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
                move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
                self.skill_constraint()
+
     # 比较两个agent是否彼此符合约束条件,即判断该service是否是order的潜在工人（充分条件）
     # 返回1代表是潜在工人
     def sufficient_constraint(self, order, service):
@@ -201,27 +205,24 @@ class CloudManufacturing(BaseEnvironment):
 
         return list
 
-    # 计算局部观察值
+    # 计算局部观察值,待修改
     def compute_order(self, agent):
         orders = dict()
-        # 首先根据视野大小，寻找视野内能看到的订单
-        neighbors_pos = self.model.grid.get_neighborhood(
-            agent.pos, moore=True, include_center=False, radius=agent.vision)
-        # 获取具体内容
-        neighborhoods = self.model.grid.get_cell_list_contents(neighbors_pos)
-        i = 0
-        for neighborhood in neighborhoods:
-            i += 1
-            if neighborhood.name == "order":
-                orders[str(neighborhood.unque_id)] = np.array([neighborhood.neighborhood, neighborhood.cost,
-                                                               neighborhood.bonus,
-                                                               distance(neighborhood.pos, agent.pos),
-                                                               self.sufficient_constraint(neighborhood, agent),
-                                                               neighborhood.match_vector(neighborhood.order_type,
-                                                                                         neighborhood.order_difficulty)]
-                                                              )
-            else:
-                orders["virtual_agent" + str(i)] = np.array([0, 0, 0, 0, 0, 0])
+        # 这里的self.all_orders要替换从匹配1中返回的orders
+        for neighborhood in self.all_orders:
+            orders[str(neighborhood.unque_id)] = np.array([neighborhood.neighborhood, neighborhood.cost,
+                                                           neighborhood.bonus,
+                                                           distance(neighborhood.pos, agent.pos),
+                                                           self.sufficient_constraint(neighborhood, agent),
+                                                           neighborhood.match_vector(neighborhood.order_type,
+                                                                                     neighborhood.order_difficulty)]
+                                                          )
+        # 生成虚拟订单
+        num_orders = len(self.all_orders)
+        while (num_orders < self.order_num):
+            orders[str(-num_orders)] = np.array([0, 0, 0, 0, 0, 0])
+            num_orders += 1
+
         return orders
 
     # 获得其他agent的观察
@@ -233,54 +234,62 @@ class CloudManufacturing(BaseEnvironment):
                 _obs[k] += obs[k][key]
         return _obs
 
-    # 生成观察值（强化学习的输入）
+    # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
         obs = {}
-        # 影响选择订单规则的内在属性
-        for agent in self.all_agent:
+        # 影响选择订单规则的内在属性,#这里的 self._agent_lookup要替换从匹配1中返回的agent
+        for agent in self._agent_lookup.values():
             obs[str(agent.unique_id)] = {"cooperation": agent.cooperation}
             obs[str(agent.unique_id)].update(self.compute_order(agent))
 
         _obs = self.get_other_agent_obs(obs)
 
-        for agent in self.all_agent:
+        for agent in self._agent_lookup.values():
             obs_ = deepcopy(_obs)
             del obs_[str(agent.unique_id)]
             obs[str(agent.unique_id)].update({"others": obs_.values})
 
+        # 生成虚拟企业
+        num_agents = len(self._agent_lookup)
+        while (num_agents < self.service_num):
+            obs[str(-num_agents)] = {"cooperation": 0}
+            other = {str(-i): np.array([0, 0, 0, 0, 0, 0]) for i in range(1000, 1200)}
+            obs[str(-num_agents)].update(other)
+            num_agents += 1
+
         return obs
 
-    def compute_agent_reward(self, agent, alpha = 0.1):
-        if len(self.new_orders)!=0:
+    def compute_agent_reward(self, cost, value, alpha=0.1):
+        if len(self.new_orders) != 0:
             bonus = 0
             for order in self.new_orders:
                 bonus += order.bonus
-            rew = alpha*self.finish_orders/len(self.new_orders) + (1-alpha)*agent.engry/bonus
+            rew = alpha * self.finish_orders / len(self.new_orders) + (1 - alpha) * value / cost
         else:
-            rew = 0
+            rew = (1 - alpha) * value / cost
         return rew
 
-    # 生成即时奖赏值（强化学习的输入,任务完成率和收益率）
-    def generate_rewards(self, alpha = 0.1):
-        # 具体计算公式待修改，形式如下   
-        reward = {str(agent.unique_id): self.compute_agent_reward(agent, alpha=alpha) for agent in self.all_agent}
-        return reward
-
-    def step(self, actions=None):
+    def step(self):
         """Advance the model by one step."""
         # self.schedule.step()
         self.timestep += 1
-        if actions is not None:
-            for agent_idx, agent_actions in actions.items():
+        alpha = 0.1
+        reward = dict()
+
+        if self.actions is not None:
+            cost, value = 0
+            #这里的self._agent_lookup也要换成算法1获得的企业集合
+            for agent_idx, agent_actions in self.actions.items():
                 agent = self._agent_lookup.get(str(agent_idx), None)
-                agent.step(agent_actions)
+                agent.action_parse(agent_actions)
+                cost, value = agent.step()
+                reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
 
         obs = self.generate_observations()
-        reward = self.generate_rewards()
-        #演化结束的判断，待修改
-        done = {"__all__":  self.timestep >= self.episode_length}
+        # 演化结束的判断，待修改
+        done = {"__all__": self.timestep >= self.episode_length}
         info = {k: {} for k in obs.keys()}
-        
+
         return obs, reward, done, info
 
 

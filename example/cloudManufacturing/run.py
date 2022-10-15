@@ -1,6 +1,6 @@
 import mesa
-from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
+from mesa.visualization.modules import CanvasGrid
 
 from example.cloudManufacturing.env import CloudManufacturing
 from example.cloudManufacturing.orderAgent import OrderAgent

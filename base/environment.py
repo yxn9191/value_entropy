@@ -26,6 +26,8 @@ class BaseEnvironment(mesa.Model):
         self.all_agent = []
         self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agent}
 
+        self.actions = None
+
     # 重置整个环境
     def reset(self):
         for agent in self.all_agent:
@@ -41,5 +43,8 @@ class BaseEnvironment(mesa.Model):
     def generate_rewards(self):
         pass
 
-    def step(self, actions=None):
+    def action_parse(self, action_dict):
+        self.actions = action_dict
+
+    def step(self):
         self.timestep = self.timestep + 1

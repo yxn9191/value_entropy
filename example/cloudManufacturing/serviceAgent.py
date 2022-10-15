@@ -13,7 +13,6 @@ class ServiceAgent(Agent):
                  difficulty,
                  organization,
                  speed=3,
-                 vision=10,
                  energy=randint(100, 200),
                  consumption=randint(10, 30),
                  failure_prob=0.2,
@@ -26,7 +25,6 @@ class ServiceAgent(Agent):
         self.difficulty = difficulty  # 可处理的订单的最大难度等级
         self.cooperation = cooperation  # 是否接受合作,接受为1，禁止为0
         self.speed = speed  # 移动速度为3
-        self.vision = vision  # 企业的视野半径
         self.move_cost = move_cost  # 移动单位距离的开销
         self.consumption = consumption  # 订单的成本
         self.failure_prob = failure_prob  # 企业处理失败订单的概率
@@ -64,7 +62,9 @@ class ServiceAgent(Agent):
 
     @property
     def action_space(self):
-        return self.vision**2
+        return self.model.num_order
 
-    def step(self, actions=None):
-        pass
+    # 返回当前选择的任务的
+    def step(self):
+        cost, value = 0
+        return cost, value
