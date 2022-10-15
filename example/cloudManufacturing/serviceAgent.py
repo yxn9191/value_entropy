@@ -30,11 +30,10 @@ class ServiceAgent(Agent):
         self.failure_prob = failure_prob  # 企业处理失败订单的概率
         self.create_time = self.model.timestep  # 企业agent被创建时间
         self.service_satisfaction = 0  # 企业的满意度
-        self.cooperation = cooperation # 是否合作
+        self.cooperation = cooperation  # 是否合作
         self.cooperation_service = []
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
         self.match_vector(self.service_type, self.difficulty)
-
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -69,6 +68,8 @@ class ServiceAgent(Agent):
 
     # 返回当前选择的任务后的收益和消耗，如果没有选择则返回0，1
     def step(self):
+        self.energy -= 10  # 假定每个step，企业的能量自动减少10
+
         cost = 1
         value = 0
         return value, cost
@@ -79,6 +80,3 @@ class ServiceAgent(Agent):
             return 1
         else:
             return 0
-
-
-
