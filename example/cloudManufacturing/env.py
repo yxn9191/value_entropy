@@ -19,8 +19,8 @@ class CloudManufacturing(BaseEnvironment):
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
         self.timestep = 0  # 环境当前处于的时间点
-        self.new_orders = [] #当前时刻产生的订单的数目
-        self.finish_orders = 0 #当前预期可以完成的order的数目（step中可以算到）
+        self.new_orders = []  # 当前时刻产生的订单的数目
+        self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
 
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
@@ -121,16 +121,6 @@ class CloudManufacturing(BaseEnvironment):
 
         return a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC
 
-    # 比较两个agent是否彼此符合约束条件
-    def constraint(self, order, service):
-        # 空间约束
-        # 时间约束
-        # 预算约束
-        # 技能约束
-        return distance(order.pos, service.pos) <= order.vision and \
-               move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
-               move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
-               self.skill_constraint()
     # 比较两个agent是否彼此符合约束条件,即判断该service是否是order的潜在工人（充分条件）
     # 返回1代表是潜在工人
     def sufficient_constraint(self, order, service):
@@ -250,18 +240,18 @@ class CloudManufacturing(BaseEnvironment):
 
         return obs
 
-    def compute_agent_reward(self, agent, alpha = 0.1):
-        if len(self.new_orders)!=0:
+    def compute_agent_reward(self, agent, alpha=0.1):
+        if len(self.new_orders) != 0:
             bonus = 0
             for order in self.new_orders:
                 bonus += order.bonus
-            rew = alpha*self.finish_orders/len(self.new_orders) + (1-alpha)*agent.engry/bonus
+            rew = alpha * self.finish_orders / len(self.new_orders) + (1 - alpha) * agent.engry / bonus
         else:
             rew = 0
         return rew
 
     # 生成即时奖赏值（强化学习的输入,任务完成率和收益率）
-    def generate_rewards(self, alpha = 0.1):
+    def generate_rewards(self, alpha=0.1):
         # 具体计算公式待修改，形式如下   
         reward = {str(agent.unique_id): self.compute_agent_reward(agent, alpha=alpha) for agent in self.all_agent}
         return reward
@@ -277,10 +267,10 @@ class CloudManufacturing(BaseEnvironment):
 
         obs = self.generate_observations()
         reward = self.generate_rewards()
-        #演化结束的判断，待修改
-        done = {"__all__":  self.timestep >= self.episode_length}
+        # 演化结束的判断，待修改
+        done = {"__all__": self.timestep >= self.episode_length}
         info = {k: {} for k in obs.keys()}
-        
+
         return obs, reward, done, info
 
 
