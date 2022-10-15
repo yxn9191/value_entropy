@@ -1,3 +1,4 @@
+from copy import deepcopy
 import math
 
 import mesa
@@ -149,7 +150,7 @@ class CloudManufacturing(BaseEnvironment):
         else:
             return 0
 
-    #计算agent 周围订单的(待补充）
+    #计算agent 周围订单的
     def compute_order(self, agent):
         orders = dict()
         neighborhoods = self.model.grid.get_cell_list_contents(agent.pos)
@@ -157,13 +158,23 @@ class CloudManufacturing(BaseEnvironment):
         for neighborhood in neighborhoods:
             i+=1
             if neighborhood.name == "order":
-                orders[str(neighborhood.unque_id)]=np.array([neighborhood.cost, neighborhood.bonus,
-                distance(neighborhood.pos,agent.pos),self.skill_constraint(neighborhood,agent),
+                orders[str(neighborhood.unque_id)]=np.array([neighborhood.neighborhood, neighborhood.cost,
+                neighborhood.bonus, distance(neighborhood.pos,agent.pos), self.skill_constraint(neighborhood,agent),
                 neighborhood.match_vector(neighborhood.order_type, neighborhood.order_difficulty)]
                 )
             else: 
-                orders["virtual_agent"+str(i)]  = np.array([0,0,0,0,0])
+                orders["virtual_agent"+str(i)]  = np.array([0,0,0,0,0,0])
         return orders
+
+    #获得其他agent的观察
+    def get_other_agent_obs(self, obs):
+        _obs = dict()
+        for k in obs.keys():
+            _obs[k] = []
+            for key in obs[k].keys():
+               _obs[k]+=obs[k][key]
+        return _obs 
+
 
     #生成观察值（强化学习的输入）
     def generate_observations(self):
@@ -171,25 +182,31 @@ class CloudManufacturing(BaseEnvironment):
         #影响选择订单规则的内在属性
         
         for agent in self.all_agent:
-
-            obs[str(agent.unique_id)] = {"time": self.timestep}
+            obs[str(agent.unique_id)] = {"cooperation": agent.cooperation}
             obs[str(agent.unique_id)].update(self.compute_order(agent))
 
+        _obs = self.get_other_agent_obs(obs)
+
+        for agent in self.all_agent:
+            obs_ = deepcopy(_obs)
+            del obs_[str(agent.unique_id)]
+            obs[str(agent.unique_id)].update({"others": obs_.values})
+        
         return obs
 
     # 生成即时奖赏值（强化学习的输入，待补充）
     def generate_rewards(self):
         #具体计算公式待修改，形式如下
-        #上一个时间的奖赏
-        utility_at_last_time_step = deepcopy(self.curr_optimization_metric)
-        #当前奖赏
-        self.curr_optimization_metric = {str(agent.unique_id): agent.compute_reward() for agent in self.all_agent}
-        #即时奖商
-        reward = {
-            k: float(v - utility_at_last_time_step[k])
-            for k, v in self.curr_optimization_metric.items()
-        }
-        reward = {str(agent.unique_id): 1 for agent in self.all_service}
+        # #上一个时间的奖赏
+        # utility_at_last_time_step = deepcopy(self.curr_optimization_metric)
+        # #当前奖赏
+        # self.curr_optimization_metric = {str(agent.unique_id): agent.compute_reward() for agent in self.all_agent}
+        # #即时奖商
+        # reward = {
+        #     k: float(v - utility_at_last_time_step[k])
+        #     for k, v in self.curr_optimization_metric.items()
+        # }
+        reward = {str(agent.unique_id): 1 for agent in self.all_agent}
         return reward
 
     def step(self, actions=None):
