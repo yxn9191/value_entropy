@@ -1,15 +1,19 @@
+import math
 from re import S
 from turtle import forward
 import torch
 import torch.nn as nn
 from gym.spaces import Box, Dict
+from ray.rllib.models import ModelCatalog
 from ray.rllib.models.modelv2 import ModelV2
-from ray.rllib.models.torch.misc import SlimConv2d,SlimFC
+from ray.rllib.models.torch.misc import SlimConv2d, SlimFC
+from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils import override
 from ray.rllib.policy.rnn_sequencing import add_time_dimension
 
 _MASK_NAME = "action_mask"
 _OTHER_NAME = "others"
+
 
 def apply_logit_mask(logits, mask):
     """Mask values of 1 are valid actions."
@@ -19,17 +23,20 @@ def apply_logit_mask(logits, mask):
 
     return logits + logit_mask
 
+
 def attention(self_input, other_inputs):
-    alpha = [ torch.dot(self_input, other_inputs[i])/math.sqrt(self_input.shape.size) for i in range(other_inputs.shape[0])]
+    alpha = [torch.dot(self_input, other_inputs[i]) / math.sqrt(self_input.shape.size) for i in
+             range(other_inputs.shape[0])]
     bate = [torch.exp(alpha[i]) / sum([torch.exp(alpha)]) for i in range(other_inputs.shape[0])]
     c_i = sum([torch.dot(bate[i], other_inputs[i]) for i in range(other_inputs.shape[0])])
     return c_i
 
-        
+
 class AgentPolicy(TorchModelV2, nn.Module):
     """"
     """
     custom_name = "AgentPolicy"
+
     def __init__(self, obs_space, action_space, num_outputs, model_config, name):
         super().__init__(obs_space, action_space, num_outputs, model_config, name)
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
@@ -50,29 +57,29 @@ class AgentPolicy(TorchModelV2, nn.Module):
         self.fc_input_shape = 0
         self.fc_keys = []
         self._input_keys = []
-        for k, v in obs_space.spaces.items():         
+        for k, v in obs_space.spaces.items():
             self._input_keys.append(k)
-            if k ==_MASK_NAME:
+            if k == _MASK_NAME:
                 pass
             else:
-                self.fc_input_shape+=v.shape[0]
+                self.fc_input_shape += v.shape[0]
                 self.fc_keys.append(k)
 
         self.fc1_dim = self.model_config["custom_model_config"]["fc_dim"]
         self.fc1 = SlimFC(self.fc_input_shape, self.fc1_dim)
         self.softmax = nn.Softmax(dim=None)
-        self.fc_2 = SlimFC(self.fc1_dim+1, 1)
-    
+        self.fc_2 = SlimFC(self.fc1_dim + 1, 1)
+
     @override(ModelV2)
     def forward(self, input_dict,
                 state,
                 seq_lens):
-        
+
         x = torch.cat([input_dict["obs"][k] for k in self.fc_keys], -1)
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])
         c = attention(x, y)
-        out = torch.cat([x,c], -1)
+        out = torch.cat([x, c], -1)
         out1 = self.softmax(out)
         out2 = self.fc_2(out)
 
@@ -80,14 +87,9 @@ class AgentPolicy(TorchModelV2, nn.Module):
         self._value_out = out2
 
         return torch.reshape(logits, (-1, self.num_outputs))
-    
+
     def value_function(self):
         return torch.reshape(self._value_out, [-1])
 
+
 ModelCatalog.register_custom_model(AgentPolicy.custom_name, AgentPolicy)
-
-
-
-
-
-        

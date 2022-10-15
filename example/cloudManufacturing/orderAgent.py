@@ -31,7 +31,8 @@ class OrderAgent(Resource):
         self.time_start = self.model.timestep  # 订单被创建时间
         self.time_end = self.time_start + self.left_duration
         self.order_satisfaction = 0  # 订单方的满意度
-        
+
+    # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):
         if order_type == "A":
             self.skills = [[1, 0, 0]]
@@ -50,6 +51,7 @@ class OrderAgent(Resource):
             self.skills.append([1, 0, 0])
         else:
             self.skills.append([0, 0, 0])  # 出错，000无法与任何企业匹配
+
 
     def step(self, actions=None):
         pass

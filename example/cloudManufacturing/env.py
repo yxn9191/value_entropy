@@ -148,10 +148,14 @@ class CloudManufacturing(BaseEnvironment):
         else:
             return 0
 
-    # 计算agent 周围订单的
+    # 计算局部观察值
     def compute_order(self, agent):
         orders = dict()
-        neighborhoods = self.model.grid.get_cell_list_contents(agent.pos)
+        # 首先根据视野大小，寻找视野内能看到的订单
+        neighbors_pos = self.model.grid.get_neighborhood(
+            agent.pos, moore=True, include_center=False, radius=agent.vision)
+        # 获取具体内容
+        neighborhoods = self.model.grid.get_cell_list_contents(neighbors_pos)
         i = 0
         for neighborhood in neighborhoods:
             i += 1

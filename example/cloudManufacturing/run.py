@@ -8,6 +8,7 @@ from example.cloudManufacturing.serviceAgent import ServiceAgent
 
 params = {"width": 10, "height": 10, "N": range(10, 500, 10)}
 
+
 def agent_portrayal(agent):
     if agent is None:
         return
@@ -37,7 +38,7 @@ def agent_portrayal(agent):
 
 model_params = {
     "title": mesa.visualization.StaticText("Parameters:"),
-    "num_organization":  mesa.visualization.Slider(
+    "num_organization": mesa.visualization.Slider(
         "Initial Organization Numbers", 100, 0, 5
     ),
     "num_service": mesa.visualization.Slider(

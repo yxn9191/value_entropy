@@ -1,4 +1,4 @@
-class Organization():
+class Organization:
     def __init__(self, id, model, members=None):
         self.id = id
         self.model = model
