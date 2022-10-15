@@ -82,8 +82,6 @@ class CloudManufacturing(BaseEnvironment):
             self.all_agent.append(s_C_3)
 
         self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agent}
-        # 环境中每个智能体的当前奖赏值
-        self.curr_optimization_metric = {id:0 for id in self._agent_lookup.keys}
 
         
 
@@ -160,22 +158,22 @@ class CloudManufacturing(BaseEnvironment):
             i+=1
             if neighborhood.name == "order":
                 orders[str(neighborhood.unque_id)]=np.array([neighborhood.cost, neighborhood.bonus,
-                distance(neighborhood.pos,agent.pos),skill_constraint(neighborhood,agent),
-                neighborhood.match_vector(neighborhood.order_type, order.order_difficulty)]
+                distance(neighborhood.pos,agent.pos),self.skill_constraint(neighborhood,agent),
+                neighborhood.match_vector(neighborhood.order_type, neighborhood.order_difficulty)]
                 )
             else: 
                 orders["virtual_agent"+str(i)]  = np.array([0,0,0,0,0])
         return orders
 
-    #生成观察值（强化学习的输入，待补充）
+    #生成观察值（强化学习的输入）
     def generate_observations(self):
         obs = {}
-        #影响选择订单规则的内在属性，待补充
+        #影响选择订单规则的内在属性
         
         for agent in self.all_agent:
 
             obs[str(agent.unique_id)] = {"time": self.timestep}
-            obs[str(agent.unique_id)].update(compute_order(agent))
+            obs[str(agent.unique_id)].update(self.compute_order(agent))
 
         return obs
 
@@ -186,7 +184,7 @@ class CloudManufacturing(BaseEnvironment):
         utility_at_last_time_step = deepcopy(self.curr_optimization_metric)
         #当前奖赏
         self.curr_optimization_metric = {str(agent.unique_id): agent.compute_reward() for agent in self.all_agent}
-        #即时奖
+        #即时奖商
         reward = {
             k: float(v - utility_at_last_time_step[k])
             for k, v in self.curr_optimization_metric.items()
