@@ -8,7 +8,7 @@ import yaml
 from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.logger import pretty_print
 
-from algrithmn.rl.env_warpper import RLlibEnvWrapper
+from algorithm.rl.env_warpper import RLlibEnvWrapper
 
 ray.init(log_to_driver=False)
 
