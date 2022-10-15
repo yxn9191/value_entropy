@@ -282,8 +282,10 @@ class CloudManufacturing(BaseEnvironment):
             for agent_idx, agent_actions in self.actions.items():
                 agent = self._agent_lookup.get(str(agent_idx), None)
                 agent.action_parse(agent_actions)
-                cost, value = agent.step()
+                value, cost= agent.step()
                 reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
+        ### 其他agent进行step(待补充）
+
 
         obs = self.generate_observations()
         # 演化结束的判断，待修改

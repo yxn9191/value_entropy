@@ -71,7 +71,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
 
         self.softmax = nn.Softmax(dim=None)
 
-        self.fc3 = SlimFC(self.fc1_dim + 1, 1)
+        self.fc4 = SlimFC(self.fc1_dim + 1, 1)
 
     @override(ModelV2)
     def forward(self, input_dict,
@@ -87,7 +87,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
         out2 = self.fc3(out)
 
         out1 = self.softmax(out1)
-        out2 = self.fc3(out2)
+        out2 = self.fc4(out2)
 
         logits = apply_logit_mask(out1, input_dict["obs"][_MASK_NAME])
         self._value_out = out2

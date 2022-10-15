@@ -20,7 +20,7 @@ class ServiceAgent(Agent):
                  move_cost=2,
                  ):
         super().__init__(unique_id, model)
-        self.energy = energy  # 企业的初始能量
+        self.energy = energy  # 企业的能量
         self.service_type = service_type  # 企业可以处理的订单类型：A,B,C,AB,AC,BC,ABC
         self.difficulty = difficulty  # 可处理的订单的最大难度等级
         self.cooperation = cooperation  # 是否接受合作,接受为1，禁止为0
@@ -64,7 +64,18 @@ class ServiceAgent(Agent):
     def action_space(self):
         return self.model.num_order
 
-    # 返回当前选择的任务的
+    # 返回当前选择的任务后的收益和消耗，如果没有选择则返回0，1
     def step(self):
-        cost, value = 0
-        return cost, value
+        cost = 1
+        value = 0
+        return value, cost
+
+    # 判断企业是否破产
+    def judge_destroy(self):
+        if self.energy < 0:
+            return 1
+        else:
+            return 0
+
+
+
