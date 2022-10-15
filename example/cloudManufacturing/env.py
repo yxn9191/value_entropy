@@ -28,6 +28,7 @@ class CloudManufacturing(BaseEnvironment):
 
         # Create agents（包括企业和订单）
         a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC = self.generate_order(self.order_num)
+
         self.schedule.add(a_A)
         self.schedule.add(a_B)
         self.schedule.add(a_C)
@@ -43,6 +44,8 @@ class CloudManufacturing(BaseEnvironment):
         self.random_placeAgent(a_BC)
         self.random_placeAgent(a_AC)
         self.random_placeAgent(a_ABC)
+
+        self.new_orders.extend([a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC])
 
         organization1 = Organization(1, self, [])
         organization2 = Organization(2, self, [])
@@ -86,6 +89,7 @@ class CloudManufacturing(BaseEnvironment):
             self.all_agent.append(s_C_3)
 
         self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agent}
+
         self.all_orders = deepcopy(self.new_orders)  # 当前环境中的所有order
         self._order_lookup = {str(order.unique_id): order for order in self.all_orders}
 
@@ -120,8 +124,6 @@ class CloudManufacturing(BaseEnvironment):
             a_AC = OrderAgent(self.next_id(), self, 3, "AC")
             a_ABC = OrderAgent(self.next_id(), self, 1, "ABC")
 
-            self.new_orders.extend([a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC])
-
         return a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC
 
     # 比较两个agent是否彼此符合约束条件
@@ -133,7 +135,7 @@ class CloudManufacturing(BaseEnvironment):
         return distance(order.pos, service.pos) <= order.vision and \
                move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
                move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
-               self.skill_constraint()
+               self.skill_constraint(order, service)
 
     # 比较两个agent是否彼此符合约束条件,即判断该service是否是order的潜在工人（充分条件）
     # 返回1代表是潜在工人
@@ -148,7 +150,7 @@ class CloudManufacturing(BaseEnvironment):
             if distance(order.pos, service.pos) <= order.vision and \
                     move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
                     move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
-                    self.skill_constraint().count(1) == len(order.skills) == len(service.skills):
+                    self.skill_constraint(order, service).count(1) == len(order.skills) == len(service.skills):
                 return 1
             else:
                 return 0
@@ -156,8 +158,8 @@ class CloudManufacturing(BaseEnvironment):
             # 在其他情况下，可以合作，则技能约束部分只需满足一个及以上的技能条件即可
             if distance(order.pos, service.pos) <= order.vision and \
                     move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
-                    move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
-                    self.skill_constraint().count(1) > 0:
+                    move_len(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost) and \
+                    self.skill_constraint(order, service).count(1) > 0:
                 return 1
             else:
                 return 0
@@ -192,12 +194,12 @@ class CloudManufacturing(BaseEnvironment):
             list[0] = 1
 
         # 判断订单的难度是否为企业可以处理的难度，如果满足此要求count+1
-        for i in order.skills[1][i]:
+        for i in order.skills[1]:
             order_diff = order_diff + order.skills[1][i] * 2 ^ (2 - i)
             i -= 1
 
-        for j in service.skills[1][j]:
-            service_diff = service_diff + service_diff[1][j] * 2 ^ (2 - j)
+        for j in service.skills[1]:
+            service_diff = service_diff + service.skills[1][j] * 2 ^ (2 - j)
             j -= 1
 
         if order_diff <= service_diff:
@@ -209,18 +211,17 @@ class CloudManufacturing(BaseEnvironment):
     def compute_order(self, agent):
         orders = dict()
         # 这里的self.all_orders要替换从匹配1中返回的orders
-        for neighborhood in self.all_orders:
-            orders[str(neighborhood.unque_id)] = np.array([neighborhood.neighborhood, neighborhood.cost,
+        for unque_id, neighborhood in zip(self._order_lookup.keys(),self._order_lookup.values()):
+            orders[unque_id] = np.array([neighborhood.cooperation, neighborhood.cost,
                                                            neighborhood.bonus,
                                                            distance(neighborhood.pos, agent.pos),
-                                                           self.sufficient_constraint(neighborhood, agent),
-                                                           neighborhood.match_vector(neighborhood.order_type,
-                                                                                     neighborhood.order_difficulty)]
+                                                           self.sufficient_constraint(neighborhood, agent)
+                                                          ]
                                                           )
         # 生成虚拟订单
         num_orders = len(self.all_orders)
         while (num_orders < self.order_num):
-            orders[str(-num_orders)] = np.array([0, 0, 0, 0, 0, 0])
+            orders[str(-num_orders)] = np.array([0, 0, 0, 0, 0])
             num_orders += 1
 
         return orders
@@ -229,9 +230,10 @@ class CloudManufacturing(BaseEnvironment):
     def get_other_agent_obs(self, obs):
         _obs = dict()
         for k in obs.keys():
-            _obs[k] = []
+            _obs[k] = [obs[k]["cooperation"]]
             for key in obs[k].keys():
-                _obs[k] += obs[k][key]
+                if key !="cooperation":
+                    _obs[k] += obs[k][key]
         return _obs
 
     # 生成观察值（强化学习的输入,待修改）

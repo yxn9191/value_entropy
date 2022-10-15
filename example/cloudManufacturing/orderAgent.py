@@ -31,6 +31,7 @@ class OrderAgent(Resource):
         self.time_start = self.model.timestep  # 订单被创建时间
         self.time_end = self.time_start + self.left_duration
         self.order_satisfaction = 0  # 订单方的满意度
+        self.match_vector(self.order_type, self.order_difficulty)
 
     # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):

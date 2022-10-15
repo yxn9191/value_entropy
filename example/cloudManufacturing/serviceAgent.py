@@ -30,8 +30,11 @@ class ServiceAgent(Agent):
         self.failure_prob = failure_prob  # 企业处理失败订单的概率
         self.create_time = self.model.timestep  # 企业agent被创建时间
         self.service_satisfaction = 0  # 企业的满意度
-        self.cooperation = []  # 合作处理订单的企业（初始时没有合作的企业）
+        self.cooperation = cooperation # 是否合作
+        self.cooperation_service = []
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
+        self.match_vector(self.service_type, self.difficulty)
+
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
