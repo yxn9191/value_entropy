@@ -103,10 +103,9 @@ class CloudManufacturing(BaseEnvironment):
         y = self.random.randrange(math.ceil(self.grid.height / 3 * 2), self.grid.height)
         self.grid.place_agent(agent, (x, y))
 
-    # 每个step都会进行匹配，每次匹配前检查订单和企业数量是否满足要求，如果少于规定的数目，则生成到对应到值
     # 企业数目减少的原因：破产死去
     # 订单数目减少的原因：1、超时死去 2、被完成
-    def generate_order_service(self, num_order):
+    def generate_order(self, num_order):
 
         # 波动公式(200为初始客户数,25为波动值)
         self.order_num = num_order + 25 * math.sin(self.schedule.steps)
