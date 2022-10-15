@@ -269,7 +269,19 @@ class CloudManufacturing(BaseEnvironment):
     def step(self, actions=None):
         """Advance the model by one step."""
         # self.schedule.step()
-        pass
+        self.timestep += 1
+        if actions is not None:
+            for agent_idx, agent_actions in actions.items():
+                agent = self._agent_lookup.get(str(agent_idx), None)
+                agent.step(agent_actions)
+
+        obs = self.generate_observations()
+        reward = self.generate_rewards()
+        #演化结束的判断，待修改
+        done = {"__all__":  self.timestep >= self.episode_length}
+        info = {k: {} for k in obs.keys()}
+        
+        return obs, reward, done, info
 
 
 # 计算两位置的直线距离
