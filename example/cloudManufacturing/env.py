@@ -19,6 +19,8 @@ class CloudManufacturing(BaseEnvironment):
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
         self.timestep = 0  # 环境当前处于的时间点
+        self.new_orders = [] #当前时刻产生的订单的数目
+        self.finish_orders = 0 #当前预期可以完成的order的数目（step中可以算到）
 
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
@@ -114,39 +116,80 @@ class CloudManufacturing(BaseEnvironment):
             a_BC = OrderAgent(self.next_id(), self, 2, "BC")
             a_AC = OrderAgent(self.next_id(), self, 3, "AC")
             a_ABC = OrderAgent(self.next_id(), self, 1, "ABC")
+
+            self.new_orders.extend([a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC])
+
         return a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC
 
-    # 比较两个agent是否彼此符合约束条件
-    def constraint(self, order, service):
+    # 比较两个agent是否彼此符合约束条件,即判断该service是否是order的潜在工人（充分条件）
+    # 返回1代表是潜在工人
+    def sufficient_constraint(self, order, service):
         # 空间约束
         # 时间约束
         # 预算约束
         # 技能约束
-        return distance(order.pos, service.pos) <= order.vision and \
-               move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
-               move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
-               self.skill_constraint()
 
-    # 判断是否满足技能向量的约束
+        # 如果订单或企业二者有一个是禁止合作的，则技能约束部分必须满足所有技能条件
+        if order.cooperation == 0 | service.cooperation == 0:
+            if distance(order.pos, service.pos) <= order.vision and \
+                    move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
+                    move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
+                    self.skill_constraint().count(1) == len(order.skills) == len(service.skills):
+                return 1
+            else:
+                return 0
+        else:
+            # 在其他情况下，可以合作，则技能约束部分只需满足一个及以上的技能条件即可
+            if distance(order.pos, service.pos) <= order.vision and \
+                    move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
+                    move_len(order.pos, service.pos) * service.move_cost <= (order.energy - order.consumption) and \
+                    self.skill_constraint().count(1) > 0:
+                return 1
+            else:
+                return 0
+
+    # 判断潜在工人组是否最终可获得该订单（必要条件）,可获得返回1，否则返回0
+    def necessary_constraint(self, order, services):
+        total_move_cost = 0
+        total_skill = [0 for i in range(len(order.skills))]
+
+        for service in services:
+            total_move_cost += distance(order, service) * service.move_cost
+            total_skill = [int(a or b) for (a, b) in zip(self.skill_constraint(order, service), total_skill)]
+
+        # 整体预算约束：小组成员的行程代价之和加上处理订单的消耗小于订单给予的价值（等于也不行，那不是白干了）&& 整体技能须满足该订单所有的技能要求
+        if order.bonus > total_move_cost + order.cost and total_skill.count(1) == len(order.skills):
+            return 1
+        else:
+            return 0
+
+    # 返回技能向量的满足列表
+    # 如满足第一个不满足第二个，返回[1,0]
     def skill_constraint(self, order, service):
         i = 2
         order_diff = 0
         j = 2
         service_diff = 0
+        # 是否满足技能点的列表
+        list = [0 for i in range(len(order.skills))]
 
+        # 判断订单的类型是否为企业可以处理的类型，如果满足此要求count+1
+        if all([(b - a) >= 0 for (a, b) in zip(order.skills[0], service.skills[0])]):
+            list[0] = 1
+
+        # 判断订单的难度是否为企业可以处理的难度，如果满足此要求count+1
         for i in order.skills[1][i]:
             order_diff = order_diff + order.skills[1][i] * 2 ^ (2 - i)
-            i = i - 1
+            i -= 1
 
         for j in service.skills[1][j]:
             service_diff = service_diff + service_diff[1][j] * 2 ^ (2 - j)
-            j = j - 1
+            j -= 1
 
-        if all([(b - a) >= 0 for (a, b) in zip(order.skills[0], service.skills[0])]) and \
-                order_diff <= service_diff:
-            return 1
-        else:
-            return 0
+        if order_diff <= service_diff:
+            list[1] = 1
+
+        return list
 
     # 计算局部观察值
     def compute_order(self, agent):
@@ -180,12 +223,10 @@ class CloudManufacturing(BaseEnvironment):
                 _obs[k] += obs[k][key]
         return _obs
 
-        # 生成观察值（强化学习的输入）
-
+    # 生成观察值（强化学习的输入）
     def generate_observations(self):
         obs = {}
         # 影响选择订单规则的内在属性
-
         for agent in self.all_agent:
             obs[str(agent.unique_id)] = {"cooperation": agent.cooperation}
             obs[str(agent.unique_id)].update(self.compute_order(agent))
@@ -199,19 +240,20 @@ class CloudManufacturing(BaseEnvironment):
 
         return obs
 
-    # 生成即时奖赏值（强化学习的输入，待补充）
-    def generate_rewards(self):
-        # 具体计算公式待修改，形式如下
-        # #上一个时间的奖赏
-        # utility_at_last_time_step = deepcopy(self.curr_optimization_metric)
-        # #当前奖赏
-        # self.curr_optimization_metric = {str(agent.unique_id): agent.compute_reward() for agent in self.all_agent}
-        # #即时奖商
-        # reward = {
-        #     k: float(v - utility_at_last_time_step[k])
-        #     for k, v in self.curr_optimization_metric.items()
-        # }
-        reward = {str(agent.unique_id): 1 for agent in self.all_agent}
+    def compute_agent_reward(self, agent, alpha = 0.1):
+        if len(self.new_orders)!=0:
+            bonus = 0
+            for order in self.new_orders:
+                bonus += order.bonus
+            rew = alpha*self.finish_orders/len(self.new_orders) + (1-alpha)*agent.engry/bonus
+        else:
+            rew = 0
+        return rew
+
+    # 生成即时奖赏值（强化学习的输入,任务完成率和收益率）
+    def generate_rewards(self, alpha = 0.1):
+        # 具体计算公式待修改，形式如下   
+        reward = {str(agent.unique_id): self.compute_agent_reward(agent, alpha=alpha) for agent in self.all_agent}
         return reward
 
     def step(self, actions=None):

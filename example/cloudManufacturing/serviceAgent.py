@@ -66,6 +66,5 @@ class ServiceAgent(Agent):
     def action_space(self):
         return self.vision**2
 
-
     def step(self, actions=None):
         pass
