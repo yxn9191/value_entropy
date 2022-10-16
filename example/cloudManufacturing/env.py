@@ -364,6 +364,7 @@ def skill_constraint(order, service):
 
     return list
 
+#注册强化学习环境
 def env_creator(env_config):   # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
     return RLlibEnvWrapper(env_config, mesaEnv=CloudManufacturing)
 
