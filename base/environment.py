@@ -1,5 +1,4 @@
 import mesa
-from base.registry import Registry
 
 class BaseEnvironment(mesa.Model):
     """
@@ -56,5 +55,3 @@ class BaseEnvironment(mesa.Model):
     def step(self):
         self.timestep = self.timestep + 1
 
-
-env_registry = Registry(BaseEnvironment)

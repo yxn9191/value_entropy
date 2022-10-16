@@ -9,8 +9,8 @@ from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.logger import pretty_print
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
+import policy_model
 from example.cloudManufacturing.env import CloudManufacturing
-from policy_model import  AgentPolicy
 
 ray.init(log_to_driver=False)
 
@@ -37,10 +37,10 @@ def process_args():
 
 def build_Trainer(run_configuration):
     trainer_config = run_configuration.get("trainer")
-    env_config = run_configuration.get("env")
+    env_config = run_configuration.get("env")["env_config"]
 
     # === Multiagent Policies ===
-    dummy_env = RLlibEnvWrapper(env_config)
+    dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
 
     # Policy tuples for agent/planner policy types
     agent_policy_tuple = (
@@ -53,8 +53,7 @@ def build_Trainer(run_configuration):
     policies = {"a": agent_policy_tuple}
 
     def policy_mapping_fun(i):
-        if str(i).isdigit() or i == "a":
-            return "a"
+         return "a"
 
     trainer_config.update({
         "env_config": env_config,
@@ -68,7 +67,7 @@ def build_Trainer(run_configuration):
     })
 
     trainer = A2CTrainer(
-        env= RLlibEnvWrapper,
+        env= run_configuration.get("env")["env_name"],
         config=trainer_config
     )
     return trainer

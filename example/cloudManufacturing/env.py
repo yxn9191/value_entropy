@@ -4,12 +4,13 @@ from copy import deepcopy
 import mesa
 import numpy as np
 
-from base.environment import BaseEnvironment, env_registry
+from base.environment import BaseEnvironment
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
+from ray.tune.registry import register_env
+from algorithm.rl.env_warpper import RLlibEnvWrapper
 
-@env_registry.add
 class CloudManufacturing(BaseEnvironment):
 
     name = "CloudManufacturing"
@@ -226,24 +227,31 @@ class CloudManufacturing(BaseEnvironment):
             obs[str(agent.unique_id)].update(self.compute_order(agent))
 
         _obs = self.get_other_agent_obs(obs)
-
+        obs_other = dict()
         for agent in self._agent_lookup.values():
             obs_ = deepcopy(_obs)
             del obs_[str(agent.unique_id)]
             obs[str(agent.unique_id)].update({"others": list(obs_.values())})
+            obs_other = {"others": list(obs_.values())}
+
 
         # 生成虚拟企业
         num_agents = len(self._agent_lookup)
+
         while num_agents < self.service_num:
             obs[str(-num_agents)] = {"cooperation": 0}
             # other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
             other = {str(-i): [0, 0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
+            action_mask = {"action_mask":[0 for i in range(int(self.order_num))]}
             obs[str(-num_agents)].update(other)
+            obs[str(-num_agents)].update(obs_other)
+            obs[str(-num_agents)].update(action_mask)
             num_agents += 1
 
         # Get each agent's action masks and incorporate them into the observations
         for aidx, amask in self.generate_action_mask().items():
             obs[aidx]["action_mask"] = amask
+
         return obs
 
     def compute_agent_reward(self, cost, value, alpha=0.1):
@@ -355,3 +363,8 @@ def skill_constraint(order, service):
         list[1] = 1
 
     return list
+
+def env_creator(env_config):   # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
+    return RLlibEnvWrapper(env_config, mesaEnv=CloudManufacturing)
+
+register_env(CloudManufacturing.name, env_creator)

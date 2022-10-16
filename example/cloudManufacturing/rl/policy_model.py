@@ -9,6 +9,7 @@ from ray.rllib.models.torch.misc import SlimFC
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils import override
 
+
 _MASK_NAME = "action_mask"
 _OTHER_NAME = "others"
 
@@ -77,7 +78,6 @@ class AgentPolicy(TorchModelV2, nn.Module):
     def forward(self, input_dict,
                 state,
                 seq_lens):
-
         x = torch.cat([input_dict["obs"][k] for k in self.fc_keys], -1)
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])
