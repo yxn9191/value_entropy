@@ -1,10 +1,10 @@
 import mesa
-
+from base.registry import Registry
 
 class BaseEnvironment(mesa.Model):
     """
     """
-
+    name = ""
     def __init__(self,
                  width=None,
                  height=None,
@@ -30,14 +30,14 @@ class BaseEnvironment(mesa.Model):
         self.curr_optimization_metric = dict()
 
         # 环境中所有的企业
-        self.all_agent = []
-        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agent}
+        self.all_agents = []
+        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
 
         self.actions = None
 
     # 重置整个环境
     def reset(self):
-        for agent in self.all_agent:
+        for agent in self.all_agents:
             agent.reset()
         obs = self.generate_observations()
         return obs
@@ -55,3 +55,6 @@ class BaseEnvironment(mesa.Model):
 
     def step(self):
         self.timestep = self.timestep + 1
+
+
+env_registry = Registry(BaseEnvironment)

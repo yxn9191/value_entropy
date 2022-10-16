@@ -5,6 +5,7 @@ env:
   height: 20
   num_organization: 2
   episode_length: 500
+  env_name: CloudManufacturing
 
 trainer:
   num_workers: 3
@@ -12,8 +13,7 @@ trainer:
   no_done_at_end: false
   observation_filter: NoFilter
   rollout_fragment_length: 200
-  sgd_minibatch_size: 1500
-  shuffle_sequences: true
+  microbatch_size: 1500
   train_batch_size: 6000
 
 general:

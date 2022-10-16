@@ -3,8 +3,8 @@ import warnings
 import numpy as np
 from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
+import base
 
-from base.environment import BaseEnvironment
 
 _BIG_NUMBER = 1e20
 
@@ -38,10 +38,10 @@ class RLlibEnvWrapper(MultiAgentEnv):
     """
     """
 
-    def __init__(self, env_config=default_env_config, mesaEnv=BaseEnvironment):
+    def __init__(self, env_config=default_env_config):
         super(RLlibEnvWrapper, self).__init__
         self.env_config = env_config
-        self.env = mesaEnv(**self.env_config)
+        self.env = base.make_env_instance(**self.env_config)
 
         obs = self.env.reset()
 
@@ -55,12 +55,12 @@ class RLlibEnvWrapper(MultiAgentEnv):
 
         else:
             self.action_space = spaces.Discrete(
-                self.envself.env.all_agents[0].action_spaces
+                self.env.all_agents[0].action_spaces
             )
             self.action_space.dtype = np.int64
 
         # 定义观察空间, 定义智能体观察的范围，具体形式为键值对， {name: value}
-        sample_agent = str(self.env.all_agent[0].unique_id)
+        sample_agent = str(self.env.all_agents[0].unique_id)
         self.observation_space = self._dict_to_spaces_dict(obs[sample_agent])
 
         self._agent_ids = self.env._agent_lookup.keys()
@@ -99,6 +99,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
             elif isinstance(_v, dict):
                 dict_of_spaces[k] = self._dict_to_spaces_dict(_v)
             else:
+                print(k,type(_v))
                 raise TypeError
         return spaces.Dict(dict_of_spaces)
 

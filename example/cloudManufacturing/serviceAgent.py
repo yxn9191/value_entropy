@@ -60,8 +60,8 @@ class ServiceAgent(Agent):
             self.skills.append([0, 0, 0])  # 出错，000无法与任何订单匹配
 
     @property
-    def action_space(self):
-        return self.model.num_order
+    def action_spaces(self):
+        return self.model.order_num
 
     # 选择订单
     def select_order(self):
@@ -81,10 +81,11 @@ class ServiceAgent(Agent):
                 prob = random.uniform(0, 1)
                 # 失败
                 if prob >= self.failure_prob:
-                    order_len = len(order.order_type)
-                    value = order.bonus / order_len
-                    cost = order.cost / order_len + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)])
+                    # order_len = len(order.order_type)
+                    value = order.bonus / len(order.services)
+                    cost = order.cost / len(order.services) + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)])
                     self.state = 1  # 状态改变，开始移动
+                    order.occupied = 1 # 任务被占用
 
             return value, cost
 

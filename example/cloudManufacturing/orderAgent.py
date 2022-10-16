@@ -32,6 +32,7 @@ class OrderAgent(Resource):
         self.time_end = self.time_start + self.left_duration
         self.order_satisfaction = 0  # 订单方的满意度
         self.skills = [[]]  # 技能向量基本形式
+        self.services = [] # 参加完成该订单的企业
         self.match_vector(self.order_type, self.order_difficulty)
 
     # 构建order的技能需求向量

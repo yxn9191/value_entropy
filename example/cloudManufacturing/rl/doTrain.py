@@ -9,6 +9,8 @@ from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.logger import pretty_print
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
+from example.cloudManufacturing.env import CloudManufacturing
+from policy_model import  AgentPolicy
 
 ray.init(log_to_driver=False)
 
@@ -21,7 +23,7 @@ def process_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--run-dir", type=str, default="phase1", help="Path to the directory for this run."
+        "--run-dir", type=str, default="phase", help="Path to the directory for this run."
     )
 
     args = parser.parse_args()
@@ -66,7 +68,7 @@ def build_Trainer(run_configuration):
     })
 
     trainer = A2CTrainer(
-        env=RLlibEnvWrapper,
+        env= RLlibEnvWrapper,
         config=trainer_config
     )
     return trainer

@@ -4,14 +4,15 @@ from copy import deepcopy
 import mesa
 import numpy as np
 
-from base.environment import BaseEnvironment
+from base.environment import BaseEnvironment, env_registry
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 
-
+@env_registry.add
 class CloudManufacturing(BaseEnvironment):
 
+    name = "CloudManufacturing"
     def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200,
                  ratio_low=0, ratio_medium=0):
         super().__init__()
@@ -63,9 +64,9 @@ class CloudManufacturing(BaseEnvironment):
             self.random_placeAgent_left_down(s_B_1)
             self.random_placeAgent_left_down(s_C_1)
 
-            self.all_agent.append(s_A_1)
-            self.all_agent.append(s_B_1)
-            self.all_agent.append(s_C_1)
+            self.all_agents.append(s_A_1)
+            self.all_agents.append(s_B_1)
+            self.all_agents.append(s_C_1)
 
         for j in range(math.floor(self.service_num / 3 / 3)):
             s_A_2 = ServiceAgent(self.next_id(), self, "A", 1, organization2)
@@ -76,9 +77,9 @@ class CloudManufacturing(BaseEnvironment):
             self.random_placeAgent_right_up(s_B_2)
             self.random_placeAgent_right_up(s_C_2)
 
-            self.all_agent.append(s_A_2)
-            self.all_agent.append(s_B_2)
-            self.all_agent.append(s_C_2)
+            self.all_agents.append(s_A_2)
+            self.all_agents.append(s_B_2)
+            self.all_agents.append(s_C_2)
 
         for j in range(math.floor(self.service_num / 3 / 36)):
             s_A_3 = ServiceAgent(self.next_id(), self, "A", 1, None)
@@ -88,11 +89,11 @@ class CloudManufacturing(BaseEnvironment):
             self.random_placeAgent(s_B_3)
             self.random_placeAgent(s_C_3)
 
-            self.all_agent.append(s_A_3)
-            self.all_agent.append(s_B_3)
-            self.all_agent.append(s_C_3)
+            self.all_agents.append(s_A_3)
+            self.all_agents.append(s_B_3)
+            self.all_agents.append(s_C_3)
 
-        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agent}
+        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
 
         self.all_orders = deepcopy(self.new_orders)  # 当前环境中的所有order
         self._order_lookup = {str(order.unique_id): order for order in self.all_orders}
@@ -176,10 +177,13 @@ class CloudManufacturing(BaseEnvironment):
             return 0
 
     def generate_action_mask(self):
-        masks = {str(agent.unique_id): [0 for i in range(int(self.order_num))] for agent in self.all_agent}
+        masks = {str(agent.unique_id): [0 for i in range(int(self.order_num))] for agent in self.all_agents}
+        position = 0
         for order in self.all_orders:
-            for agent in self.all_agent:
-                masks[str(agent.unique_id)] = self.sufficient_constraint(order, agent)
+            for agent in self.all_agents:
+                masks[str(agent.unique_id)][position] = self.sufficient_constraint(order, agent)
+            position += 1
+
         return masks
 
     # 计算局部观察值,待修改
@@ -198,8 +202,8 @@ class CloudManufacturing(BaseEnvironment):
         num_orders = len(self.all_orders)
         while num_orders < self.order_num:
             orders[str(-num_orders)] = [0, 0, 0, 0, 0]
+            orders[str(-num_orders)].extend([0 for i in range(len(self.all_orders[0].skills))])
             num_orders += 1
-            orders[unque_id].extend([0 for i in range(len(self.all_orders[0].skills))])
 
         return orders
 
@@ -226,7 +230,7 @@ class CloudManufacturing(BaseEnvironment):
         for agent in self._agent_lookup.values():
             obs_ = deepcopy(_obs)
             del obs_[str(agent.unique_id)]
-            obs[str(agent.unique_id)].update({"others": obs_.values})
+            obs[str(agent.unique_id)].update({"others": list(obs_.values())})
 
         # 生成虚拟企业
         num_agents = len(self._agent_lookup)
@@ -255,29 +259,37 @@ class CloudManufacturing(BaseEnvironment):
     # 平台反选
     def order_select(self):
         orders = self.actions.values()
-
-        l = len(orders) - len(set(orders.tolist()))
         order_action = dict()
-        if l != 0:
-            for a_id, order in zip(self.actions.keys(), self.actions.values()):
-                if order in order_action:
-                    a1 = self._agent_lookup(a_id)
-                    a2 = self._agent_lookup(order_action[order])
-                    o = self._order_lookup(order)
-                    d1 = distance(a1.pos, o.pos)
-                    d2 = distance(a2.pos, o.pos)
-                    if d1 < d2:
-                        order_action[order] = a1
-                        self.actions[order_action[order]] = -1
-                    else:
-                        order_action[order] = a2
-                        self.actions[a_id] = -1
-                    l -= 1
-                else:
-                    order_action[order] = a_id
+        for a_id, o_id in self.actions.items():
+            agent = self._agent_lookup[a_id]
+            order = self._order_lookup[o_id]
+            if o_id not in order_action:
+                order_action[o_id] = dict()
+                order_action[o_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
+            elif agent.service_type not in order_action[o_id]:
+                order_action[o_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
+            else:
+                order_action[o_id][agent.service_type].update({a_id: move_len(agent.pos, order.pos)})
 
-                if l == 0:
-                    break
+        for o_id in order_action.keys():
+            order_ = self._order_lookup[order]
+            if len(order_.ordertype) == 1:
+                order_.services.extend(min(order_action[o_id][order_.ordertype].items(), key=lambda x: x[1])[0])
+                for a_id in order_action[o_id][order_.ordertype].keys():
+                    if a_id not in order_.services:
+                        self._agent_lookup[a_id].action = -1
+            else:
+                if len(order_action[o_id]) < len(order_.ordertype):
+                    for service_type in order_action[o_id].keys():
+                        for a_id in order_action[o_id][service_type].keys():
+                            self._agent_lookup[a_id].action = -1
+                else:
+                    for service_type in order_action[o_id].keys():
+                        order_.services.extend(min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0])
+                    for service_type in order_action[o_id].keys():
+                        for a_id in order_action[o_id][service_type].keys():
+                            if a_id not in order_.services:
+                                self._agent_lookup[a_id].action = -1
 
     def step(self):
         """Advance the model by one step."""
@@ -290,6 +302,7 @@ class CloudManufacturing(BaseEnvironment):
             cost, value = 0
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
             self.order_select()
+
             for agent_idx, agent_actions in self.actions.items():
                 agent = self._agent_lookup.get(str(agent_idx), None)
                 agent.action_parse(agent_actions)
