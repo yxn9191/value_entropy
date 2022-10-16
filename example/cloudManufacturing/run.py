@@ -46,6 +46,12 @@ model_params = {
     ),
 
     "num_order": mesa.visualization.Slider("Initial Order Numbers", 50, 10, 200),
+    "ratio_low": mesa.visualization.Slider(
+        "Initial ratio_low", 100, 10, 300
+    ),
+    "ratio_medium": mesa.visualization.Slider(
+        "Initial ratio_medium", 100, 10, 300
+    ),
 }
 
 grid = CanvasGrid(agent_portrayal, 20, 20, 700, 700)

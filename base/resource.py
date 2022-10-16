@@ -26,6 +26,7 @@ class Resource(mesa.Agent):
                  bonus=None,
                  cost=None,
                  skills=None,
+                 occupied=0
                  ):
         assert self.name is not None
         assert self.collectible is not None
@@ -36,6 +37,7 @@ class Resource(mesa.Agent):
         self.bonus = bonus
         self.cost = cost
         self.skills = skills
+        self.occupied = occupied  # 0表示正常状态，1表示被占用
 
     def step(self):
         pass

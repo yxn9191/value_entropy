@@ -21,7 +21,7 @@ class OrderAgent(Resource):
         super().__init__(unique_id, model)
         self.vision = vision  # 订单的可看半径
         self.cost = cost  # 订单的成本
-        self.order_type = order_type  # 订单类型 A\B\C
+        self.order_type = order_type  # 订单类型 A\B\C的随机组合
         self.order_difficulty = int(order_difficulty)  # 订单难度 三个正整数 1\2\3 1为最简单
         self.cooperation = cooperation  # 订单是否支持合作（0禁止，1支持）
         self.bonus = bonus  # 订单的利润
@@ -31,18 +31,23 @@ class OrderAgent(Resource):
         self.time_start = self.model.timestep  # 订单被创建时间
         self.time_end = self.time_start + self.left_duration
         self.order_satisfaction = 0  # 订单方的满意度
+        self.skills = [[]]  # 技能向量基本形式
         self.match_vector(self.order_type, self.order_difficulty)
 
     # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):
-        if order_type == "A":
-            self.skills = [[1, 0, 0]]
-        elif order_type == "B":
-            self.skills = [[0, 1, 0]]
-        elif order_type == "C":
-            self.skills = [[0, 0, 1]]
+        if "A" in order_type:
+            self.skills[0].append(1)
         else:
-            self.skills = [[0, 0, 0]]  # 出错，000无法与任何企业匹配
+            self.skills[0].append(0)
+        if "B" in order_type:
+            self.skills[0].append(1)
+        else:
+            self.skills[0].append(0)
+        if "C" in order_type:
+            self.skills[0].append(1)
+        else:
+            self.skills[0].append(0)
 
         if order_difficulty == 1:
             self.skills.append([0, 0, 1])

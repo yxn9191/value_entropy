@@ -24,7 +24,7 @@ class ServiceAgent(Agent):
                  ):
         super().__init__(unique_id, model)
         self.energy = energy  # 企业的能量
-        self.service_type = service_type  # 企业可以处理的订单类型：A,B,C,AB,AC,BC,ABC
+        self.service_type = service_type  # 企业可以处理的订单类型：A,B,C
         self.difficulty = difficulty  # 可处理的订单的最大难度等级
         self.cooperation = cooperation  # 是否接受合作,接受为1，禁止为0
         self.speed = speed  # 移动速度为3
@@ -47,14 +47,6 @@ class ServiceAgent(Agent):
             self.skills = [[0, 1, 0]]
         elif service_type == "C":
             self.skills = [[0, 0, 1]]
-        elif service_type == "AB":
-            self.skills = [[1, 1, 0]]
-        elif service_type == "AC":
-            self.skills = [[1, 0, 1]]
-        elif service_type == "BC":
-            self.skills = [[0, 1, 1]]
-        elif service_type == "ABC":
-            self.skills = [[1, 1, 1]]
         else:
             self.skills = [[0, 0, 0]]  # 出错，000无法与任何订单匹配
 
@@ -84,22 +76,17 @@ class ServiceAgent(Agent):
             value = 0
             cost = 1
             if self.action != -1:
-                #这里也要换成算法1的订单集合
+                # 这里也要换成算法1的订单集合
                 order = self.model.all_order[self.action]
                 prob = random.uniform(0, 1)
-                #失败
+                # 失败
                 if prob >= self.failure_prob:
                     order_len = len(order.order_type)
-                    value = order.bonus/order_len
-                    cost = order.cost/order_len + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)])
-                    self.state = 1 #状态改变，开始移动
+                    value = order.bonus / order_len
+                    cost = order.cost / order_len + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)])
+                    self.state = 1  # 状态改变，开始移动
 
             return value, cost
-
-
-
-
-
 
     # 返回当前选择的任务后的收益和消耗，如果没有选择则返回0，1
     def step(self):
@@ -108,7 +95,6 @@ class ServiceAgent(Agent):
             self.select_order()
         elif self.state == 1:
             self.move()
-
 
     # 判断企业是否破产
     def judge_destroy(self):

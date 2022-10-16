@@ -12,7 +12,8 @@ from example.cloudManufacturing.serviceAgent import ServiceAgent
 
 class CloudManufacturing(BaseEnvironment):
 
-    def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200):
+    def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200,
+                 ratio_low=0, ratio_medium=0):
         super().__init__()
         self.order_num = num_order  # 不同类型订单的数目
         self.service_num = num_service  # 不同企业的数目
@@ -25,6 +26,9 @@ class CloudManufacturing(BaseEnvironment):
 
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
+        self.ratio_low = ratio_low
+        self.ratio_medium = ratio_medium
+        self.ratio_high = 1 - self.ratio_low - self.ratio_medium
 
         # Create agents（包括企业和订单）
         a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC = self.generate_order(self.order_num)
@@ -175,10 +179,8 @@ class CloudManufacturing(BaseEnvironment):
         masks = {str(agent.unique_id): [0 for i in range(int(self.order_num))] for agent in self.all_agent}
         for order in self.all_orders:
             for agent in self.all_agent:
-                masks[str(agent.unique_id)] = self.sufficient_constraint(order,agent)
+                masks[str(agent.unique_id)] = self.sufficient_constraint(order, agent)
         return masks
-
-
 
     # 计算局部观察值,待修改
     def compute_order(self, agent):
@@ -186,12 +188,12 @@ class CloudManufacturing(BaseEnvironment):
         # 这里的self.all_orders要替换从匹配1中返回的orders
         for unque_id, neighborhood in zip(self._order_lookup.keys(), self._order_lookup.values()):
             orders[unque_id] = [neighborhood.cooperation, neighborhood.cost,
-                                         neighborhood.bonus,
-                                         move_len(neighborhood.pos, agent.pos) * agent.move_cost,
-                                         self.sufficient_constraint(neighborhood, agent)
-                                         ]
+                                neighborhood.bonus,
+                                move_len(neighborhood.pos, agent.pos) * agent.move_cost,
+                                self.sufficient_constraint(neighborhood, agent)
+                                ]
 
-            orders[unque_id].extend(skill_constraint(neighborhood,agent))
+            orders[unque_id].extend(skill_constraint(neighborhood, agent))
         # 生成虚拟订单
         num_orders = len(self.all_orders)
         while num_orders < self.order_num:
@@ -210,7 +212,6 @@ class CloudManufacturing(BaseEnvironment):
                 if key != "cooperation":
                     _obs[k] += obs[k][key]
         return _obs
-
 
     # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
@@ -231,7 +232,7 @@ class CloudManufacturing(BaseEnvironment):
         num_agents = len(self._agent_lookup)
         while num_agents < self.service_num:
             obs[str(-num_agents)] = {"cooperation": 0}
-            #other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
+            # other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
             other = {str(-i): [0, 0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
             obs[str(-num_agents)].update(other)
             num_agents += 1
@@ -251,20 +252,20 @@ class CloudManufacturing(BaseEnvironment):
             rew = (1 - alpha) * value / cost
         return rew
 
-    #平台反选
+    # 平台反选
     def order_select(self):
         orders = self.actions.values()
 
         l = len(orders) - len(set(orders.tolist()))
-        order_action  = dict()
-        if l !=0:
+        order_action = dict()
+        if l != 0:
             for a_id, order in zip(self.actions.keys(), self.actions.values()):
                 if order in order_action:
                     a1 = self._agent_lookup(a_id)
                     a2 = self._agent_lookup(order_action[order])
                     o = self._order_lookup(order)
-                    d1 = distance(a1.pos,o.pos)
-                    d2 = distance(a2.pos,o.pos)
+                    d1 = distance(a1.pos, o.pos)
+                    d2 = distance(a2.pos, o.pos)
                     if d1 < d2:
                         order_action[order] = a1
                         self.actions[order_action[order]] = -1
@@ -275,9 +276,8 @@ class CloudManufacturing(BaseEnvironment):
                 else:
                     order_action[order] = a_id
 
-                if l == 0 :
+                if l == 0:
                     break
-
 
     def step(self):
         """Advance the model by one step."""
@@ -312,7 +312,7 @@ def distance(A, B):
 
 # 计算移动到新位置的路线长度
 def move_len(A, B):
-    return sum([abs(a - b) for (a, b) in zip(A, B)])#要取绝对值，不然可能出现负距离
+    return sum([abs(a - b) for (a, b) in zip(A, B)])  # 要取绝对值，不然可能出现负距离
 
 
 # 返回技能向量的满足列表

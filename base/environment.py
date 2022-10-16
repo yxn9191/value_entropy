@@ -10,15 +10,22 @@ class BaseEnvironment(mesa.Model):
                  height=None,
                  episode_length=None,
                  schedule=None,
-                 grid=None
+                 grid=None,
+                 ratio_low=0,
+                 ratio_medium=0
                  ):
         super().__init__()
+
         self.schedule = schedule
         self.grid = grid
         self.episode_length = episode_length  # 一次演化的时长
 
         self.timestep = 0  # 环境当前处于的时间点
 
+        self.ratio_low = ratio_low  # 低智能agent的比例
+        self.ratio_medium = ratio_medium  # 中智能agent的比例
+        self.ratio_high = 1 - self.ratio_low - self.ratio_medium  # 高智能agent的比例
+        assert self.ratio_low + self.ratio_medium <= 1
         # 环境中每个智能体的当前奖赏值
         self.curr_optimization_metric = dict()
 
