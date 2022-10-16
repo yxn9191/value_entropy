@@ -171,22 +171,33 @@ class CloudManufacturing(BaseEnvironment):
         else:
             return 0
 
+    def generate_action_mask(self):
+        masks = {str(agent.unique_id): [0 for i in range(int(self.order_num))] for agent in self.all_agent}
+        for order in self.all_orders:
+            for agent in self.all_agent:
+                masks[str(agent.unique_id)] = self.sufficient_constraint(order,agent)
+        return masks
+
+
+
     # 计算局部观察值,待修改
     def compute_order(self, agent):
         orders = dict()
         # 这里的self.all_orders要替换从匹配1中返回的orders
         for unque_id, neighborhood in zip(self._order_lookup.keys(), self._order_lookup.values()):
-            orders[unque_id] = np.array([neighborhood.cooperation, neighborhood.cost,
+            orders[unque_id] = [neighborhood.cooperation, neighborhood.cost,
                                          neighborhood.bonus,
-                                         distance(neighborhood.pos, agent.pos),
+                                         move_len(neighborhood.pos, agent.pos) * agent.move_cost,
                                          self.sufficient_constraint(neighborhood, agent)
                                          ]
-                                        )
+
+            orders[unque_id].extend(skill_constraint(neighborhood,agent))
         # 生成虚拟订单
         num_orders = len(self.all_orders)
         while num_orders < self.order_num:
-            orders[str(-num_orders)] = np.array([0, 0, 0, 0, 0])
+            orders[str(-num_orders)] = [0, 0, 0, 0, 0]
             num_orders += 1
+            orders[unque_id].extend([0 for i in range(len(self.all_orders[0].skills))])
 
         return orders
 
@@ -199,6 +210,7 @@ class CloudManufacturing(BaseEnvironment):
                 if key != "cooperation":
                     _obs[k] += obs[k][key]
         return _obs
+
 
     # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
@@ -219,10 +231,14 @@ class CloudManufacturing(BaseEnvironment):
         num_agents = len(self._agent_lookup)
         while num_agents < self.service_num:
             obs[str(-num_agents)] = {"cooperation": 0}
-            other = {str(-i): np.array([0, 0, 0, 0, 0, 0]) for i in range(1000, 1200)}
+            #other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
+            other = {str(-i): [0, 0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
             obs[str(-num_agents)].update(other)
             num_agents += 1
 
+        # Get each agent's action masks and incorporate them into the observations
+        for aidx, amask in self.generate_action_mask().items():
+            obs[aidx]["action_mask"] = amask
         return obs
 
     def compute_agent_reward(self, cost, value, alpha=0.1):
@@ -235,6 +251,34 @@ class CloudManufacturing(BaseEnvironment):
             rew = (1 - alpha) * value / cost
         return rew
 
+    #平台反选
+    def order_select(self):
+        orders = self.actions.values()
+
+        l = len(orders) - len(set(orders.tolist()))
+        order_action  = dict()
+        if l !=0:
+            for a_id, order in zip(self.actions.keys(), self.actions.values()):
+                if order in order_action:
+                    a1 = self._agent_lookup(a_id)
+                    a2 = self._agent_lookup(order_action[order])
+                    o = self._order_lookup(order)
+                    d1 = distance(a1.pos,o.pos)
+                    d2 = distance(a2.pos,o.pos)
+                    if d1 < d2:
+                        order_action[order] = a1
+                        self.actions[order_action[order]] = -1
+                    else:
+                        order_action[order] = a2
+                        self.actions[a_id] = -1
+                    l -= 1
+                else:
+                    order_action[order] = a_id
+
+                if l == 0 :
+                    break
+
+
     def step(self):
         """Advance the model by one step."""
         # self.schedule.step()
@@ -245,10 +289,11 @@ class CloudManufacturing(BaseEnvironment):
         if self.actions is not None:
             cost, value = 0
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
+            self.order_select()
             for agent_idx, agent_actions in self.actions.items():
                 agent = self._agent_lookup.get(str(agent_idx), None)
                 agent.action_parse(agent_actions)
-                value, cost = agent.step()
+                value, cost = agent.select_order()
                 reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
         ### 其他agent进行step(待补充）
 
@@ -267,7 +312,7 @@ def distance(A, B):
 
 # 计算移动到新位置的路线长度
 def move_len(A, B):
-    return sum([(a - b) for (a, b) in zip(A, B)])
+    return sum([abs(a - b) for (a, b) in zip(A, B)])#要取绝对值，不然可能出现负距离
 
 
 # 返回技能向量的满足列表

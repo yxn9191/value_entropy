@@ -2,6 +2,8 @@
 from random import randint
 
 from base.agent import Agent
+import random
+import math
 
 
 class ServiceAgent(Agent):
@@ -18,6 +20,7 @@ class ServiceAgent(Agent):
                  failure_prob=0.2,
                  cooperation=1,
                  move_cost=2,
+                 intelligence_level=2
                  ):
         super().__init__(unique_id, model)
         self.energy = energy  # 企业的能量
@@ -34,6 +37,8 @@ class ServiceAgent(Agent):
         self.cooperation_service = []
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
         self.match_vector(self.service_type, self.difficulty)
+
+        self.intelligence_level = intelligence_level
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -66,13 +71,44 @@ class ServiceAgent(Agent):
     def action_space(self):
         return self.model.num_order
 
+    # 选择订单
+    def select_order(self):
+        # 零智力
+        if self.intelligence_level == 0:
+            pass
+        # 低智力
+        elif self.intelligence_level == 1:
+            pass
+        # 高智力
+        elif self.intelligence_level == 2:
+            value = 0
+            cost = 1
+            if self.action != -1:
+                #这里也要换成算法1的订单集合
+                order = self.model.all_order[self.action]
+                prob = random.uniform(0, 1)
+                #失败
+                if prob >= self.failure_prob:
+                    order_len = len(order.order_type)
+                    value = order.bonus/order_len
+                    cost = order.cost/order_len + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)])
+                    self.state = 1 #状态改变，开始移动
+
+            return value, cost
+
+
+
+
+
+
     # 返回当前选择的任务后的收益和消耗，如果没有选择则返回0，1
     def step(self):
         self.energy -= 10  # 假定每个step，企业的能量自动减少10
+        if self.state == 0:
+            self.select_order()
+        elif self.state == 1:
+            self.move()
 
-        cost = 1
-        value = 0
-        return value, cost
 
     # 判断企业是否破产
     def judge_destroy(self):
