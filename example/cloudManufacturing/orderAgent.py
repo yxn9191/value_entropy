@@ -27,13 +27,14 @@ class OrderAgent(Resource):
         self.bonus = bonus  # 订单的利润
         self.handling_time = handling_time  # 订单预计处理时间 4-step
         self.max_duration = max_duration  # 订单的生命周期（超出后未接单会消失），10-step
-        self.left_duration = self.max_duration  # 订单的剩余时间
-        self.time_start = self.model.timestep  # 订单被创建时间
-        self.time_end = self.time_start + self.left_duration
+        self.left_duration = self.max_duration - (self.model.schedule.steps - self.time_start)  # 订单的剩余时间
+        self.time_start = self.model.schedule.steps # 订单被创建时间
+        self.time_end = self.time_start + self.max_duration
         self.order_satisfaction = 0  # 订单方的满意度
         self.skills = [[]]  # 技能向量基本形式
-        self.services = [] # 参加完成该订单的企业
+        self.services = []  # 参加完成该订单的企业
         self.match_vector(self.order_type, self.order_difficulty)
+        self.done = False # 订单是否被完成
 
     # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):
@@ -59,5 +60,12 @@ class OrderAgent(Resource):
         else:
             self.skills.append([0, 0, 0])  # 出错，000无法与任何企业匹配
 
+    def destroy(self):
+        self.done = True
+
     def step(self):
-        pass
+        self.left_duration -= 1
+        # 判断生命周期结束还没被处理，则销毁自身
+        if self.left_duration == 0:
+            self.destroy()
+

@@ -38,11 +38,16 @@ class Resource(mesa.Agent):
         self.cost = cost
         self.skills = skills
         self.occupied = occupied  # 0表示正常状态，1表示被占用
+        self.done = False # 该物资是否被收集，可以清理了
 
     def step(self):
-        pass
+        if self.done:
+            self.destroy
 
     # 构造可变长度的技能向量，用于匹配，有了这个向量可以利用约束条件，感觉应该是比较通用的
     def match_vector(self, **skills):
         self.skills = skills
         return self.skills
+
+    def destroy(self):
+        self.done = True

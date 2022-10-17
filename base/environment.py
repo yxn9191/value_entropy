@@ -1,5 +1,7 @@
 import mesa
 
+from base.agent import Agent
+from base.resource import Resource
 
 
 class BaseEnvironment(mesa.Model):
@@ -32,11 +34,16 @@ class BaseEnvironment(mesa.Model):
         # 环境中每个智能体的当前奖赏值
         self.curr_optimization_metric = dict()
 
-        # 环境中所有的企业
+        # 环境中所有的可运动agent
         self.all_agents = []
+        # 环境中所有Resource
+        self.all_resources = []
+        self.set_all_agents_list()
         self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
+        self._resource_lookup = {str(resource.unique_id): resource for resource in self.all_resources}
 
         self.actions = None
+
 
     # 重置整个环境
     def reset(self):
@@ -56,8 +63,18 @@ class BaseEnvironment(mesa.Model):
     def action_parse(self, action_dict):
         self.actions = action_dict
 
+    def set_all_agents_list(self):
+        for agent in self.schedule.agents:
+            if agent.isinstance(Resource):
+                self.all_resources.append(agent)
+            elif agent.isinstance(Agent):
+                self.all_agents.append(agent)
+            else:
+                pass
+
+
     def step(self):
-        self.timestep = self.timestep + 1
+        self.set_all_agents_list()
 
 
 

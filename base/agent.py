@@ -42,6 +42,7 @@ class Agent(mesa.Agent):
         self.state = state  # define the state of the agent
         self.multi_action_mode = bool(multi_action_mode)
         self.action = None
+        self.done = False  # 是否可以被移除
 
     # 构造可变长度的技能向量，用于匹配，有了这个向量可以利用约束条件，感觉应该是比较通用的
     def match_vector(self, **skills):
@@ -60,6 +61,9 @@ class Agent(mesa.Agent):
 
     def move(self):
         self.energy = self.energy - self.consumption
+
+    def destroy(self):
+        self.done = True
 
     def step(self):
         pass

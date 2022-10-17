@@ -37,6 +37,7 @@ class ServiceAgent(Agent):
         self.cooperation_service = []
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
         self.match_vector(self.service_type, self.difficulty)
+        self.done = False
 
         self.intelligence_level = intelligence_level
 
@@ -85,21 +86,18 @@ class ServiceAgent(Agent):
                     value = order.bonus / len(order.services)
                     cost = order.cost / len(order.services) + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)])
                     self.state = 1  # 状态改变，开始移动
-                    order.occupied = 1 # 任务被占用
+                    order.occupied = 1  # 任务被占用
 
             return value, cost
 
     # 返回当前选择的任务后的收益和消耗，如果没有选择则返回0，1
     def step(self):
+        if self.energy < 0:
+            self.done = True
         self.energy -= 10  # 假定每个step，企业的能量自动减少10
         if self.state == 0:
             self.select_order()
         elif self.state == 1:
             self.move()
 
-    # 判断企业是否破产
-    def judge_destroy(self):
-        if self.energy < 0:
-            return 1
-        else:
-            return 0
+
