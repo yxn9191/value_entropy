@@ -31,7 +31,7 @@ class ServiceAgent(Agent):
         self.move_cost = move_cost  # 移动单位距离的开销
         self.consumption = consumption  # 订单的成本
         self.failure_prob = failure_prob  # 企业处理失败订单的概率
-        self.create_time = self.model.timestep  # 企业agent被创建时间
+        self.create_time = self.model.schedule.steps  # 企业agent被创建时间
         self.service_satisfaction = 0  # 企业的满意度
         self.cooperation = cooperation  # 是否合作
         self.cooperation_service = []

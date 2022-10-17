@@ -38,9 +38,8 @@ class BaseEnvironment(mesa.Model):
         self.all_agents = []
         # 环境中所有Resource
         self.all_resources = []
-        self.set_all_agents_list()
-        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
-        self._resource_lookup = {str(resource.unique_id): resource for resource in self.all_resources}
+        self._agent_lookup = []
+        self._resource_lookup = []
 
         self.actions = None
 
@@ -65,13 +64,15 @@ class BaseEnvironment(mesa.Model):
 
     def set_all_agents_list(self):
         for agent in self.schedule.agents:
-            if agent.isinstance(Resource):
+            if isinstance(agent,Resource):
                 self.all_resources.append(agent)
-            elif agent.isinstance(Agent):
+            elif isinstance(agent,Agent):
                 self.all_agents.append(agent)
             else:
                 pass
 
+        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
+        self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}
 
     def step(self):
         self.set_all_agents_list()

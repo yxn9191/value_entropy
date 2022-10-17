@@ -27,8 +27,8 @@ class OrderAgent(Resource):
         self.bonus = bonus  # 订单的利润
         self.handling_time = handling_time  # 订单预计处理时间 4-step
         self.max_duration = max_duration  # 订单的生命周期（超出后未接单会消失），10-step
-        self.left_duration = self.max_duration - (self.model.schedule.steps - self.time_start)  # 订单的剩余时间
         self.time_start = self.model.schedule.steps # 订单被创建时间
+        self.left_duration = self.max_duration - (self.model.schedule.steps - self.time_start)  # 订单的剩余时间
         self.time_end = self.time_start + self.max_duration
         self.order_satisfaction = 0  # 订单方的满意度
         self.skills = [[]]  # 技能向量基本形式
