@@ -64,12 +64,22 @@ class ServiceAgent(Agent):
     def action_spaces(self):
         return len(self.model.all_resource)
 
+    def set_intelligence(self, level):
+        self.intelligence_level = level
+
+    # 低（零）智能的订单选择函数
+    def low_select(self):
+        pass
+    # 中智能的订单选择函数
+    def medium_select(self):
+        pass
+
     # 选择订单
     def select_order(self):
         # 零智力
         if self.intelligence_level == 0:
             pass
-        # 低智力
+        # 中智力
         elif self.intelligence_level == 1:
             pass
         # 高智力
@@ -99,5 +109,3 @@ class ServiceAgent(Agent):
             self.select_order()
         elif self.state == 1:
             self.move()
-
-

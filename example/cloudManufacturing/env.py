@@ -3,7 +3,7 @@ from copy import deepcopy
 import random
 
 import mesa
-import numpy as np
+from mesa import DataCollector
 
 from base.environment import BaseEnvironment
 from example.cloudManufacturing.orderAgent import OrderAgent
@@ -41,6 +41,25 @@ class CloudManufacturing(BaseEnvironment):
         self.generate_services(num_service)
         self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
+
+        # # 数据收集器
+        # self.collector = DataCollector(
+        #     model_reporters={"Social Reward": },  # 计算社会整体收益
+        #     agent_reporters={"Service Num": lambda m: m.schedule.get_type_count(ServiceAgent)}
+        # )
+
+    # 修改agent的智能等级
+    def set_intelligence(self):
+        temp_agents = set(self.all_agents)
+        low_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents)*self.ratio_low))]
+        medium_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents)*self.ratio_medium))]
+        hight_agents = temp_agents
+        for agent in low_agents:
+            agent.set_intelligence(0)
+        for agent in medium_agents:
+            agent.set_intelligence(1)
+        for agent in hight_agents:
+            agent.set_intelligence(2)
 
     def random_placeAgent(self, agent):
         x = self.random.randrange(self.grid.width)
@@ -192,6 +211,8 @@ class CloudManufacturing(BaseEnvironment):
 
         return obs
 
+
+
     def compute_agent_reward(self, cost, value, alpha=0.1):
         if len(self.new_orders) != 0:
             bonus = 0
@@ -285,13 +306,15 @@ class CloudManufacturing(BaseEnvironment):
                 value, cost = agent.select_order()
                 reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
 
+
         obs = self.generate_observations()
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in obs.keys()}
 
-        #激活agent，每个agent执行自己全部动作
-        self.schedule.step()
+        # self.collector.collect(self)
+        # 激活agent，每个agent执行自己全部动作
+        # self.schedule.step()
 
         return obs, reward, done, info
 
@@ -348,6 +371,9 @@ def generate_service_type():
 def generate_difficulty():
     return random.randint(1, 3)
 
+#     #
+# def social_reward(model):
+#     return model.finish_orders / len(model.new_orders)
 
 # 注册强化学习环境
 def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config

@@ -1,4 +1,5 @@
 import mesa
+from mesa import DataCollector
 
 from base.agent import Agent
 from base.resource import Resource
@@ -42,6 +43,8 @@ class BaseEnvironment(mesa.Model):
         self._resource_lookup = []
 
         self.actions = None
+        # 数据收集器
+        self.datacollector = DataCollector()
 
 
     # 重置整个环境

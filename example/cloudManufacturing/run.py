@@ -55,7 +55,14 @@ model_params = {
 }
 
 grid = CanvasGrid(agent_portrayal, 20, 20, 700, 700)
+# chart = mesa.visualization.ChartModule(
+#     [{"Label": "Social Reward", "Color": "Black"},
+#      {"Label": "Service Num", "Color": "#666666"}
+#      ], data_collector_name="collector"
+# )
+
 server = ModularServer(CloudManufacturing,
                        [grid],
                        "CloudManufacturing", model_params)
+
 server.launch()
