@@ -290,8 +290,8 @@ class CloudManufacturing(BaseEnvironment):
         done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in obs.keys()}
 
-        # 激活agent，每个agent执行自己全部动作
-        # self.schedule.step()
+        #激活agent，每个agent执行自己全部动作
+        self.schedule.step()
 
         return obs, reward, done, info
 
@@ -339,9 +339,11 @@ def generate_order_type():
     weight = {"A": 0.2, "B": 0.2, "C": 0.2, "AB": 0.1, "AC": 0.1, "BC": 0.1, "ABC": 0.1}
     return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
 
+
 def generate_service_type():
     weight = {"A": 0.3, "B": 0.3, "C": 0.4}
     return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
+
 
 def generate_difficulty():
     return random.randint(1, 3)

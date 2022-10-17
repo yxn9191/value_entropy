@@ -62,7 +62,7 @@ class ServiceAgent(Agent):
 
     @property
     def action_spaces(self):
-        return self.model.order_num
+        return len(self.model.all_resource)
 
     # 选择订单
     def select_order(self):
@@ -78,7 +78,7 @@ class ServiceAgent(Agent):
             cost = 1
             if self.action != -1:
                 # 这里也要换成算法1的订单集合
-                order = self.model.all_order[self.action]
+                order = self.model.all_resources[self.action]
                 prob = random.uniform(0, 1)
                 # 失败
                 if prob >= self.failure_prob:
