@@ -62,7 +62,7 @@ class ServiceAgent(Agent):
 
     @property
     def action_spaces(self):
-        return len(self.model.all_resource)
+        return self.model.M
 
     def set_intelligence(self, level):
         self.intelligence_level = level
@@ -86,7 +86,7 @@ class ServiceAgent(Agent):
         elif self.intelligence_level == 2:
             value = 0
             cost = 1
-            if self.action != -1:
+            if self.action != -1 and self.action !=None:
                 # 这里也要换成算法1的订单集合
                 order = self.model.all_resources[self.action]
                 prob = random.uniform(0, 1)
