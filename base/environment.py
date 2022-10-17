@@ -1,10 +1,12 @@
 import mesa
-from base.registry import Registry
+
+
 
 class BaseEnvironment(mesa.Model):
     """
     """
     name = ""
+
     def __init__(self,
                  width=None,
                  height=None,
@@ -58,4 +60,4 @@ class BaseEnvironment(mesa.Model):
         self.timestep = self.timestep + 1
 
 
-env_registry = Registry(BaseEnvironment)
+

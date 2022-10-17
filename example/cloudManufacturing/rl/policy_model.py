@@ -9,6 +9,7 @@ from ray.rllib.models.torch.misc import SlimFC
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils import override
 
+
 _MASK_NAME = "action_mask"
 _OTHER_NAME = "others"
 
@@ -57,7 +58,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
         self._input_keys = []
         for k, v in obs_space.spaces.items():
             self._input_keys.append(k)
-            if k == _MASK_NAME:
+            if k == _MASK_NAME or k == _OTHER_NAME:
                 pass
             else:
                 self.fc_input_shape += v.shape[0]
