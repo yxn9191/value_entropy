@@ -35,6 +35,8 @@ class CloudManufacturing(BaseEnvironment):
         self.ratio_low = ratio_low
         self.ratio_medium = ratio_medium
         self.ratio_high = 1 - self.ratio_low - self.ratio_medium
+        self.match_agent = set()
+        self.match_order = set()
 
         # Create agents（包括企业和订单）
         a_A, a_B, a_C, a_AB, a_BC, a_AC, a_ABC = self.generate_order(self.order_num)
@@ -195,17 +197,17 @@ class CloudManufacturing(BaseEnvironment):
     def compute_order(self, agent):
         orders = dict()
         # 这里的self.all_orders要替换从匹配1中返回的orders
-        for unque_id, neighborhood in zip(self._order_lookup.keys(), self._order_lookup.values()):
-            orders[unque_id] = [neighborhood.cooperation, neighborhood.cost,
+        for neighborhood in self.match_order:
+            orders[neighborhood.unique_id] = [neighborhood.cooperation, neighborhood.cost,
                                 neighborhood.bonus,
                                 move_len(neighborhood.pos, agent.pos) * agent.move_cost,
                                 self.sufficient_constraint(neighborhood, agent)
                                 ]
 
-            orders[unque_id].extend(skill_constraint(neighborhood, agent))
+            orders[neighborhood.unique_id].extend(skill_constraint(neighborhood, agent))
         # 生成虚拟订单
-        num_orders = len(self.all_orders)
-        while num_orders < self.order_num:
+        num_orders = len(self.match_order)
+        while num_orders < self.M:
             orders[str(-num_orders)] = [0, 0, 0, 0, 0]
             orders[str(-num_orders)].extend([0 for i in range(len(self.all_orders[0].skills))])
             num_orders += 1
@@ -232,7 +234,8 @@ class CloudManufacturing(BaseEnvironment):
 
         _obs = self.get_other_agent_obs(obs)
         obs_other = dict()
-        for agent in self._agent_lookup.values():
+        match_agent = list(self.match_agent)
+        for agent in match_agent:
             obs_ = deepcopy(_obs)
             del obs_[str(agent.unique_id)]
             obs[str(agent.unique_id)].update({"others": list(obs_.values())})
@@ -240,9 +243,9 @@ class CloudManufacturing(BaseEnvironment):
 
 
         # 生成虚拟企业
-        num_agents = len(self._agent_lookup)
+        num_agents = len(self.match_agent)
 
-        while num_agents < self.service_num:
+        while num_agents < self.N:
             obs[str(-num_agents)] = {"cooperation": 0}
             # other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
             other = {str(-i): [0, 0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
@@ -284,7 +287,8 @@ class CloudManufacturing(BaseEnvironment):
                         W.update(G)
                         T.add(order)
                     else:
-                        return T, W
+                        break
+        return T, W
 
 
     # 平台反选
@@ -329,6 +333,8 @@ class CloudManufacturing(BaseEnvironment):
         # self.schedule.step()
         alpha = 0.1
         reward = dict()
+
+        self.match_order,self.match_agent = self.matching_service_order()
 
         if self.actions is not None:
             cost, value = 0
