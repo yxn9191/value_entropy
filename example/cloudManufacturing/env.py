@@ -53,7 +53,7 @@ class CloudManufacturing(BaseEnvironment):
         organization = Organization(random.randint(1, 2), self, [])
 
         for j in range(new_service_num):
-            s = ServiceAgent(self.next_id(), self, "A", generate_difficulty()
+            s = ServiceAgent(self.next_id(), self, generate_service_type(), generate_difficulty()
                              , organization)
 
             self.schedule.add(s)
@@ -339,6 +339,9 @@ def generate_order_type():
     weight = {"A": 0.2, "B": 0.2, "C": 0.2, "AB": 0.1, "AC": 0.1, "BC": 0.1, "ABC": 0.1}
     return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
 
+def generate_service_type():
+    weight = {"A": 0.3, "B": 0.3, "C": 0.4}
+    return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
 
 def generate_difficulty():
     return random.randint(1, 3)
