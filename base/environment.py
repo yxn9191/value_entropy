@@ -1,6 +1,5 @@
 import mesa
-from ray.tune.registry import register_env
-from algorithm.rl.env_warpper import RLlibEnvWrapper
+
 
 
 class BaseEnvironment(mesa.Model):
@@ -60,9 +59,4 @@ class BaseEnvironment(mesa.Model):
         self.timestep = self.timestep + 1
 
 
-# 注册强化学习环境
-def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
-    return RLlibEnvWrapper(env_config, mesaEnv=BaseEnvironment)
 
-
-register_env(BaseEnvironment.name, env_creator)

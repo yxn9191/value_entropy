@@ -58,7 +58,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
         self._input_keys = []
         for k, v in obs_space.spaces.items():
             self._input_keys.append(k)
-            if k == _MASK_NAME:
+            if k == _MASK_NAME or k == _OTHER_NAME:
                 pass
             else:
                 self.fc_input_shape += v.shape[0]
@@ -78,6 +78,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
     def forward(self, input_dict,
                 state,
                 seq_lens):
+
         x = torch.cat([input_dict["obs"][k] for k in self.fc_keys], -1)
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])
