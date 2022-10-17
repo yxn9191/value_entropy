@@ -9,14 +9,15 @@ from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 
+
 @env_registry.add
 class CloudManufacturing(BaseEnvironment):
-
     name = "CloudManufacturing"
+
     def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200,
                  ratio_low=0, ratio_medium=0):
         super().__init__()
-        self.order_num = num_order  # 不同类型订单的数目
+        self.order_num = num_order  # 不同类型订单的数目,时刻根据系统
         self.service_num = num_service  # 不同企业的数目
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
@@ -24,6 +25,9 @@ class CloudManufacturing(BaseEnvironment):
         self.new_orders = []  # 当前时刻产生的订单的数目
         self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
         self.actions = None
+        # 算法1中的M（订单）和N（企业）
+        self.M = 200
+        self.N = 100
 
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
@@ -256,6 +260,25 @@ class CloudManufacturing(BaseEnvironment):
             rew = (1 - alpha) * value / cost
         return rew
 
+    # 算法1：企业和订单的匹配算法
+    def matching_service_order(self):
+        k = 0
+        # 参与本轮匹配的订单集合T和企业集合W
+        T = set()
+        W = set()
+        for order in self.all_orders:
+            for agent in self.all_agents:
+                G = set()
+                if self.sufficient_constraint(order, agent):
+                    G.add(agent)
+                    if k + 1 <= self.M and len(W.union(G)) <= self.N:
+                        k += 1
+                        W.update(G)
+                        T.add(order)
+                    else:
+                        return T, W
+
+
     # 平台反选
     def order_select(self):
         orders = self.actions.values()
@@ -293,8 +316,9 @@ class CloudManufacturing(BaseEnvironment):
 
     def step(self):
         """Advance the model by one step."""
+        # 首先检查本轮有哪些企业破产了，从agent队列中移除
+        # 激活agent，每个agent执行自己全部动作
         # self.schedule.step()
-        self.timestep += 1
         alpha = 0.1
         reward = dict()
 
@@ -308,7 +332,6 @@ class CloudManufacturing(BaseEnvironment):
                 agent.action_parse(agent_actions)
                 value, cost = agent.select_order()
                 reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
-        ### 其他agent进行step(待补充）
 
         obs = self.generate_observations()
         # 演化结束的判断，待修改
