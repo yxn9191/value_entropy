@@ -24,6 +24,7 @@ class BaseEnvironment(mesa.Model):
         self.grid = grid
         self.episode_length = episode_length  # 一次演化的时长
 
+
         # self.timestep = 0  # 环境当前处于的时间点=》mesa有默认的，我先去掉了
         # 在model中，用self.schedule.steps可以获取当前时间步
 

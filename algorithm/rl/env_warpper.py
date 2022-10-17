@@ -60,7 +60,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
             self.action_space.dtype = np.int64
 
         # 定义观察空间, 定义智能体观察的范围，具体形式为键值对， {name: value}
-        sample_agent = str(self.env.all_agents[0].unique_id)
+        sample_agent = list(obs.keys())[0]
         self.observation_space = self._dict_to_spaces_dict(obs[sample_agent])
         self._agent_ids = self.env._agent_lookup.keys()
 
