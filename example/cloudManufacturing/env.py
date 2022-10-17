@@ -11,11 +11,7 @@ from example.cloudManufacturing.serviceAgent import ServiceAgent
 from ray.tune.registry import register_env
 from algorithm.rl.env_warpper import RLlibEnvWrapper
 
-<<<<<<< HEAD
 
-@env_registry.add
-=======
->>>>>>> 23d79e9b0c680bb064aaafc702e92fd30171b3b5
 class CloudManufacturing(BaseEnvironment):
     name = "CloudManufacturing"
 
