@@ -33,8 +33,8 @@ class CloudManufacturing(BaseEnvironment):
         self.ratio_low = ratio_low
         self.ratio_medium = ratio_medium
         self.ratio_high = 1 - self.ratio_low - self.ratio_medium
-        self.match_agent = set()
-        self.match_order = set()
+        self.match_agent = []
+        self.match_order = []
 
         # Create agents（包括企业和订单）
         self.generate_orders(num_order)
@@ -206,14 +206,14 @@ class CloudManufacturing(BaseEnvironment):
         obs = {}
         self.match_order, self.match_agent = self.matching_service_order()
         # 影响选择订单规则的内在属性,#这里的 self._agent_lookup要替换从匹配1中返回的agent
-        match_agent = list(self.match_agent)
-        for agent in match_agent:
+        # match_agent = list(self.match_agent)
+        for agent in self.match_agent:
             obs[str(agent.unique_id)] = {"cooperation": agent.cooperation}
             obs[str(agent.unique_id)].update({"orders": self.compute_order(agent)})
 
         _obs = self.get_other_agent_obs(obs)
 
-        for agent in match_agent:
+        for agent in self.match_agent:
             obs_ = deepcopy(_obs)
             del obs_[str(agent.unique_id)]
             obs[str(agent.unique_id)].update({"others": list(obs_.values())})
@@ -263,7 +263,7 @@ class CloudManufacturing(BaseEnvironment):
                             T.add(order)
                         else:
                             break
-        return T, W
+        return list(T), list(W)
 
     # 平台反选
     def order_select(self):
@@ -312,6 +312,7 @@ class CloudManufacturing(BaseEnvironment):
                                 self._agent_lookup[a_id].action = -1
 
     def step(self):
+
         """Advance the model by one step."""
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
         for agent in self.schedule.agents:
