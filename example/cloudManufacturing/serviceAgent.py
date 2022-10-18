@@ -38,6 +38,7 @@ class ServiceAgent(Agent):
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
         self.match_vector(self.service_type, self.difficulty)
         self.done = False
+        self.temp_order = None  # 用来保存低、中智能情况下的动作，值是order的unique_id
 
         self.intelligence_level = intelligence_level
 
@@ -67,18 +68,12 @@ class ServiceAgent(Agent):
     def set_intelligence(self, level):
         self.intelligence_level = level
 
-    # 低（零）智能的订单选择函数
-    def low_select(self):
-        pass
-    # 中智能的订单选择函数
-    def medium_select(self):
-        pass
-
     # 选择订单
     def select_order(self):
         # 零智力
         if self.intelligence_level == 0:
-            pass
+            order = self.model._resource_lookup(self.temp_order)
+
         # 中智力
         elif self.intelligence_level == 1:
             pass
@@ -86,7 +81,8 @@ class ServiceAgent(Agent):
         elif self.intelligence_level == 2:
             value = 0
             cost = 1
-            if self.action != -1 and self.action !=None:
+            if self.action != -1 and self.action != None:
+
                 # 这里也要换成算法1的订单集合
                 order = self.model.all_resources[self.action]
                 prob = random.uniform(0, 1)

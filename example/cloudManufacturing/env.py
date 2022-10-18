@@ -51,8 +51,8 @@ class CloudManufacturing(BaseEnvironment):
     # 修改agent的智能等级
     def set_intelligence(self):
         temp_agents = set(self.all_agents)
-        low_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents)*self.ratio_low))]
-        medium_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents)*self.ratio_medium))]
+        low_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_low))]
+        medium_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_medium))]
         hight_agents = temp_agents
         for agent in low_agents:
             agent.set_intelligence(0)
@@ -61,7 +61,7 @@ class CloudManufacturing(BaseEnvironment):
         for agent in hight_agents:
             agent.set_intelligence(2)
 
-    def random_placeAgent(self, agent):
+    def random_place_agent(self, agent):
         x = self.random.randrange(self.grid.width)
         y = self.random.randrange(self.grid.height)
         self.grid.place_agent(agent, (x, y))
@@ -76,7 +76,7 @@ class CloudManufacturing(BaseEnvironment):
                              , organization)
 
             self.schedule.add(s)
-            self.random_placeAgent(s)
+            self.random_place_agent(s)
 
     def generate_orders(self, new_orders_num=25):
         self.new_orders = []
@@ -84,7 +84,7 @@ class CloudManufacturing(BaseEnvironment):
             a = OrderAgent(self.next_id(), self, generate_difficulty(), generate_order_type())
 
             self.schedule.add(a)
-            self.random_placeAgent(a)
+            self.random_place_agent(a)
             self.new_orders.append(a)
 
     # 比较两个agent是否彼此符合约束条件,即判断该service是否是order的潜在工人（充分条件）
@@ -142,6 +142,18 @@ class CloudManufacturing(BaseEnvironment):
 
         return masks
 
+    # 低、中智能情况，先生成每个agent可能选择的order
+    # 同一agent在每一step中，会同时存有低、中、高智能的动作，但是根据不同情况选择执行
+    def get_actions(self):
+        temp_actions = {str(agent.unique_id): [] for agent in self.all_agents}
+        for order in self.all_resources:
+            for agent in self.all_agents:
+                if self.sufficient_constraint(order, agent) == 1:
+                    temp_actions[str(agent.unique_id)].append(order.unique_id)
+
+        for agent in self.all_agents:
+            agent.temp_order = random.choices(temp_actions[str(agent.unique_id)])
+
     # 计算局部观察值,待修改
     def compute_order(self, agent):
         orders = []
@@ -149,17 +161,17 @@ class CloudManufacturing(BaseEnvironment):
         # 这里的self.all_orders要替换从匹配1中返回的orders
         for neighborhood in self.match_order:
             orders.extend([neighborhood.cooperation, neighborhood.cost,
-                                              neighborhood.bonus,
-                                              move_len(neighborhood.pos, agent.pos) * agent.move_cost,
-                                              self.sufficient_constraint(neighborhood, agent)
-                                              ])
+                           neighborhood.bonus,
+                           move_len(neighborhood.pos, agent.pos) * agent.move_cost,
+                           self.sufficient_constraint(neighborhood, agent)
+                           ])
 
             orders.extend(skill_constraint(neighborhood, agent))
         # 生成虚拟订单
 
         num_orders = len(self.match_order)
         while num_orders < self.M:
-            orders.extend( [0, 0, 0, 0, 0])
+            orders.extend([0, 0, 0, 0, 0])
             orders.extend([0 for i in range(len(self.all_resources[0].skills))])
             num_orders += 1
         return orders
@@ -176,7 +188,7 @@ class CloudManufacturing(BaseEnvironment):
         num_orders = len(obs)
         while num_orders < self.M:
             _obs[str(-num_orders)] = [0, 0, 0, 0, 0]
-            _obs[str(-num_orders)] .extend([0 for i in range(len(self.all_resources[0].skills))])
+            _obs[str(-num_orders)].extend([0 for i in range(len(self.all_resources[0].skills))])
 
         return _obs
 
@@ -202,10 +214,10 @@ class CloudManufacturing(BaseEnvironment):
         while num_agents < self.N:
             obs[str(-num_agents)] = {"cooperation": 0}
             # other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
-            other = { "orders":[0 for i in range(1400)]}
+            other = {"orders": [0 for i in range(1400)]}
             action_mask = {"action_mask": [0 for i in range(self.M)]}
             obs[str(-num_agents)].update(other)
-            obs[str(-num_agents)].update({"others": [[0 for i in range(self.M*7 + 1)]] for _ in range(self.N -1)})
+            obs[str(-num_agents)].update({"others": [[0 for i in range(self.M * 7 + 1)]] for _ in range(self.N - 1)})
             obs[str(-num_agents)].update(action_mask)
             num_agents += 1
 
@@ -213,8 +225,6 @@ class CloudManufacturing(BaseEnvironment):
         for aidx, amask in self.generate_action_mask().items():
             obs[aidx]["action_mask"] = amask
         return obs
-
-
 
     def compute_agent_reward(self, cost, value, alpha=0.1):
         if len(self.new_orders) != 0:
@@ -253,9 +263,9 @@ class CloudManufacturing(BaseEnvironment):
         order_action = dict()
 
         for a_id, o_id in self.actions.items():
-            if int(a_id)<0:
+            if int(a_id) < 0:
                 continue
-            if int(o_id)<0:
+            if int(o_id) < 0:
                 agent = self._agent_lookup[a_id]
                 agent.action = -1
             agent = self._agent_lookup[a_id]
@@ -308,13 +318,13 @@ class CloudManufacturing(BaseEnvironment):
         alpha = 0.1
         reward = dict()
 
-        #self.match_order, self.match_agent = self.matching_service_order()
+        # 低智能和中智能的动作：随机选择，存入agent.temp_order
+        self.get_actions()
 
         if self.actions is not None:
 
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
             for agent_idx, agent_actions in self.actions.items():
-
                 agent = self._agent_lookup.get(str(agent_idx), None)
                 agent.action_parse(agent_actions)
 
@@ -326,9 +336,7 @@ class CloudManufacturing(BaseEnvironment):
                 value, cost = agent.select_order()
                 reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
 
-
         obs = self.generate_observations()
-
 
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}
@@ -392,6 +400,7 @@ def generate_service_type():
 
 def generate_difficulty():
     return random.randint(1, 3)
+
 
 #     #
 # def social_reward(model):

@@ -25,7 +25,6 @@ class BaseEnvironment(mesa.Model):
         self.grid = grid
         self.episode_length = episode_length  # 一次演化的时长
 
-
         # self.timestep = 0  # 环境当前处于的时间点=》mesa有默认的，我先去掉了
         # 在model中，用self.schedule.steps可以获取当前时间步
 
@@ -47,7 +46,6 @@ class BaseEnvironment(mesa.Model):
         # 数据收集器
         self.datacollector = DataCollector()
 
-
     # 重置整个环境
     def reset(self):
         for agent in self.all_agents:
@@ -68,9 +66,9 @@ class BaseEnvironment(mesa.Model):
 
     def set_all_agents_list(self):
         for agent in self.schedule.agents:
-            if isinstance(agent,Resource):
+            if isinstance(agent, Resource):
                 self.all_resources.append(agent)
-            elif isinstance(agent,Agent):
+            elif isinstance(agent, Agent):
                 self.all_agents.append(agent)
             else:
                 pass
@@ -80,6 +78,3 @@ class BaseEnvironment(mesa.Model):
 
     def step(self):
         self.set_all_agents_list()
-
-
-
