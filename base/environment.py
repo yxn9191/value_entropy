@@ -45,6 +45,7 @@ class BaseEnvironment(mesa.Model):
         self.actions = None
         # 数据收集器
         self.datacollector = DataCollector()
+        self.set_all_agents_list()
 
     # 重置整个环境
     def reset(self):
@@ -65,16 +66,17 @@ class BaseEnvironment(mesa.Model):
         self.actions = action_dict
 
     def set_all_agents_list(self):
-        for agent in self.schedule.agents:
-            if isinstance(agent, Resource):
-                self.all_resources.append(agent)
-            elif isinstance(agent, Agent):
-                self.all_agents.append(agent)
-            else:
-                pass
+        if self.schedule:
+            for agent in self.schedule.agents:
+                if isinstance(agent, Resource):
+                    self.all_resources.append(agent)
+                elif isinstance(agent, Agent):
+                    self.all_agents.append(agent)
+                else:
+                    pass
 
-        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
-        self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}
+            self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
+            self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}
 
     def step(self):
-        self.set_all_agents_list()
+        pass

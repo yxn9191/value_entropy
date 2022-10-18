@@ -6,8 +6,6 @@ from example.cloudManufacturing.env import CloudManufacturing
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 
-params = {"width": 10, "height": 10, "N": range(10, 500, 10)}
-
 
 def agent_portrayal(agent):
     if agent is None:
@@ -38,19 +36,19 @@ def agent_portrayal(agent):
 
 model_params = {
     "title": mesa.visualization.StaticText("Parameters:"),
-    "num_organization": mesa.visualization.Slider(
-        "Initial Organization Numbers", 100, 0, 5
-    ),
+    # "num_organization": mesa.visualization.Slider(
+    #     "Initial Organization Numbers", 100, 0, 5
+    # ),
     "num_service": mesa.visualization.Slider(
-        "Initial Service Numbers", 100, 10, 300
+        "Initial Service Numbers",0, 10, 200
     ),
 
-    "num_order": mesa.visualization.Slider("Initial Order Numbers", 50, 10, 200),
+    "num_order": mesa.visualization.Slider("Initial Order Numbers", 0, 10, 100),
     "ratio_low": mesa.visualization.Slider(
-        "Initial ratio_low", 100, 10, 300
+        "Initial ratio_low", 0, 0.1, 1
     ),
     "ratio_medium": mesa.visualization.Slider(
-        "Initial ratio_medium", 100, 10, 300
+        "Initial ratio_medium", 0,0.1, 1
     ),
 }
 

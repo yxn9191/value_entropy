@@ -71,14 +71,17 @@ class ServiceAgent(Agent):
 
     # 执行订单（是接受了必要条件的检查后，确定要执行的订单）
     def process_order(self):
+        value = 0
+        cost = 1
         # 零智力
         if self.intelligence_level == 0 or 1:
-            order = self.model._resource_lookup(self.selected_order_id)
+            order = None
+            for temp in self.model.all_resources:
+                if temp.unique_id == self.selected_order_id:
+                    order = temp
 
         # 高智力
         elif self.intelligence_level == 2:
-            value = 0
-            cost = 1
             if self.action != -1 and self.action is not None:
                 # 这里也要换成算法1的订单集合
                 order = self.model.match_order[self.action]

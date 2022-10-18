@@ -16,8 +16,8 @@ from algorithm.rl.env_warpper import RLlibEnvWrapper
 class CloudManufacturing(BaseEnvironment):
     name = "CloudManufacturing"
 
-    def __init__(self, num_order=200, num_service=100, width=20, height=20, num_organization=2, episode_length=200,
-                 ratio_low=0, ratio_medium=0):
+    def __init__(self, num_order=10, num_service=5, width=20, height=20, num_organization=2, episode_length=200,
+                 ratio_low=0, ratio_medium=1):
         super().__init__()
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
@@ -36,10 +36,12 @@ class CloudManufacturing(BaseEnvironment):
         self.match_agent = []
         self.match_order = []
 
-        # Create agents（包括企业和订单）
-        self.generate_orders(num_order)
+
+        # 初始时的order和agent
         self.generate_services(num_service)
-        self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
+        self.generate_orders(num_order)
+
+        # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
 
         # # 数据收集器
@@ -67,7 +69,7 @@ class CloudManufacturing(BaseEnvironment):
         self.grid.place_agent(agent, (x, y))
         # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
 
-    def generate_services(self, new_service_num=5):
+    def generate_services(self, new_service_num):
         # 默认每轮新增5企业
         organization = Organization(random.randint(1, 2), self, [])
 
@@ -78,7 +80,7 @@ class CloudManufacturing(BaseEnvironment):
             self.schedule.add(s)
             self.random_place_agent(s)
 
-    def generate_orders(self, new_orders_num=25):
+    def generate_orders(self, new_orders_num):
         self.new_orders = []
         for i in range(new_orders_num):
             a = OrderAgent(self.next_id(), self, generate_difficulty(), generate_order_type())
@@ -150,6 +152,7 @@ class CloudManufacturing(BaseEnvironment):
             for agent in self.all_agents:
                 if self.sufficient_constraint(order, agent) == 1:
                     temp_actions[str(agent.unique_id)].append(order.unique_id)
+                    print("temp_actions",temp_actions)
                     agent.temp_actions = temp_actions[str(agent.unique_id)]
                     if agent.intelligence_level == 0:
                         # 随机选择一个满足充分约束的订单
@@ -162,6 +165,7 @@ class CloudManufacturing(BaseEnvironment):
                             order_reward[str(order.unique_id)].append(reward)
                         # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
                         agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+                        print("agent.selected_order_id", agent.selected_order_id)
 
     # 计算局部观察值,待修改
     def compute_order(self, agent):
@@ -312,6 +316,7 @@ class CloudManufacturing(BaseEnvironment):
                                 self._agent_lookup[a_id].action = -1
 
     def step(self):
+        print(self.schedule.steps)
 
         """Advance the model by one step."""
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
@@ -320,44 +325,46 @@ class CloudManufacturing(BaseEnvironment):
                 self.schedule.remove(agent)
 
         # 生成本轮新的企业和订单
-        self.generate_orders()
-        self.generate_services()
+        self.generate_orders(25)
+        self.generate_services(5)
 
         self.set_all_agents_list()
+        print(len(self.all_agents))
+        print(len(self.all_resources))
 
         alpha = 0.1
         reward = dict()
 
         # 低智能和中智能的可能动作，存入agent
-        self.get_actions()
+        # self.get_actions()
+        #
+        # if self.actions is not None:
+        #
+        #     # 这里的self._agent_lookup也要换成算法1获得的企业集合
+        #     for agent_idx, agent_actions in self.actions.items():
+        #         agent = self._agent_lookup.get(str(agent_idx), None)
+        #         agent.action_parse(agent_actions)
+        #
+        #     # 平台反选
+        #     self.order_select()
 
-        if self.actions is not None:
-
-            # 这里的self._agent_lookup也要换成算法1获得的企业集合
-            for agent_idx, agent_actions in self.actions.items():
-                agent = self._agent_lookup.get(str(agent_idx), None)
-                agent.action_parse(agent_actions)
-
-            # 平台反选
-            self.order_select()
-
-            for agent_idx, agent_actions in self.actions.items():
-                agent = self._agent_lookup.get(str(agent_idx), None)
-                agent.action_parse(agent_actions)
-                value, cost = agent.process_order()
-                reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
-
-        obs = self.generate_observations()
-
-        # 演化结束的判断，待修改
-        done = {"__all__": self.schedule.steps >= self.episode_length}
-        info = {k: {} for k in obs.keys()}
-
-        # self.collector.collect(self)
+        #     for agent_idx, agent_actions in self.actions.items():
+        #         agent = self._agent_lookup.get(str(agent_idx), None)
+        #         agent.action_parse(agent_actions)
+        #         value, cost = agent.process_order()
+        #         reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
+        #
+        # obs = self.generate_observations()
+        #
+        # # 演化结束的判断，待修改
+        # done = {"__all__": self.schedule.steps >= self.episode_length}
+        # info = {k: {} for k in obs.keys()}
+        #
+        # # self.collector.collect(self)
         # 激活agent，每个agent执行自己全部动作
         # self.schedule.step()
-
-        return obs, reward, done, info
+        #
+        # return obs, reward, done, info
 
 
 # 计算两位置的直线距离
@@ -412,10 +419,6 @@ def generate_service_type():
 def generate_difficulty():
     return random.randint(1, 3)
 
-
-#     #
-# def social_reward(model):
-#     return model.finish_orders / len(model.new_orders)
 
 # 注册强化学习环境
 def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
