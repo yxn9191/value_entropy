@@ -1,4 +1,5 @@
 import mesa
+from mesa import DataCollector
 
 from base.agent import Agent
 from base.resource import Resource
@@ -24,7 +25,6 @@ class BaseEnvironment(mesa.Model):
         self.grid = grid
         self.episode_length = episode_length  # 一次演化的时长
 
-
         # self.timestep = 0  # 环境当前处于的时间点=》mesa有默认的，我先去掉了
         # 在model中，用self.schedule.steps可以获取当前时间步
 
@@ -43,7 +43,9 @@ class BaseEnvironment(mesa.Model):
         self._resource_lookup = []
 
         self.actions = None
-
+        # 数据收集器
+        self.datacollector = DataCollector()
+        self.set_all_agents_list()
 
     # 重置整个环境
     def reset(self):
@@ -64,19 +66,17 @@ class BaseEnvironment(mesa.Model):
         self.actions = action_dict
 
     def set_all_agents_list(self):
-        for agent in self.schedule.agents:
-            if isinstance(agent,Resource):
-                self.all_resources.append(agent)
-            elif isinstance(agent,Agent):
-                self.all_agents.append(agent)
-            else:
-                pass
+        if self.schedule:
+            for agent in self.schedule.agents:
+                if isinstance(agent, Resource):
+                    self.all_resources.append(agent)
+                elif isinstance(agent, Agent):
+                    self.all_agents.append(agent)
+                else:
+                    pass
 
-        self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
-        self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}
+            self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
+            self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}
 
     def step(self):
-        self.set_all_agents_list()
-
-
-
+        pass
