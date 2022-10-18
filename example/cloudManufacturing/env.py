@@ -142,7 +142,7 @@ class CloudManufacturing(BaseEnvironment):
 
         return masks
 
-    # 低、中智能情况，先生成每个agent可能选择的order
+    # 低、中智能情况，生成每个agent可能选择的order,存入agent的selected_order_id
     # 同一agent在每一step中，会同时存有低、中、高智能的动作，但是根据不同情况选择执行
     def get_actions(self):
         temp_actions = {str(agent.unique_id): [] for agent in self.all_agents}
@@ -150,9 +150,18 @@ class CloudManufacturing(BaseEnvironment):
             for agent in self.all_agents:
                 if self.sufficient_constraint(order, agent) == 1:
                     temp_actions[str(agent.unique_id)].append(order.unique_id)
-
-        for agent in self.all_agents:
-            agent.temp_order = random.choices(temp_actions[str(agent.unique_id)])
+                    agent.temp_actions = temp_actions[str(agent.unique_id)]
+                    if agent.intelligence_level == 0:
+                        # 随机选择一个满足充分约束的订单
+                        agent.selected_order_id = random.choice(agent.temp_actions)
+                    if agent.intelligence_level == 1:
+                        order_reward = {str(order_id): [] for order_id in agent.temp_actions}
+                        for order_id in agent.temp_actions:
+                            order = self._resource_lookup(order_id)
+                            reward = order.bonus - distance(agent.pos, order.pos) * agent.move_cost - order.cost
+                            order_reward[str(order.unique_id)].append(reward)
+                        # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
+                        agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
 
     # 计算局部观察值,待修改
     def compute_order(self, agent):
@@ -318,7 +327,7 @@ class CloudManufacturing(BaseEnvironment):
         alpha = 0.1
         reward = dict()
 
-        # 低智能和中智能的动作：随机选择，存入agent.temp_order
+        # 低智能和中智能的可能动作，存入agent
         self.get_actions()
 
         if self.actions is not None:
@@ -328,12 +337,13 @@ class CloudManufacturing(BaseEnvironment):
                 agent = self._agent_lookup.get(str(agent_idx), None)
                 agent.action_parse(agent_actions)
 
+            # 平台反选
             self.order_select()
 
             for agent_idx, agent_actions in self.actions.items():
                 agent = self._agent_lookup.get(str(agent_idx), None)
                 agent.action_parse(agent_actions)
-                value, cost = agent.select_order()
+                value, cost = agent.process_order()
                 reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
 
         obs = self.generate_observations()

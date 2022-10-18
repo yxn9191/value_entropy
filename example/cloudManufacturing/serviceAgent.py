@@ -38,7 +38,8 @@ class ServiceAgent(Agent):
         self.organization = organization  # 组织中的企业（组织中的企业协作成本低，假设最初没有在任何组织中）
         self.match_vector(self.service_type, self.difficulty)
         self.done = False
-        self.temp_order = None  # 用来保存低、中智能情况下的动作，值是order的unique_id
+        self.temp_actions = None  # 用来保存agent在满足充分约束下的所有可以选择的订单，值是order的unique_id的数组
+        self.selected_order_id = None  # 中低智能下agent最终选择的订单
 
         self.intelligence_level = intelligence_level
 
@@ -68,33 +69,31 @@ class ServiceAgent(Agent):
     def set_intelligence(self, level):
         self.intelligence_level = level
 
-    # 选择订单
-    def select_order(self):
+    # 执行订单（是接受了必要条件的检查后，确定要执行的订单）
+    def process_order(self):
         # 零智力
-        if self.intelligence_level == 0:
-            order = self.model._resource_lookup(self.temp_order)
+        if self.intelligence_level == 0 or 1:
+            order = self.model._resource_lookup(self.selected_order_id)
 
-        # 中智力
-        elif self.intelligence_level == 1:
-            pass
         # 高智力
         elif self.intelligence_level == 2:
             value = 0
             cost = 1
-            if self.action != -1 and self.action != None:
-
+            if self.action != -1 and self.action is not None:
                 # 这里也要换成算法1的订单集合
-                order = self.model.all_resources[self.action]
-                prob = random.uniform(0, 1)
-                # 失败
-                if prob >= self.failure_prob:
-                    # order_len = len(order.order_type)
-                    value = order.bonus / len(order.services)
-                    cost = order.cost / len(order.services) + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)])
-                    self.state = 1  # 状态改变，开始移动
-                    order.occupied = 1  # 任务被占用
+                order = self.model.match_order[self.action]
 
-            return value, cost
+        prob = random.uniform(0, 1)
+        # 失败
+        if prob >= self.failure_prob:
+            # order_len = len(order.order_type)
+            value = order.bonus / len(order.services)
+            cost = order.cost / len(order.services) + sum(
+                [abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost
+            self.state = 1  # 状态改变，开始移动
+            order.occupied = 1  # 任务被占用
+
+        return value, cost
 
     # 返回当前选择的任务后的收益和消耗，如果没有选择则返回0，1
     def step(self):
@@ -102,6 +101,6 @@ class ServiceAgent(Agent):
             self.done = True
         self.energy -= 10  # 假定每个step，企业的能量自动减少10
         if self.state == 0:
-            self.select_order()
+            self.process_order()
         elif self.state == 1:
             self.move()
