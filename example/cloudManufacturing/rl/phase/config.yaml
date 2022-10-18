@@ -5,7 +5,8 @@ env:
     width: 20
     height: 20
     num_organization: 2
-    episode_length: 200
+    episode_length: 100
+    ratio_medium: 0
   env_name: CloudManufacturing
 
 trainer:
@@ -13,9 +14,9 @@ trainer:
   batch_mode: truncate_episodes
   no_done_at_end: false
   observation_filter: NoFilter
-  rollout_fragment_length: 200
-  microbatch_size: 100
-  train_batch_size: 400
+  rollout_fragment_length: 20
+  microbatch_size: 20
+  train_batch_size: 80
 
 general:
   ckpt_frequency_steps: 10000

@@ -39,8 +39,8 @@ class BaseEnvironment(mesa.Model):
         self.all_agents = []
         # 环境中所有Resource
         self.all_resources = []
-        self._agent_lookup = []
-        self._resource_lookup = []
+        self._agent_lookup = dict()
+        self._resource_lookup = dict()
 
         self.actions = None
         # 数据收集器
@@ -52,6 +52,7 @@ class BaseEnvironment(mesa.Model):
         for agent in self.all_agents:
             agent.reset()
         obs = self.generate_observations()
+
         return obs
 
     # 生成观察值（强化学习的输入，待补充）

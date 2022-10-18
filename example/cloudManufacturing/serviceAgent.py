@@ -88,8 +88,7 @@ class ServiceAgent(Agent):
 
         prob = random.uniform(0, 1)
         # 失败
-        if prob >= self.failure_prob:
-            # order_len = len(order.order_type)
+        if prob >= self.failure_prob and order:
             value = order.bonus / len(order.services)
             cost = order.cost / len(order.services) + sum(
                 [abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost

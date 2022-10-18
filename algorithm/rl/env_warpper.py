@@ -98,7 +98,6 @@ class RLlibEnvWrapper(MultiAgentEnv):
             elif isinstance(_v, dict):
                 dict_of_spaces[k] = self._dict_to_spaces_dict(_v)
             else:
-                print(k,type(_v))
                 raise TypeError
         return spaces.Dict(dict_of_spaces)
 

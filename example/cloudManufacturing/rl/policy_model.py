@@ -102,7 +102,8 @@ class AgentPolicy(TorchModelV2, nn.Module):
 
         logits = apply_logit_mask(out1, input_dict["obs"][_MASK_NAME])
         self._value_out = out2
-        return torch.reshape(logits, (-1, self.num_outputs)), state
+
+        return logits, state
 
     def value_function(self):
         return torch.reshape(self._value_out, [-1])

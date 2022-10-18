@@ -1,4 +1,3 @@
-from env_wrapper import RLlibEnvWrapper
 from typing import Dict, Sequence
 
 from env_wrapper import RLlibEnvWrapper

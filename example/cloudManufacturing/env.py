@@ -3,7 +3,7 @@ from copy import deepcopy
 import random
 
 import mesa
-from mesa import DataCollector
+
 
 from base.environment import BaseEnvironment
 from example.cloudManufacturing.orderAgent import OrderAgent
@@ -19,6 +19,10 @@ class CloudManufacturing(BaseEnvironment):
     def __init__(self, num_order=10, num_service=5, width=20, height=20, num_organization=2, episode_length=200,
                  ratio_low=0, ratio_medium=1):
         super().__init__()
+        # 初始时的order和agent
+
+        self.order_num = num_order
+        self.service_num = num_service
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
         self.new_orders = []  # 当前时刻产生的订单的数目
@@ -36,10 +40,11 @@ class CloudManufacturing(BaseEnvironment):
         self.match_agent = []
         self.match_order = []
 
-
-        # 初始时的order和agent
         self.generate_services(num_service)
         self.generate_orders(num_order)
+
+
+
 
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
@@ -79,6 +84,8 @@ class CloudManufacturing(BaseEnvironment):
 
             self.schedule.add(s)
             self.random_place_agent(s)
+            self.all_agents.append(s)
+            self._agent_lookup[s.unique_id] = s
 
     def generate_orders(self, new_orders_num):
         self.new_orders = []
@@ -88,6 +95,8 @@ class CloudManufacturing(BaseEnvironment):
             self.schedule.add(a)
             self.random_place_agent(a)
             self.new_orders.append(a)
+            self.all_resources.append(a)
+            self._resource_lookup[a.unique_id] = a
 
     # 比较两个agent是否彼此符合约束条件,即判断该service是否是order的潜在工人（充分条件）
     # 返回1代表是潜在工人
@@ -112,6 +121,7 @@ class CloudManufacturing(BaseEnvironment):
                     move_len(order.pos, service.pos) / service.speed <= (order.left_duration - order.handling_time) and \
                     move_len(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost) and \
                     skill_constraint(order, service).count(1) > 0:
+
                 return 1
             else:
                 return 0
@@ -122,10 +132,11 @@ class CloudManufacturing(BaseEnvironment):
         total_skill = [0 for i in range(len(order.skills))]
 
         for service in services:
+            service = self._agent_lookup[service]
             # 合作组织中出现单个企业的收益小于0，则该合作无法成立
-            if distance(order, service) * service.move_cost + order.cost / len(services) < order.bonus / len(services):
+            if move_len(order.pos, service.pos) * service.move_cost + order.cost / len(services) < order.bonus / len(services):
                 return 0
-            total_move_cost += distance(order, service) * service.move_cost
+            total_move_cost += move_len(order.pos, service.pos) * service.move_cost
             total_skill = [int(a or b) for (a, b) in zip(skill_constraint(order, service), total_skill)]
 
         # 整体预算约束：小组成员的行程代价之和加上处理订单的消耗小于订单给予的价值（等于也不行，那不是白干了）&& 整体技能须满足该订单所有的技能要求
@@ -135,11 +146,12 @@ class CloudManufacturing(BaseEnvironment):
             return 0
 
     def generate_action_mask(self):
-        masks = {str(agent.unique_id): [0 for i in range(self.M)] for agent in self.match_agent}
+        masks = {str(agent.unique_id): [0 for _ in range(self.M)] for agent in self.match_agent}
         position = 0
         for order in self.match_order:
             for agent in self.match_agent:
-                masks[str(agent.unique_id)][position] = self.sufficient_constraint(order, agent)
+                masks[str(agent.unique_id)][position] = self.sufficient_constraint(order, agent) \
+                                                        * int(agent.service_type in order.order_type)
             position += 1
 
         return masks
@@ -148,11 +160,10 @@ class CloudManufacturing(BaseEnvironment):
     # 同一agent在每一step中，会同时存有低、中、高智能的动作，但是根据不同情况选择执行
     def get_actions(self):
         temp_actions = {str(agent.unique_id): [] for agent in self.all_agents}
-        for order in self.all_resources:
-            for agent in self.all_agents:
+        for order in self._resource_lookup.values():
+            for agent in self._agent_lookup.values():
                 if self.sufficient_constraint(order, agent) == 1:
                     temp_actions[str(agent.unique_id)].append(order.unique_id)
-                    print("temp_actions",temp_actions)
                     agent.temp_actions = temp_actions[str(agent.unique_id)]
                     if agent.intelligence_level == 0:
                         # 随机选择一个满足充分约束的订单
@@ -165,7 +176,6 @@ class CloudManufacturing(BaseEnvironment):
                             order_reward[str(order.unique_id)].append(reward)
                         # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
                         agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
-                        print("agent.selected_order_id", agent.selected_order_id)
 
     # 计算局部观察值,待修改
     def compute_order(self, agent):
@@ -198,11 +208,10 @@ class CloudManufacturing(BaseEnvironment):
                 if key != "cooperation":
                     _obs[k] += obs[k][key]
 
-        num_orders = len(obs)
-        while num_orders < self.M:
-            _obs[str(-num_orders)] = [0, 0, 0, 0, 0]
-            _obs[str(-num_orders)].extend([0 for i in range(len(self.all_resources[0].skills))])
-
+        num_agent = len(obs)
+        while num_agent < self.N:
+            _obs[str(-num_agent)] = [0 for _ in range(1401)]
+            num_agent += 1
         return _obs
 
     # 生成观察值（强化学习的输入,待修改）
@@ -230,7 +239,7 @@ class CloudManufacturing(BaseEnvironment):
             other = {"orders": [0 for i in range(1400)]}
             action_mask = {"action_mask": [0 for i in range(self.M)]}
             obs[str(-num_agents)].update(other)
-            obs[str(-num_agents)].update({"others": [[0 for i in range(self.M * 7 + 1)]] for _ in range(self.N - 1)})
+            obs[str(-num_agents)].update({"others": [[0 for i in range(self.M * 7 + 1)] for _ in range(self.N - 1)]})
             obs[str(-num_agents)].update(action_mask)
             num_agents += 1
 
@@ -255,9 +264,9 @@ class CloudManufacturing(BaseEnvironment):
         # 参与本轮匹配的订单集合T和企业集合W
         T = set()
         W = set()
-        for order in self.all_resources:
+        for order in self._resource_lookup.values():
             if order.occupied == 0:
-                for agent in self.all_agents:
+                for agent in self._agent_lookup.values():
                     G = set()
                     if self.sufficient_constraint(order, agent):
                         G.add(agent)
@@ -267,6 +276,7 @@ class CloudManufacturing(BaseEnvironment):
                             T.add(order)
                         else:
                             break
+
         return list(T), list(W)
 
     # 平台反选
@@ -278,50 +288,66 @@ class CloudManufacturing(BaseEnvironment):
         for a_id, o_id in self.actions.items():
             if int(a_id) < 0:
                 continue
-            if int(o_id) < 0:
+            if int(o_id) >= len(self.match_order):
                 agent = self._agent_lookup[a_id]
                 agent.action = -1
+                continue
             agent = self._agent_lookup[a_id]
-            order = self._resource_lookup[o_id]
+            order = self.match_order[o_id]
             if o_id not in order_action:
-                order_action[o_id] = dict()
-                order_action[o_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
-            elif agent.service_type not in order_action[o_id]:
-                order_action[o_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
+                order_action[order.unique_id] = dict()
+                order_action[order.unique_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
+            elif agent.service_type not in order_action[order.unique_id]:
+                order_action[order.unique_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
             else:
-                order_action[o_id][agent.service_type].update({a_id: move_len(agent.pos, order.pos)})
+                order_action[order.unique_id][agent.service_type].update({a_id: move_len(agent.pos, order.pos)})
 
         for o_id in order_action.keys():
-            order_ = self._resource_lookup[order]
-            if len(order_.ordertype) == 1:
-                order_.services.extend(min(order_action[o_id][order_.ordertype].items(), key=lambda x: x[1])[0])
-                self.finish_orders += 1
-                order_.occupied = 1
-                for a_id in order_action[o_id][order_.ordertype].keys():
-                    if a_id not in order_.services:
+            order_ = self._resource_lookup[str(o_id)]
+            order_.services = []
+            if len(order_.order_type) == 1:
+                order_.services.extend(min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0])
+                if self.necessary_constraint(order_, order_.services):
+                    self.finish_orders += 1
+                    order_.occupied = 1
+                    for a_id in order_action[o_id][order_.order_type].keys():
+                        if a_id not in order_.services:
+                            self._agent_lookup[a_id].action = -1
+                else:
+                    for a_id in order_action[o_id][order_.order_type].keys():
                         self._agent_lookup[a_id].action = -1
+                    order_.services = []
+
             else:
-                if len(order_action[o_id]) < len(order_.ordertype):
+                if len(order_action[o_id]) < len(order_.order_type):
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
                             self._agent_lookup[a_id].action = -1
                 else:
-                    self.finish_orders += 1
-                    order_.occupied = 1
+
                     for service_type in order_action[o_id].keys():
                         order_.services.extend(min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0])
-                    for service_type in order_action[o_id].keys():
-                        for a_id in order_action[o_id][service_type].keys():
-                            if a_id not in order_.services:
-                                self._agent_lookup[a_id].action = -1
+                    if self.necessary_constraint(order_, order_.services):
+                        self.finish_orders += 1
+                        order_.occupied = 1
+                        for service_type in order_action[o_id].keys():
+                            for a_id in order_action[o_id][service_type].keys():
+                                if a_id not in order_.services:
+                                    self._agent_lookup[a_id].action = -1
+                    else:
+                        for service_type in order_action[o_id].keys():
+                            for a_id in order_action[o_id][service_type].keys():
+                                    self._agent_lookup[a_id].action = -1
+                        order_.services = []
+
+
 
     def step(self):
-        print(self.schedule.steps)
-
         """Advance the model by one step."""
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
         for agent in self.schedule.agents:
             if agent.done:
+                del self._agent_lookup[agent.unique_id]
                 self.schedule.remove(agent)
 
         # 生成本轮新的企业和订单
@@ -329,42 +355,46 @@ class CloudManufacturing(BaseEnvironment):
         self.generate_services(5)
 
         self.set_all_agents_list()
-        print(len(self.all_agents))
-        print(len(self.all_resources))
+
 
         alpha = 0.1
         reward = dict()
 
-        # 低智能和中智能的可能动作，存入agent
-        # self.get_actions()
-        #
-        # if self.actions is not None:
-        #
-        #     # 这里的self._agent_lookup也要换成算法1获得的企业集合
-        #     for agent_idx, agent_actions in self.actions.items():
-        #         agent = self._agent_lookup.get(str(agent_idx), None)
-        #         agent.action_parse(agent_actions)
-        #
-        #     # 平台反选
-        #     self.order_select()
+        #低智能和中智能的可能动作，存入agent
+        self.get_actions()
 
-        #     for agent_idx, agent_actions in self.actions.items():
-        #         agent = self._agent_lookup.get(str(agent_idx), None)
-        #         agent.action_parse(agent_actions)
-        #         value, cost = agent.process_order()
-        #         reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
-        #
-        # obs = self.generate_observations()
-        #
-        # # 演化结束的判断，待修改
-        # done = {"__all__": self.schedule.steps >= self.episode_length}
-        # info = {k: {} for k in obs.keys()}
-        #
-        # # self.collector.collect(self)
-        # 激活agent，每个agent执行自己全部动作
-        # self.schedule.step()
-        #
-        # return obs, reward, done, info
+        if self.actions is not None:
+            # 这里的self._agent_lookup也要换成算法1获得的企业集合
+            for agent_idx, agent_actions in self.actions.items():
+                if int(agent_idx) > 0:
+                    agent = self._agent_lookup.get(str(agent_idx), None)
+                    agent.action_parse(agent_actions)
+
+            # 平台反选
+            self.order_select()
+
+            for agent in self.match_agent:
+                value, cost = agent.process_order()
+                reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
+
+            # 生成虚拟企业
+            num_agents = len(self.match_agent)
+            while num_agents < self.N:
+                reward[str(-num_agents)] = 0
+                num_agents += 1
+
+        obs = self.generate_observations()
+
+
+        # 演化结束的判断，待修改
+        done = {"__all__": self.schedule.steps >= self.episode_length}
+        info = {k: {} for k in obs.keys()}
+
+        # self.collector.collect(self)
+        #激活agent，每个agent执行自己全部动作
+        self.schedule.step()
+
+        return obs, reward, done, info
 
 
 # 计算两位置的直线距离
