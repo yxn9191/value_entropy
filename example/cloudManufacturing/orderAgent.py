@@ -12,8 +12,8 @@ class OrderAgent(Resource):
                  order_difficulty,
                  order_type,
                  vision=6,
-                 bonus=randint(30, 80),
-                 cost=randint(10, 30),
+                 bonus=randint(100, 200),
+                 cost=randint(5, 10),
                  cooperation=1,
                  handling_time=4,
                  max_duration=10

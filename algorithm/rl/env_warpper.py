@@ -81,9 +81,10 @@ class RLlibEnvWrapper(MultiAgentEnv):
 
             if isinstance(_v, np.ndarray):
                 x = float(_BIG_NUMBER)
-                if np.max(_v) > x:
+
+                if _v.max() > x:
                     warnings.warn("Input is too large!")
-                if np.min(_v) < -x:
+                if _v.min() < -x:
                     warnings.warn("Input is too small!")
                 box = spaces.Box(low=-x, high=x, shape=_v.shape, dtype=_v.dtype)
                 low_high_valid = (box.low < 0).all() and (box.high > 0).all()

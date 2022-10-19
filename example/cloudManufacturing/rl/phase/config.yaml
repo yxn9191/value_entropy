@@ -1,21 +1,21 @@
 env:
   env_config:
-    num_order: 200
-    num_service: 100
+    num_order: 10
+    num_service: 5
     width: 20
     height: 20
     num_organization: 2
     episode_length: 10
+    ratio_low: 0
     ratio_medium: 0
   env_name: CloudManufacturing
 
 trainer:
-  num_workers: 1
+  num_workers: 2
   batch_mode: truncate_episodes
   no_done_at_end: false
   observation_filter: NoFilter
   rollout_fragment_length: 20
-  microbatch_size: 20
   train_batch_size: 80
 
 general:
@@ -35,7 +35,7 @@ agent_policy:
   lr_schedule: null
   model:
     custom_model: AgentPolicy
-    custom_options:
+    custom_model_config:
       fc1_dim: 24
       fc2_dim: 64
   use_gae: true

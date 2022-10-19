@@ -19,7 +19,7 @@ class ServiceAgent(Agent):
                  consumption=randint(10, 30),
                  failure_prob=0.2,
                  cooperation=1,
-                 move_cost=2,
+                 move_cost=0.5,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model)
@@ -101,7 +101,7 @@ class ServiceAgent(Agent):
     def step(self):
         if self.energy < 0:
             self.done = True
-        self.energy -= 10  # 假定每个step，企业的能量自动减少10
+        self.energy -= 5  # 假定每个step，企业的能量自动减少5
         if self.state == 0:
             self.process_order()
         elif self.state == 1:

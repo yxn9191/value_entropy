@@ -80,7 +80,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
         self.fc2 = SlimFC(self.fc1_dim*2, self.num_outputs)
         self.fc3 = SlimFC(self.fc1_dim*2, self.fc2_dim)
 
-        self.softmax = nn.Softmax(dim=None)
+        self.softmax = nn.Softmax(dim=1)
 
         self.fc4 = SlimFC(self.fc2_dim, 1)
 
@@ -101,10 +101,10 @@ class AgentPolicy(TorchModelV2, nn.Module):
         out2 = self.fc3(out)
 
         out1 = self.softmax(out1)
+
         out2 = self.fc4(out2)
         logits = apply_logit_mask(out1, input_dict["obs"][_MASK_NAME])
         self._value_out = out2
-
         return logits, state
 
     def value_function(self):
