@@ -4,7 +4,6 @@ import random
 
 import mesa
 
-
 from base.environment import BaseEnvironment
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.organization import Organization
@@ -42,9 +41,6 @@ class CloudManufacturing(BaseEnvironment):
 
         self.generate_services(num_service)
         self.generate_orders(num_order)
-
-
-
 
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
@@ -134,7 +130,8 @@ class CloudManufacturing(BaseEnvironment):
         for service in services:
             service = self._agent_lookup[service]
             # 合作组织中出现单个企业的收益小于0，则该合作无法成立
-            if move_len(order.pos, service.pos) * service.move_cost + order.cost / len(services) < order.bonus / len(services):
+            if move_len(order.pos, service.pos) * service.move_cost + order.cost / len(services) < order.bonus / len(
+                    services):
                 return 0
             total_move_cost += move_len(order.pos, service.pos) * service.move_cost
             total_skill = [int(a or b) for (a, b) in zip(skill_constraint(order, service), total_skill)]
@@ -159,9 +156,9 @@ class CloudManufacturing(BaseEnvironment):
     # 低、中智能情况，生成每个agent可能选择的order,存入agent的selected_order_id
     # 同一agent在每一step中，会同时存有低、中、高智能的动作，但是根据不同情况选择执行
     def get_actions(self):
-        temp_actions = {str(agent.unique_id): [] for agent in self.all_agents}
-        for order in self._resource_lookup.values():
-            for agent in self._agent_lookup.values():
+        temp_actions = {str(agent.unique_id): [] for agent in self.match_agent}
+        for order in self.match_order:
+            for agent in self.match_agent:
                 if self.sufficient_constraint(order, agent) == 1:
                     temp_actions[str(agent.unique_id)].append(order.unique_id)
                     agent.temp_actions = temp_actions[str(agent.unique_id)]
@@ -217,7 +214,7 @@ class CloudManufacturing(BaseEnvironment):
     # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
         obs = {}
-        self.match_order, self.match_agent = self.matching_service_order()
+        # self.match_order, self.match_agent = self.matching_service_order()
         # 影响选择订单规则的内在属性,#这里的 self._agent_lookup要替换从匹配1中返回的agent
         # match_agent = list(self.match_agent)
         for agent in self.match_agent:
@@ -305,7 +302,7 @@ class CloudManufacturing(BaseEnvironment):
         for o_id in order_action.keys():
             order_ = self._resource_lookup[str(o_id)]
             order_.services = []
-            if len(order_.order_type) == 1 :
+            if len(order_.order_type) == 1:
                 if order_.order_type not in order_action[o_id].keys():
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
@@ -342,10 +339,8 @@ class CloudManufacturing(BaseEnvironment):
                     else:
                         for service_type in order_action[o_id].keys():
                             for a_id in order_action[o_id][service_type].keys():
-                                    self._agent_lookup[a_id].action = -1
+                                self._agent_lookup[a_id].action = -1
                         order_.services = []
-
-
 
     def step(self):
         """Advance the model by one step."""
@@ -361,16 +356,17 @@ class CloudManufacturing(BaseEnvironment):
 
         self.set_all_agents_list()
 
-
-
         alpha = 0.1
         reward = dict()
 
-        #低智能和中智能的可能动作，存入agent
+        # 低智能也是先确定匹配的大小，所以我抽出来了
+        self.match_order, self.match_agent = self.matching_service_order()
+        # 低智能和中智能的可能动作，存入agent
         self.get_actions()
 
         obs = self.generate_observations()
 
+        # 存入高智能的动作
         if self.actions is not None:
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
             for agent_idx, agent_actions in self.actions.items():
@@ -396,7 +392,7 @@ class CloudManufacturing(BaseEnvironment):
         info = {k: {} for k in obs.keys()}
 
         # self.collector.collect(self)
-        #激活agent，每个agent执行自己全部动作
+        # 激活agent，每个agent执行自己全部动作
         self.schedule.step()
 
         return obs, reward, done, info
