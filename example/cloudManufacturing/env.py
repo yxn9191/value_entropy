@@ -162,17 +162,6 @@ class CloudManufacturing(BaseEnvironment):
                 if self.sufficient_constraint(order, agent) == 1:
                     temp_actions[str(agent.unique_id)].append(order.unique_id)
                     agent.temp_actions = temp_actions[str(agent.unique_id)]
-                    if agent.intelligence_level == 0:
-                        # 随机选择一个满足充分约束的订单
-                        agent.selected_order_id = random.choice(agent.temp_actions)
-                    if agent.intelligence_level == 1:
-                        order_reward = {str(order_id): [] for order_id in agent.temp_actions}
-                        for order_id in agent.temp_actions:
-                            order = self._resource_lookup(order_id)
-                            reward = order.bonus - distance(agent.pos, order.pos) * agent.move_cost - order.cost
-                            order_reward[str(order.unique_id)].append(reward)
-                        # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
-                        agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
 
     # 计算局部观察值,待修改
     def compute_order(self, agent):

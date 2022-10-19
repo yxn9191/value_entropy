@@ -74,11 +74,26 @@ class ServiceAgent(Agent):
         value = 0
         cost = 1
         # 零智力
-        if self.intelligence_level == 0 or 1:
+        if self.intelligence_level == 0 or self.intelligence_level == 1:
+            if self.intelligence_level == 0:
+                # 随机选择一个满足充分约束的订单
+                self.selected_order_id = random.choice(self.temp_actions)
+            if self.intelligence_level == 1:
+                order_reward = {str(order_id): [] for order_id in self.temp_actions}
+                for order_id in self.temp_actions:
+                    order = self.model._resource_lookup.get(order_id)
+                    reward = order.bonus - sum(
+                        [abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost - order.cost
+                    order_reward[str(order.unique_id)].append(reward)
+                # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
+                self.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+
             order = None
             for temp in self.model.all_resources:
                 if temp.unique_id == self.selected_order_id:
                     order = temp
+
+            self.model.actions.update({self.unique_id: self.model.match_order.index(order)})
 
         # 高智力
         elif self.intelligence_level == 2:
