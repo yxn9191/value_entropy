@@ -281,7 +281,7 @@ class CloudManufacturing(BaseEnvironment):
 
     # 平台反选
     def order_select(self):
-        orders = self.actions.values()
+
         self.finish_orders = 0
         order_action = dict()
 
@@ -305,8 +305,13 @@ class CloudManufacturing(BaseEnvironment):
         for o_id in order_action.keys():
             order_ = self._resource_lookup[str(o_id)]
             order_.services = []
-            if len(order_.order_type) == 1:
-                order_.services.extend(min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0])
+            if len(order_.order_type) == 1 :
+                if order_.order_type not in order_action[o_id].keys():
+                    for service_type in order_action[o_id].keys():
+                        for a_id in order_action[o_id][service_type].keys():
+                            self._agent_lookup[a_id].action = -1
+                    continue
+                order_.services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
                 if self.necessary_constraint(order_, order_.services):
                     self.finish_orders += 1
                     order_.occupied = 1
@@ -326,7 +331,7 @@ class CloudManufacturing(BaseEnvironment):
                 else:
 
                     for service_type in order_action[o_id].keys():
-                        order_.services.extend(min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0])
+                        order_.services.extend([min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0]])
                     if self.necessary_constraint(order_, order_.services):
                         self.finish_orders += 1
                         order_.occupied = 1
@@ -347,7 +352,7 @@ class CloudManufacturing(BaseEnvironment):
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
         for agent in self.schedule.agents:
             if agent.done:
-                del self._agent_lookup[agent.unique_id]
+                del self._agent_lookup[str(agent.unique_id)]
                 self.schedule.remove(agent)
 
         # 生成本轮新的企业和订单
@@ -357,16 +362,19 @@ class CloudManufacturing(BaseEnvironment):
         self.set_all_agents_list()
 
 
+
         alpha = 0.1
         reward = dict()
 
         #低智能和中智能的可能动作，存入agent
         self.get_actions()
 
+        obs = self.generate_observations()
+
         if self.actions is not None:
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
             for agent_idx, agent_actions in self.actions.items():
-                if int(agent_idx) > 0:
+                if int(agent_idx) >= 0:
                     agent = self._agent_lookup.get(str(agent_idx), None)
                     agent.action_parse(agent_actions)
 
@@ -382,9 +390,6 @@ class CloudManufacturing(BaseEnvironment):
             while num_agents < self.N:
                 reward[str(-num_agents)] = 0
                 num_agents += 1
-
-        obs = self.generate_observations()
-
 
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}

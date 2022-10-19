@@ -21,7 +21,7 @@ _OTHER_NAME = "others"
 def apply_logit_mask(logits, mask):
     """Mask values of 1 are valid actions."
     " Add huge negative values to logits with 0 mask values."""
-    logit_mask = torch.ones_like(logits) * -10000000
+    logit_mask = torch.ones_like(logits) * -10000
     logit_mask = logit_mask * (1 - mask)
 
     return logits + logit_mask
@@ -29,10 +29,10 @@ def apply_logit_mask(logits, mask):
 
 def attention(self_input, other_inputs):
     other_inputs = torch.permute(other_inputs, (1, 0, 2))
-    alpha = [torch.mm(self_input, other_inputs[i].T) / math.sqrt(self_input.shape[-1]) for i in
+    alpha = [torch.matmul(self_input, other_inputs[i].T) / math.sqrt(self_input.shape[-1]) for i in
              range(other_inputs.shape[0])]
-    bate = [torch.exp(alpha[i]) / sum([torch.exp(alpha[i])]) for i in range(len(alpha))]
-    c_i = sum([torch.mm(bate[i], other_inputs[i]) for i in range(other_inputs.shape[0])])
+    bate = nn.Softmax(dim=-1)(torch.stack(alpha))
+    c_i = torch.sum(torch.bmm(bate, other_inputs),dim=0)
     return c_i
 
 
@@ -91,15 +91,17 @@ class AgentPolicy(TorchModelV2, nn.Module):
         x = torch.cat([input_dict["obs"][k] for k in self.fc_keys], -1)
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])
+
+
         # c = self.attention(x, y, y)
         c = attention(x, y)
+
         out = torch.cat([x, c], -1)
         out1 = self.fc2(out)
         out2 = self.fc3(out)
 
         out1 = self.softmax(out1)
         out2 = self.fc4(out2)
-
         logits = apply_logit_mask(out1, input_dict["obs"][_MASK_NAME])
         self._value_out = out2
 

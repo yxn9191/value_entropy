@@ -5,7 +5,7 @@ env:
     width: 20
     height: 20
     num_organization: 2
-    episode_length: 100
+    episode_length: 10
     ratio_medium: 0
   env_name: CloudManufacturing
 

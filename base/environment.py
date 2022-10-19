@@ -49,6 +49,7 @@ class BaseEnvironment(mesa.Model):
 
     # 重置整个环境
     def reset(self):
+        self.set_all_agents_list()
         for agent in self.all_agents:
             agent.reset()
         obs = self.generate_observations()
