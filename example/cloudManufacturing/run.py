@@ -40,15 +40,15 @@ model_params = {
     #     "Initial Organization Numbers", 100, 0, 5
     # ),
     "num_service": mesa.visualization.Slider(
-        "Initial Service Numbers",100, 10, 200
+        "Initial Service Numbers",value=5, min_value=0, max_value=500,step=5
     ),
 
-    "num_order": mesa.visualization.Slider("Initial Order Numbers",200 , 10, 100),
+    "num_order": mesa.visualization.Slider("Initial Order Numbers",value=10, min_value=0, max_value=1000,step=5),
     "ratio_low": mesa.visualization.Slider(
-        "Initial ratio_low", 0, 0.1, 1
+        "Initial ratio_low", value=0, min_value=0, max_value=1, step=0.1
     ),
     "ratio_medium": mesa.visualization.Slider(
-        "Initial ratio_medium", 0,0.1, 1
+        "Initial ratio_medium", value=1, min_value=0, max_value=1, step=0.1
     ),
 }
 
