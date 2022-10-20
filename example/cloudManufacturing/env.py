@@ -56,16 +56,26 @@ class CloudManufacturing(BaseEnvironment):
         # )
 
     # 修改agent的智能等级
-    def set_intelligence(self):
-        temp_agents = set(self.all_agents)
-        low_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_low))]
-        medium_agents = [temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_medium))]
-        hight_agents = temp_agents
+    def set_intelligence(self,new_agents):
+        low_agents = []
+        medium_agents = []
+        high_agents = []
+        for agent in self.all_agents:
+            if agent.intelligence_level == 0:
+                low_agents.append(agent)
+            elif agent.intelligence_level == 1:
+                medium_agents.append(agent)
+            elif agent.intelligence_level == 2:
+                high_agents.append(agent)
+        temp_agents = set(new_agents)
+        low_agents.extend( [temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_low - len(low_agents)))])
+        medium_agents.extend([temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_medium - len(medium_agents)))])
+        high_agents.extend(list(temp_agents))
         for agent in low_agents:
             agent.set_intelligence(0)
         for agent in medium_agents:
             agent.set_intelligence(1)
-        for agent in hight_agents:
+        for agent in high_agents:
             agent.set_intelligence(2)
 
     def random_place_agent(self, agent):
