@@ -19,7 +19,7 @@ class ServiceAgent(Agent):
                  consumption=randint(10, 30),
                  failure_prob=0.2,
                  cooperation=1,
-                 move_cost=0.5,
+                 move_cost=0.1,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model)
@@ -74,6 +74,7 @@ class ServiceAgent(Agent):
         value = 0
         cost = 1
         # 零智力
+        order = None
         if self.intelligence_level == 0 or self.intelligence_level == 1:
             if self.intelligence_level == 0:
                 # 随机选择一个满足充分约束的订单
@@ -97,6 +98,7 @@ class ServiceAgent(Agent):
 
         # 高智力
         elif self.intelligence_level == 2:
+
             if self.action != -1 and self.action is not None:
                 # 这里也要换成算法1的订单集合
                 order = self.model.match_order[self.action]
@@ -104,7 +106,10 @@ class ServiceAgent(Agent):
         prob = random.uniform(0, 1)
         # 失败
         if prob >= self.failure_prob and order:
-            value = order.bonus / len(order.services)
+            try:
+                value = order.bonus / len(order.services)
+            except ZeroDivisionError:
+                raise TypeError(order.occupied, self.model._resource_lookup[str(order.unique_id)].order_type,self.action,self.service_type)
             cost = order.cost / len(order.services) + sum(
                 [abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost
             self.state = 1  # 状态改变，开始移动

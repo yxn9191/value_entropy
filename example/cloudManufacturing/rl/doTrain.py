@@ -5,7 +5,7 @@ import sys
 
 import ray
 import yaml
-from ray.rllib.agents.a3c.a3c import A3CTrainer
+from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.logger import pretty_print
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
@@ -66,7 +66,7 @@ def build_Trainer(run_configuration):
         "num_workers": trainer_config.get("num_workers")
     })
 
-    trainer = A3CTrainer(
+    trainer = A2CTrainer(
         env= run_configuration.get("env")["env_name"],
         config=trainer_config
     )
