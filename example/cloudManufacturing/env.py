@@ -32,8 +32,8 @@ class CloudManufacturing(BaseEnvironment):
         self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
         self.actions = {}
         # 算法1中的M（订单）和N（企业）
-        self.M = 200
-        self.N = 100
+        self.M = 20
+        self.N = 10
 
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
@@ -336,18 +336,21 @@ class CloudManufacturing(BaseEnvironment):
 
         self.finish_orders = 0
         order_action = dict()
-
+        #排除没有匹配的agent的影响
+        for agent in self._agent_lookup.values():
+            if agent not in self.match_agent:
+                agent.action_parse(-1)
         for a_id, o_id in self.actions.items():
             if int(a_id) < 0:
                 continue
             if int(o_id) >= len(self.match_order):
                 agent = self._agent_lookup[a_id]
-                agent.action = -1
+                agent.action_parse(-1)
                 continue
             agent = self._agent_lookup[a_id]
             order = self.match_order[o_id]
             if agent.service_type not in order.order_type:
-                agent.action = -1
+                agent.action_parse(-1)
                 continue
             if order.unique_id not in order_action:
                 order_action[order.unique_id] = dict()
@@ -381,7 +384,7 @@ class CloudManufacturing(BaseEnvironment):
                 else:
                     for service_type in order_action[o_id].keys():
                         order_.services.extend([min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0]])
-                    #raise TypeError(order_.services)
+
                     if self.necessary_constraint(order_, order_.services):
                         self.finish_orders += 1
                         order_.occupied = 1
@@ -420,6 +423,7 @@ class CloudManufacturing(BaseEnvironment):
         # 低智能和中智能的可能动作，存入agent
         self.get_actions()
 
+        obs = self.generate_observations()
         # 存入高智能的动作
         if self.actions is not None:
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
@@ -432,8 +436,9 @@ class CloudManufacturing(BaseEnvironment):
             self.order_select()
 
             for agent in self.match_agent:
-                value, cost = agent.process_order()
-                reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
+                if agent.intelligence_level == 2:
+                    value, cost = agent.process_order()
+                    reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
 
             # 生成虚拟企业
             num_agents = len(reward)
@@ -442,8 +447,6 @@ class CloudManufacturing(BaseEnvironment):
                 num_agents += 1
 
         self.schedule.step()
-
-        obs = self.generate_observations()
 
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}

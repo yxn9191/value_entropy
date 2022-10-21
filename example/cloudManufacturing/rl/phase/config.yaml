@@ -1,7 +1,7 @@
 env:
   env_config:
-    num_order: 200
-    num_service: 100
+    num_order: 10
+    num_service: 5
     width: 20
     height: 20
     num_organization: 2
@@ -11,7 +11,7 @@ env:
   env_name: CloudManufacturing
 
 trainer:
-  num_workers: 3
+  num_workers: 7
   batch_mode: truncate_episodes
   no_done_at_end: false
   ignore_worker_failures: true

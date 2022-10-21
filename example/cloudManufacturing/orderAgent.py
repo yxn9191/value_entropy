@@ -15,7 +15,7 @@ class OrderAgent(Resource):
                  bonus=randint(100, 200),
                  cost=randint(5, 10),
                  cooperation=1,
-                 handling_time=4,
+                 handling_time=2,
                  max_duration=10
                  ):
         super().__init__(unique_id, model)

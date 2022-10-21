@@ -110,7 +110,6 @@ class ServiceAgent(Agent):
         #
         # 高智力
         if self.intelligence_level == 2:
-
             if self.action != -1 and self.action is not None:
                 # 这里也要换成算法1的订单集合
                 self.order = self.model.match_order[self.action]
@@ -121,8 +120,11 @@ class ServiceAgent(Agent):
             try:
                 value = self.order.bonus / len(self.order.services)
             except ZeroDivisionError:
-                raise TypeError(self.order.occupied, self.model._resource_lookup[str(self.order.unique_id)].order_type,
-                                self.model.actions, self.service_type)
+
+                raise TypeError(self.unique_id, self.model._resource_lookup[str(self.order.unique_id)].order_type,
+                                self.model.actions,self.action, self.service_type,self.intelligence_level,
+                                [order.unique_id for order in self.model.match_order],
+                                [agent.unique_id for agent in self.model.match_agent])
             cost = self.order.cost / len(self.order.services) + sum(
                 [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) * self.move_cost
             self.state = 1  # 状态改变，开始移动
@@ -148,9 +150,9 @@ class ServiceAgent(Agent):
 
         return value, cost
 
-    # 返回当前选择的任务后的收益和消耗，如果没有选择则返回0，1
     def step(self):
         if self.energy < 0:
+            print("企业破产了")
             self.done = True
         self.energy -= 1  # 假定每个step，企业的能量自动减少1
 
@@ -159,7 +161,8 @@ class ServiceAgent(Agent):
             self.state = 0
             # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
             self.energy += self.order.bonus / len(self.order.services)
-            self.order.done = 1
+            self.order.done = True
+            print("_______订单处理完成_________", self.order.unique_id,self.order.pos)
 
         if self.state == 0:
             self.process_order()
