@@ -14,7 +14,7 @@ class ServiceAgent(Agent):
                  service_type,
                  difficulty,
                  organization,
-                 speed=3,
+                 speed=1,
                  energy=randint(100, 200),
                  consumption=randint(10, 30),
                  failure_prob=0.2,
@@ -27,7 +27,7 @@ class ServiceAgent(Agent):
         self.service_type = service_type  # 企业可以处理的订单类型：A,B,C
         self.difficulty = difficulty  # 可处理的订单的最大难度等级
         self.cooperation = cooperation  # 是否接受合作,接受为1，禁止为0
-        self.speed = speed  # 移动速度为3
+        self.speed = speed  # 移动速度为1
         self.move_cost = move_cost  # 移动单位距离的开销
         self.consumption = consumption  # 订单的成本
         self.failure_prob = failure_prob  # 企业处理失败订单的概率
@@ -128,23 +128,23 @@ class ServiceAgent(Agent):
             self.state = 1  # 状态改变，开始移动
             self.order.occupied = 1  # 任务被占用
 
-            # 在order中保存它被处理结束的时间
-            self.order.done_time = self.model.schedule.steps + self.order.handling_time
+            # 在order中保存它被处理结束的时间 !!!没有考虑除以speed无法取整的情况，speed我先设置为1了
+            self.order.done_time = self.model.schedule.steps + self.order.handling_time + sum(
+                [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) / self.speed
+
             # 记录企业的订单处理完成时间
-            self.order_end_time = self.model.schedule.steps + self.order.handling_time
+            self.order_end_time = self.model.schedule.steps + self.order.handling_time + sum(
+                [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) / self.speed
 
             # 计算移动企业位置
             self.delta_x = self.order.pos[0] - self.pos[0]
             self.delta_y = self.order.pos[1] - self.pos[1]
 
-            # 记录企业的订单处理完成时间
-            self.order_end_time = self.model.schedule.steps + self.order.handling_time + sum(
-                [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)])
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= self.order.cost / len(self.order.services)
+            print("处理订单了")
         else:
             self.order = None
-
 
         return value, cost
 
@@ -165,24 +165,25 @@ class ServiceAgent(Agent):
             self.process_order()
         elif self.state == 1:
             self.move()
-            #到达地点，转为处理订单状态
+            # 到达地点，转为处理订单状态
             if self.pos == self.order.pos:
-                self.state == 2
+                self.state = 2
 
     def move(self):
+        print("企业移动了")
         if self.delta_x > 0:
-            self.model.grid.move_agent(self, (self.pos[0] + 1, self.pos[1]))
-            self.delta_x -= 1
+            self.model.grid.move_agent(self, (self.pos[0] + self.speed, self.pos[1]))
+            self.delta_x -= self.speed
         elif self.delta_x < 0:
-            self.model.grid.move_agent(self, (self.pos[0] - 1, self.pos[1]))
-            self.delta_x += 1
+            self.model.grid.move_agent(self, (self.pos[0] - self.speed, self.pos[1]))
+            self.delta_x += self.speed
         elif self.delta_x == 0:
             if self.delta_y > 0:
-                self.model.grid.move_agent(self, (self.pos[0], self.pos[1] + 1))
-                self.delta_y -= 1
+                self.model.grid.move_agent(self, (self.pos[0], self.pos[1] + self.speed))
+                self.delta_y -= self.speed
             elif self.delta_y < 0:
-                self.model.grid.move_agent(self, (self.pos[0] - 1, self.pos[1] - 1))
-                self.delta_y += 1
+                self.model.grid.move_agent(self, (self.pos[0], self.pos[1] - self.speed))
+                self.delta_y += self.speed
 
         # 移动每一步都有消耗
-        self.energy -= self.move_cost
+        self.energy -= self.move_cost * self.speed

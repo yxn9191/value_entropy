@@ -14,7 +14,10 @@ def agent_portrayal(agent):
     portrayal = {}
 
     if type(agent) is OrderAgent:
-        portrayal["Shape"] = "Order.png"
+        if agent.occupied == 0:
+            portrayal["Shape"] = "Order.png"
+        elif agent.occupied == 1:
+            portrayal["Shape"] = "Lock.png"
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 2
         portrayal["text"] = agent.order_type
