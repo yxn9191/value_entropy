@@ -1,7 +1,7 @@
 env:
   env_config:
-    num_order: 50
-    num_service: 10
+    num_order: 200
+    num_service: 100
     width: 20
     height: 20
     num_organization: 2
@@ -17,7 +17,7 @@ trainer:
   ignore_worker_failures: true
   observation_filter: NoFilter
   rollout_fragment_length: 20
-  train_batch_size: 80
+  train_batch_size: 10
 
 general:
   ckpt_frequency_steps: 10000

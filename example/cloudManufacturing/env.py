@@ -32,8 +32,8 @@ class CloudManufacturing(BaseEnvironment):
         self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
         self.actions = None
         # 算法1中的M（订单）和N（企业）
-        self.M = 50
-        self.N = 10
+        self.M = 200
+        self.N = 100
 
         self.schedule = mesa.time.RandomActivationByType(self)
         self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
@@ -94,8 +94,8 @@ class CloudManufacturing(BaseEnvironment):
 
             self.schedule.add(s)
             self.random_place_agent(s)
-            self.all_agents.append(s)
-            self._agent_lookup[s.unique_id] = s
+            # self.all_agents.append(s)
+            # self._agent_lookup[s.unique_id] = s
 
     def generate_orders(self, new_orders_num):
         self.new_orders = []
@@ -105,8 +105,8 @@ class CloudManufacturing(BaseEnvironment):
             self.schedule.add(a)
             self.random_place_agent(a)
             self.new_orders.append(a)
-            self.all_resources.append(a)
-            self._resource_lookup[a.unique_id] = a
+            # self.all_resources.append(a)
+            # self._resource_lookup[a.unique_id] = a
 
     # 比较两个agent是否彼此符合约束条件,即判断该service是否是order的潜在工人（充分条件）
     # 返回1代表是潜在工人
@@ -323,7 +323,6 @@ class CloudManufacturing(BaseEnvironment):
             if len(order_.order_type) == 1:
                 order_.services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
                 if self.necessary_constraint(order_, order_.services):
-                    raise TypeError(order_.services)
                     self.finish_orders += 1
                     order_.occupied = 1
                     for a_id in order_action[o_id][order_.order_type].keys():
@@ -343,7 +342,6 @@ class CloudManufacturing(BaseEnvironment):
                     for service_type in order_action[o_id].keys():
                         order_.services.extend([min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0]])
                     if self.necessary_constraint(order_, order_.services):
-                        raise TypeError(order_.services)
                         self.finish_orders += 1
                         order_.occupied = 1
                         for service_type in order_action[o_id].keys():

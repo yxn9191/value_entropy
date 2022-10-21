@@ -69,6 +69,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
             if k == _MASK_NAME :
                 pass
             elif k == _OTHER_NAME:
+
                 self.atten_shape = v.shape[1]
             else:
                 self.fc_input_shape += v.shape[0]
@@ -91,7 +92,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
         x = torch.cat([input_dict["obs"][k] for k in self.fc_keys], -1)
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])
-
+        raise TypeError(input_dict["obs"])
 
         # c = self.attention(x, y, y)
         c = attention(x, y)
