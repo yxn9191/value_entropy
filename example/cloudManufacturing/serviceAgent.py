@@ -80,9 +80,12 @@ class ServiceAgent(Agent):
                 # 随机选择一个满足充分约束的订单
                 self.selected_order_id = random.choice(self.temp_actions)
             if self.intelligence_level == 1:
+                print("medium")
+                print("temp_actions:", self.temp_actions)
+                print("_resource_lookup", self.model._resource_lookup)
                 order_reward = {str(order_id): [] for order_id in self.temp_actions}
                 for order_id in self.temp_actions:
-                    order = self.model._resource_lookup.get(order_id)
+                    order = self.model._resource_lookup[str(order_id)]
                     reward = order.bonus - sum(
                         [abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost - order.cost
                     order_reward[str(order.unique_id)].append(reward)
@@ -91,10 +94,10 @@ class ServiceAgent(Agent):
 
             order = None
             for temp in self.model.all_resources:
-                if temp.unique_id == self.selected_order_id:
+                if str(temp.unique_id) == self.selected_order_id:
                     order = temp
 
-            self.model.actions.update({self.unique_id: self.model.match_order.index(order)})
+            self.model.actions.update({str(self.unique_id): self.model.match_order.index(order)})
 
         # 高智力
         elif self.intelligence_level == 2:
@@ -109,7 +112,8 @@ class ServiceAgent(Agent):
             try:
                 value = order.bonus / len(order.services)
             except ZeroDivisionError:
-                raise TypeError(order.occupied, self.model._resource_lookup[str(order.unique_id)].order_type,self.action,self.service_type)
+                raise TypeError(order.occupied, self.model._resource_lookup[str(order.unique_id)].order_type,
+                                self.action, self.service_type)
             cost = order.cost / len(order.services) + sum(
                 [abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost
             self.state = 1  # 状态改变，开始移动
@@ -126,3 +130,6 @@ class ServiceAgent(Agent):
             self.process_order()
         elif self.state == 1:
             self.move()
+
+    def move(self):
+        self.energy = self.energy - self.consumption
