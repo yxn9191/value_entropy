@@ -4,7 +4,6 @@ import random
 import numpy as np
 import mesa
 
-
 from base.agent import Agent
 from base.resource import Resource
 
@@ -29,8 +28,9 @@ class CloudManufacturing(BaseEnvironment):
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
         self.new_orders = []  # 当前时刻产生的订单的数目
+        self.new_services = []  # 当前时刻产生的新企业
         self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
-        self.actions = None
+        self.actions = {}
         # 算法1中的M（订单）和N（企业）
         self.M = 200
         self.N = 100
@@ -45,6 +45,7 @@ class CloudManufacturing(BaseEnvironment):
 
         self.generate_services(num_service)
         self.generate_orders(num_order)
+        self.set_intelligence(self.new_services)
 
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
@@ -56,20 +57,17 @@ class CloudManufacturing(BaseEnvironment):
         # )
 
     # 修改agent的智能等级
-    def set_intelligence(self,new_agents):
+    # 设定为同一智能体的智能等级，一经初始化设定后无法再修改，防止出现在执行任务时突然变更，影响系统效果。
+    # 同时我们无需保证系统内智能体的比例不变，而是在初始设置后实行优胜略汰的机制:如果智能体因为智商低死去了，那就死去了不管他。
+    def set_intelligence(self, new_agents):
         low_agents = []
         medium_agents = []
         high_agents = []
-        for agent in self.all_agents:
-            if agent.intelligence_level == 0:
-                low_agents.append(agent)
-            elif agent.intelligence_level == 1:
-                medium_agents.append(agent)
-            elif agent.intelligence_level == 2:
-                high_agents.append(agent)
         temp_agents = set(new_agents)
-        low_agents.extend( [temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_low - len(low_agents)))])
-        medium_agents.extend([temp_agents.pop() for _ in range(int(len(self.all_agents) * self.ratio_medium - len(medium_agents)))])
+        low_agents.extend(
+            [temp_agents.pop() for _ in range(int(len(new_agents) * self.ratio_low - len(low_agents)))])
+        medium_agents.extend(
+            [temp_agents.pop() for _ in range(int(len(new_agents) * self.ratio_medium - len(medium_agents)))])
         high_agents.extend(list(temp_agents))
         for agent in low_agents:
             agent.set_intelligence(0)
@@ -85,6 +83,7 @@ class CloudManufacturing(BaseEnvironment):
         # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
 
     def generate_services(self, new_service_num):
+        self.new_services = []
         # 默认每轮新增5企业
         organization = Organization(random.randint(1, 2), self, [])
 
@@ -94,6 +93,8 @@ class CloudManufacturing(BaseEnvironment):
 
             self.schedule.add(s)
             self.random_place_agent(s)
+            self.new_services.append(s)
+
             # self.all_agents.append(s)
             # self._agent_lookup[s.unique_id] = s
 
@@ -163,7 +164,7 @@ class CloudManufacturing(BaseEnvironment):
             for agent in self.match_agent:
                 if agent.intelligence_level == 2:
                     masks[str(agent.unique_id)][position] = self.sufficient_constraint(order, agent) \
-                                                        * int(agent.service_type in order.order_type)
+                                                            * int(agent.service_type in order.order_type)
             position += 1
 
         return masks
@@ -212,7 +213,7 @@ class CloudManufacturing(BaseEnvironment):
 
         num_agent = len(obs)
         while num_agent < self.N:
-            _obs[str(-num_agent)] =[0 for _ in range(7*self.M + 1)]
+            _obs[str(-num_agent)] = [0 for _ in range(7 * self.M + 1)]
             num_agent += 1
         return _obs
 
@@ -228,7 +229,7 @@ class CloudManufacturing(BaseEnvironment):
     # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
         obs = {}
-        #self.match_order, self.match_agent = self.matching_service_order()
+        # self.match_order, self.match_agent = self.matching_service_order()
         # 影响选择订单规则的内在属性,#这里的 self._agent_lookup要替换从匹配1中返回的agent
         for agent in self.match_agent:
             if agent.intelligence_level == 2:
@@ -248,10 +249,11 @@ class CloudManufacturing(BaseEnvironment):
         while num_agents < self.N:
             obs[str(-num_agents)] = {"cooperation": 0}
             # other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
-            other = {"orders": [0 for i in range(7*self.M)]}
+            other = {"orders": [0 for i in range(7 * self.M)]}
             action_mask = {"action_mask": [0 for i in range(self.M)]}
             obs[str(-num_agents)].update(other)
-            obs[str(-num_agents)].update({"others": [np.array([0 for i in range(self.M * 7 + 1)]) for _ in range(self.N - 1)]})
+            obs[str(-num_agents)].update(
+                {"others": [np.array([0 for i in range(self.M * 7 + 1)]) for _ in range(self.N - 1)]})
             obs[str(-num_agents)].update(action_mask)
             num_agents += 1
 
@@ -354,7 +356,6 @@ class CloudManufacturing(BaseEnvironment):
                                 self._agent_lookup[a_id].action = -1
                         order_.services = []
 
-
     def step(self):
         """Advance the model by one step."""
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
@@ -369,6 +370,7 @@ class CloudManufacturing(BaseEnvironment):
         self.generate_orders(10)
         self.generate_services(2)
         self.set_all_agents_list()
+        self.set_intelligence(self.new_services)
 
         alpha = 0.1
         reward = dict()
@@ -386,7 +388,6 @@ class CloudManufacturing(BaseEnvironment):
                 if int(agent_idx) > 0:
                     agent = self._agent_lookup.get(str(agent_idx), None)
                     agent.action_parse(agent_actions)
-
 
             # 平台反选
             self.order_select()
@@ -412,10 +413,7 @@ class CloudManufacturing(BaseEnvironment):
         # self.collector.collect(self)
         # 激活agent，每个agent执行自己全部动作
 
-
         # 生成本轮新的企业和订单
-
-
 
         return obs, reward, done, info
 
