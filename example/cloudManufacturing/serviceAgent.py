@@ -84,6 +84,7 @@ class ServiceAgent(Agent):
             if self.action == -1:
                 self.order = None
 
+
         #    if self.intelligence_level == 0:
         #        # 随机选择一个满足充分约束的订单
         #        self.selected_order_id = random.choice(self.temp_actions)
@@ -151,13 +152,14 @@ class ServiceAgent(Agent):
     def step(self):
         if self.energy < 0:
             self.done = True
-        self.energy -= 5  # 假定每个step，企业的能量自动减少5
+        self.energy -= 1  # 假定每个step，企业的能量自动减少1
 
         # 如果当前时刻，订单完成
         if self.state == 2 and self.order_end_time == self.model.schedule.steps:
             self.state = 0
             # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
             self.energy += self.order.bonus / len(self.order.services)
+            self.order.done = 1
 
         if self.state == 0:
             self.process_order()

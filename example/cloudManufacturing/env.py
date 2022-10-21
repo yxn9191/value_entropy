@@ -116,7 +116,8 @@ class CloudManufacturing(BaseEnvironment):
         # 时间约束
         # 预算约束
         # 技能约束
-
+        if service.service_type not in order.order_type:
+            return 0
         # 如果订单或企业二者有一个是禁止合作的，则技能约束部分必须满足所有技能条件
         if order.cooperation == 0 | service.cooperation == 0:
             if distance(order.pos, service.pos) <= order.vision and \
@@ -145,14 +146,13 @@ class CloudManufacturing(BaseEnvironment):
         for service in services:
             service = self._agent_lookup[service]
             # 合作组织中出现单个企业的收益小于0，则该合作无法成立
-            if move_len(order.pos, service.pos) * service.move_cost + order.cost / len(services) < order.bonus / len(
+            if move_len(order.pos, service.pos) * service.move_cost + order.cost / len(services) > order.bonus / len(
                     services):
                 return 0
             total_move_cost += move_len(order.pos, service.pos) * service.move_cost
             total_skill = [int(a or b) for (a, b) in zip(skill_constraint(order, service), total_skill)]
-
         # 整体预算约束：小组成员的行程代价之和加上处理订单的消耗小于订单给予的价值（等于也不行，那不是白干了）&& 整体技能须满足该订单所有的技能要求
-        if order.bonus >= total_move_cost + order.cost and total_skill == order.skills:
+        if order.bonus >= total_move_cost + order.cost and total_skill.count(1) == len(order.skills):
             return 1
         else:
             return 0
@@ -316,6 +316,8 @@ class CloudManufacturing(BaseEnvironment):
         for order in self._resource_lookup.values():
             if order.occupied == 0:
                 for agent in self._agent_lookup.values():
+                    if agent.state !=0:
+                        continue
                     G = set()
                     if self.sufficient_constraint(order, agent):
                         G.add(agent)
@@ -353,13 +355,11 @@ class CloudManufacturing(BaseEnvironment):
                 order_action[order.unique_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
             else:
                 order_action[order.unique_id][agent.service_type].update({a_id: move_len(agent.pos, order.pos)})
-
         for o_id in order_action.keys():
             order_ = self._resource_lookup[str(o_id)]
             order_.services = []
             if len(order_.order_type) == 1:
                 order_.services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
-                #raise TypeError(order_.services)
                 if self.necessary_constraint(order_, order_.services):
                     self.finish_orders += 1
                     order_.occupied = 1
@@ -367,6 +367,7 @@ class CloudManufacturing(BaseEnvironment):
                         if a_id not in order_.services:
                             self._agent_lookup[a_id].action = -1
                 else:
+
                     for a_id in order_action[o_id][order_.order_type].keys():
                         self._agent_lookup[a_id].action = -1
                     order_.services = []
@@ -495,7 +496,7 @@ def skill_constraint(order, service):
 
 
 def generate_order_type():
-    weight = {"A": 0.2, "B": 0.2, "C": 0.2, "AB": 0.1, "AC": 0.1, "BC": 0.1, "ABC": 0.1}
+    weight = {"A": 0.3, "B": 0.3, "C": 0.3, "AB": 0.03, "AC": 0.03, "BC": 0.03, "ABC": 0.01}
     return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
 
 
