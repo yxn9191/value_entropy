@@ -190,7 +190,7 @@ class CloudManufacturing(BaseEnvironment):
             if agent.intelligence_level == 0:
                 # 随机选择一个满足充分约束的订单
                 agent.selected_order_id = random.choice(agent.temp_actions)
-                agent.order = self._resource_lookup[agent.selected_order_id]
+                agent.order = self._resource_lookup[str(agent.selected_order_id)]
                 self.actions.update({str(agent.unique_id): self.match_order.index(agent.order)})
             if agent.intelligence_level == 1:
                 # print("medium")
@@ -198,12 +198,13 @@ class CloudManufacturing(BaseEnvironment):
                 # print("_resource_lookup", self.model._resource_lookup)
                 order_reward = {str(order_id): [] for order_id in agent.temp_actions}
                 for order_id in agent.temp_actions:
-                    agent.order = self._resource_lookup[str(order_id)]
-                    reward = agent.order.bonus - sum(
-                        [abs(a - b) for (a, b) in zip(agent.order.pos, agent.pos)]) * agent.move_cost - agent.order.cost
-                    order_reward[str(agent.order.unique_id)].append(reward)
+                    order = self._resource_lookup[str(order_id)]
+                    reward = order.bonus - sum(
+                        [abs(a - b) for (a, b) in zip(order.pos, agent.pos)]) * agent.move_cost - order.cost
+                    order_reward[str(order.unique_id)].append(reward)
                 # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
-                self.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+                agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+                agent.order = self._resource_lookup[str(agent.selected_order_id)]
                 self.actions.update({str(agent.unique_id): self.match_order.index(agent.order)})
                 # order = None
                 # for temp in self.model.all_resources:
