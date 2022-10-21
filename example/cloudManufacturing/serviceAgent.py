@@ -46,7 +46,7 @@ class ServiceAgent(Agent):
 
         self.delta_x = 0  # 记录要想新位置移动多少x
         self.delta_y = 0  # 记录要往新位置移动多少y
-        self.order = None # 企业正在处理的order
+        self.order = None  # 企业正在处理的order
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -124,14 +124,19 @@ class ServiceAgent(Agent):
             self.state = 1  # 状态改变，开始移动
             self.order.occupied = 1  # 任务被占用
 
+            # 在order中保存它被处理结束的时间
+            self.order.done_time = self.model.schedule.steps + self.order.handling_time
+            # 记录企业的订单处理完成时间
+            self.order_end_time = self.model.schedule.steps + self.order.handling_time
+
             # 计算移动企业位置
             self.delta_x = self.order.pos[0] - self.pos[0]
             self.delta_y = self.order.pos[1] - self.pos[1]
 
-            # 记录企业的订单处理完成时间
-            self.order_end_time = self.model.schedule.steps + self.order.handling_time
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= self.order.cost / len(self.order.services)
+        else:
+            self.order = None
 
         return value, cost
 
@@ -152,7 +157,6 @@ class ServiceAgent(Agent):
         elif self.state == 1:
             self.move()
 
-
     def move(self):
         if self.delta_x > 0:
             self.model.grid.move_agent(self, (self.pos[0] + 1, self.pos[1]))
@@ -167,7 +171,6 @@ class ServiceAgent(Agent):
             elif self.delta_y < 0:
                 self.model.grid.move_agent(self, (self.pos[0] - 1, self.pos[1] - 1))
                 self.delta_y += 1
+
         # 移动每一步都有消耗
         self.energy -= self.move_cost
-
-

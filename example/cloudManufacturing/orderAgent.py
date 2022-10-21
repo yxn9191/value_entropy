@@ -35,6 +35,7 @@ class OrderAgent(Resource):
         self.services = []  # 参加完成该订单的企业
         self.match_vector(self.order_type, self.order_difficulty)
         self.done = False  # 订单是否被完成
+        self.done_time = None # 订单被处理结束的时间
 
     # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):
@@ -67,4 +68,7 @@ class OrderAgent(Resource):
         self.left_duration -= 1
         # 判断生命周期结束还没被处理，则销毁自身
         if self.left_duration == 0:
+            self.destroy()
+        # 如果它被处理完成，销毁自身
+        if self.done_time == self.model.schedule.steps:
             self.destroy()
