@@ -158,7 +158,7 @@ class CloudManufacturing(BaseEnvironment):
             return 0
 
     def generate_action_mask(self):
-        masks = {str(agent.unique_id): [0 for _ in range(self.M)] for agent in self.match_agent}
+        masks = {str(agent.unique_id): [0 for _ in range(self.M)] for agent in self.match_agent if agent.intelligence_level == 2}
         position = 0
         for order in self.match_order:
             for agent in self.match_agent:
@@ -171,6 +171,13 @@ class CloudManufacturing(BaseEnvironment):
 
     # 低、中智能情况，生成每个agent可能选择的order,存入agent的selected_order_id
     # 同一agent在每一step中，会同时存有低、中、高智能的动作，但是根据不同情况选择执行
+    # def get_actions(self):
+    #     temp_actions = {str(agent.unique_id): [] for agent in self.match_agent}
+    #     for order in self.match_order:
+    #         for agent in self.match_agent:
+    #             if self.sufficient_constraint(order, agent) == 1:
+    #                 temp_actions[str(agent.unique_id)].append(order.unique_id)
+    #                 agent.temp_actions = temp_actions[str(agent.unique_id)]
     def get_actions(self):
         temp_actions = {str(agent.unique_id): [] for agent in self.match_agent}
         for order in self.match_order:
@@ -178,6 +185,33 @@ class CloudManufacturing(BaseEnvironment):
                 if self.sufficient_constraint(order, agent) == 1:
                     temp_actions[str(agent.unique_id)].append(order.unique_id)
                     agent.temp_actions = temp_actions[str(agent.unique_id)]
+
+        for agent in self.match_agent:
+            if agent.intelligence_level == 0:
+                # 随机选择一个满足充分约束的订单
+                agent.selected_order_id = random.choice(agent.temp_actions)
+                agent.order = self._resource_lookup[agent.selected_order_id]
+                self.actions.update({str(agent.unique_id): self.match_order.index(agent.order)})
+            if agent.intelligence_level == 1:
+                # print("medium")
+                # print("temp_actions:", self.temp_actions)
+                # print("_resource_lookup", self.model._resource_lookup)
+                order_reward = {str(order_id): [] for order_id in agent.temp_actions}
+                for order_id in agent.temp_actions:
+                    agent.order = self._resource_lookup[str(order_id)]
+                    reward = agent.order.bonus - sum(
+                        [abs(a - b) for (a, b) in zip(agent.order.pos, agent.pos)]) * agent.move_cost - agent.order.cost
+                    order_reward[str(agent.order.unique_id)].append(reward)
+                # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
+                self.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+                self.actions.update({str(agent.unique_id): self.match_order.index(agent.order)})
+                # order = None
+                # for temp in self.model.all_resources:
+                #     if str(temp.unique_id) == self.selected_order_id:
+                #         order = temp
+
+
+
 
     # 计算局部观察值,待修改
     def compute_order(self, agent):
@@ -319,11 +353,13 @@ class CloudManufacturing(BaseEnvironment):
                 order_action[order.unique_id][agent.service_type] = {a_id: move_len(agent.pos, order.pos)}
             else:
                 order_action[order.unique_id][agent.service_type].update({a_id: move_len(agent.pos, order.pos)})
+
         for o_id in order_action.keys():
             order_ = self._resource_lookup[str(o_id)]
             order_.services = []
             if len(order_.order_type) == 1:
                 order_.services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
+                #raise TypeError(order_.services)
                 if self.necessary_constraint(order_, order_.services):
                     self.finish_orders += 1
                     order_.occupied = 1
@@ -343,6 +379,7 @@ class CloudManufacturing(BaseEnvironment):
                 else:
                     for service_type in order_action[o_id].keys():
                         order_.services.extend([min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0]])
+                    #raise TypeError(order_.services)
                     if self.necessary_constraint(order_, order_.services):
                         self.finish_orders += 1
                         order_.occupied = 1

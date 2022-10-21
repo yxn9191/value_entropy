@@ -79,33 +79,36 @@ class ServiceAgent(Agent):
         value = 0
         cost = 1
         # 零智力
-        order = None
+
         if self.intelligence_level == 0 or self.intelligence_level == 1:
-            if self.intelligence_level == 0:
-                # 随机选择一个满足充分约束的订单
-                self.selected_order_id = random.choice(self.temp_actions)
-            if self.intelligence_level == 1:
-                print("medium")
-                print("temp_actions:", self.temp_actions)
-                print("_resource_lookup", self.model._resource_lookup)
-                order_reward = {str(order_id): [] for order_id in self.temp_actions}
-                for order_id in self.temp_actions:
-                    self.order = self.model._resource_lookup[str(order_id)]
-                    reward = self.order.bonus - sum(
-                        [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) * self.move_cost - self.order.cost
-                    order_reward[str(self.order.unique_id)].append(reward)
-                # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
-                self.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+            if self.action == -1:
+                self.order = None
 
-            # order = None
-            # for temp in self.model.all_resources:
-            #     if str(temp.unique_id) == self.selected_order_id:
-            #         order = temp
-
-            self.model.actions.update({str(self.unique_id): self.model.match_order.index(self.order)})
-
+        #    if self.intelligence_level == 0:
+        #        # 随机选择一个满足充分约束的订单
+        #        self.selected_order_id = random.choice(self.temp_actions)
+        #    if self.intelligence_level == 1:
+        #        print("medium")
+        #        print("temp_actions:", self.temp_actions)
+        #        print("_resource_lookup", self.model._resource_lookup)
+        #        order_reward = {str(order_id): [] for order_id in self.temp_actions}
+        #        for order_id in self.temp_actions:
+        #            self.order = self.model._resource_lookup[str(order_id)]
+        #            reward = self.order.bonus - sum(
+        #                [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) * self.move_cost - self.order.cost
+        #            order_reward[str(self.order.unique_id)].append(reward)
+        #        # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
+        #        self.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+        #
+        #    # order = None
+        #    # for temp in self.model.all_resources:
+        #    #     if str(temp.unique_id) == self.selected_order_id:
+        #    #         order = temp
+        #
+        #    self.model.actions.update({str(self.unique_id): self.model.match_order.index(self.order)})
+        #
         # 高智力
-        elif self.intelligence_level == 2:
+        if self.intelligence_level == 2:
 
             if self.action != -1 and self.action is not None:
                 # 这里也要换成算法1的订单集合
@@ -118,7 +121,7 @@ class ServiceAgent(Agent):
                 value = self.order.bonus / len(self.order.services)
             except ZeroDivisionError:
                 raise TypeError(self.order.occupied, self.model._resource_lookup[str(self.order.unique_id)].order_type,
-                                self.action, self.service_type)
+                                self.model.actions, self.service_type)
             cost = self.order.cost / len(self.order.services) + sum(
                 [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) * self.move_cost
             self.state = 1  # 状态改变，开始移动
@@ -129,9 +132,11 @@ class ServiceAgent(Agent):
             self.delta_y = self.order.pos[1] - self.pos[1]
 
             # 记录企业的订单处理完成时间
-            self.order_end_time = self.model.schedule.steps + self.order.handling_time
+            self.order_end_time = self.model.schedule.steps + self.order.handling_time + sum(
+                [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)])
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= self.order.cost / len(self.order.services)
+
 
         return value, cost
 
@@ -142,7 +147,7 @@ class ServiceAgent(Agent):
         self.energy -= 5  # 假定每个step，企业的能量自动减少5
 
         # 如果当前时刻，订单完成
-        if self.order_end_time == self.model.schedule.steps:
+        if self.state == 2 and self.order_end_time == self.model.schedule.steps:
             self.state = 0
             # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
             self.energy += self.order.bonus / len(self.order.services)
@@ -151,6 +156,9 @@ class ServiceAgent(Agent):
             self.process_order()
         elif self.state == 1:
             self.move()
+            #到达地点，转为处理订单状态
+            if self.pos == self.order.pos:
+                self.state == 2
 
 
     def move(self):
