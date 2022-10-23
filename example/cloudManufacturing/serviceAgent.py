@@ -161,7 +161,15 @@ class ServiceAgent(Agent):
             self.state = 0
             # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
             self.energy += self.order.bonus / len(self.order.services)
-            self.order.done = True
+            flag = 0
+            #所有合作的企业都处理完了，订单才算处理完了
+            for a_id in self.order.services:
+                agent = self.model._agent_lookup[a_id]
+                if agent.state != 0 :
+                    flag = 1
+                    break
+            if flag == 0:
+                self.order.done = True
             print("_______订单处理完成_________", self.order.unique_id,self.order.pos)
 
         if self.state == 0:
