@@ -3,6 +3,7 @@ from copy import deepcopy
 import random
 import numpy as np
 import mesa
+from mesa import DataCollector
 
 from base.agent import Agent
 from base.resource import Resource
@@ -13,6 +14,10 @@ from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 from ray.tune.registry import register_env
 from algorithm.rl.env_warpper import RLlibEnvWrapper
+
+
+def social_rewards(model):
+    return model.total_rewards / model.schedule.get_type_count(ServiceAgent)
 
 
 class CloudManufacturing(BaseEnvironment):
@@ -31,6 +36,8 @@ class CloudManufacturing(BaseEnvironment):
         self.new_services = []  # 当前时刻产生的新企业
         self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
         self.actions = {}
+        self.total_rewards = 0
+
         # 算法1中的M（订单）和N（企业）
         self.M = 20
         self.N = 10
@@ -43,6 +50,7 @@ class CloudManufacturing(BaseEnvironment):
         self.match_agent = []
         self.match_order = []
 
+
         self.generate_services(num_service)
         self.generate_orders(num_order)
         self.set_intelligence(self.new_services)
@@ -50,11 +58,11 @@ class CloudManufacturing(BaseEnvironment):
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
 
-        # # 数据收集器
-        # self.collector = DataCollector(
-        #     model_reporters={"Social Reward": },  # 计算社会整体收益
-        #     agent_reporters={"Service Num": lambda m: m.schedule.get_type_count(ServiceAgent)}
-        # )
+        # 数据收集器
+        self.datacollector = DataCollector(
+            model_reporters={"Social Reward": social_rewards},  # 计算社会整体收益
+            # agent_reporters={"Service Num": lambda m: m.schedule.get_type_count(ServiceAgent)}
+        )
 
     # 修改agent的智能等级
     # 设定为同一智能体的智能等级，一经初始化设定后无法再修改，防止出现在执行任务时突然变更，影响系统效果。
@@ -158,7 +166,8 @@ class CloudManufacturing(BaseEnvironment):
             return 0
 
     def generate_action_mask(self):
-        masks = {str(agent.unique_id): [0 for _ in range(self.M)] for agent in self.match_agent if agent.intelligence_level == 2}
+        masks = {str(agent.unique_id): [0 for _ in range(self.M)] for agent in self.match_agent if
+                 agent.intelligence_level == 2}
         position = 0
         for order in self.match_order:
             for agent in self.match_agent:
@@ -210,9 +219,6 @@ class CloudManufacturing(BaseEnvironment):
                 # for temp in self.model.all_resources:
                 #     if str(temp.unique_id) == self.selected_order_id:
                 #         order = temp
-
-
-
 
     # 计算局部观察值,待修改
     def compute_order(self, agent):
@@ -317,7 +323,7 @@ class CloudManufacturing(BaseEnvironment):
         for order in self._resource_lookup.values():
             if order.occupied == 0:
                 for agent in self._agent_lookup.values():
-                    if agent.state !=0:
+                    if agent.state != 0:
                         continue
                     G = set()
                     if self.sufficient_constraint(order, agent):
@@ -336,7 +342,7 @@ class CloudManufacturing(BaseEnvironment):
 
         self.finish_orders = 0
         order_action = dict()
-        #排除没有匹配的agent的影响
+        # 排除没有匹配的agent的影响
         for agent in self._agent_lookup.values():
             if agent not in self.match_agent:
                 agent.action_parse(-1)
@@ -400,6 +406,7 @@ class CloudManufacturing(BaseEnvironment):
 
     def step(self):
         """Advance the model by one step."""
+
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
         for agent in self.schedule.agents:
             if agent.done:
@@ -416,6 +423,7 @@ class CloudManufacturing(BaseEnvironment):
 
         alpha = 0.1
         reward = dict()
+        reward1 = dict()
 
         # 低智能也是先确定匹配的大小，所以我抽出来了
 
@@ -446,13 +454,15 @@ class CloudManufacturing(BaseEnvironment):
                 reward[str(-num_agents)] = 0
                 num_agents += 1
 
+        self.total_rewards = 0
         self.schedule.step()
 
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in obs.keys()}
 
-        # self.collector.collect(self)
+
+        self.datacollector.collect(self)
         # 激活agent，每个agent执行自己全部动作
 
         # 生成本轮新的企业和订单

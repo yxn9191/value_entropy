@@ -19,7 +19,7 @@ class ServiceAgent(Agent):
                  consumption=randint(10, 30),
                  failure_prob=0.2,
                  cooperation=1,
-                 move_cost=0.1,
+                 move_cost=20,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model)
@@ -84,7 +84,6 @@ class ServiceAgent(Agent):
             if self.action == -1:
                 self.order = None
 
-
         #    if self.intelligence_level == 0:
         #        # 随机选择一个满足充分约束的订单
         #        self.selected_order_id = random.choice(self.temp_actions)
@@ -122,7 +121,7 @@ class ServiceAgent(Agent):
             except ZeroDivisionError:
 
                 raise TypeError(self.unique_id, self.model._resource_lookup[str(self.order.unique_id)].order_type,
-                                self.model.actions,self.action, self.service_type,self.intelligence_level,
+                                self.model.actions, self.action, self.service_type, self.intelligence_level,
                                 [order.unique_id for order in self.model.match_order],
                                 [agent.unique_id for agent in self.model.match_agent])
             cost = self.order.cost / len(self.order.services) + sum(
@@ -154,7 +153,7 @@ class ServiceAgent(Agent):
         if self.energy < 0:
             print("企业破产了")
             self.done = True
-        self.energy -= 1  # 假定每个step，企业的能量自动减少1
+        self.energy -= 20 # 假定每个step，企业的能量自动减少20
 
         # 如果当前时刻，订单完成
         if self.state == 2 and self.order_end_time == self.model.schedule.steps:
@@ -162,10 +161,11 @@ class ServiceAgent(Agent):
             # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
             self.energy += self.order.bonus / len(self.order.services)
             self.order.done = True
-            print("_______订单处理完成_________", self.order.unique_id,self.order.pos)
+            print("_______订单处理完成_________", self.order.unique_id, self.order.pos)
 
         if self.state == 0:
-            self.process_order()
+            value, cost = self.process_order()
+            self.model.total_rewards += value-cost
         elif self.state == 1:
             self.move()
             # 到达地点，转为处理订单状态
