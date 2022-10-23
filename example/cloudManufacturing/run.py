@@ -19,13 +19,13 @@ def agent_portrayal(agent):
         elif agent.occupied == 1:
             portrayal["Shape"] = "Lock.png"
         portrayal["scale"] = 0.9
-        portrayal["Layer"] = 2
+        portrayal["Layer"] = 1
         portrayal["text"] = agent.order_type
 
     elif type(agent) is ServiceAgent:
         portrayal["text"] = agent.service_type
         portrayal["scale"] = 0.9
-        portrayal["Layer"] = 1
+        portrayal["Layer"] = 2
         portrayal["text_color"] = "Red"
         if agent.service_type == "A":
             portrayal["Shape"] = "ServiceA.png"
@@ -56,14 +56,14 @@ model_params = {
 }
 
 grid = CanvasGrid(agent_portrayal, 20, 20, 700, 700)
-# chart = mesa.visualization.ChartModule(
-#     [{"Label": "Social Reward", "Color": "Black"},
-#      {"Label": "Service Num", "Color": "#666666"}
-#      ], data_collector_name="collector"
-# )
+chart = mesa.visualization.ChartModule(
+    [{"Label": "Social Reward", "Color": "red"},
+     # {"Label": "Service Num", "Color": "green"}
+     ]
+)
 
 server = ModularServer(CloudManufacturing,
-                       [grid],
+                       [grid,chart],
                        "CloudManufacturing", model_params)
 
 server.launch()
