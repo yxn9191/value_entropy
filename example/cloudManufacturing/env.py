@@ -14,6 +14,9 @@ from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 from ray.tune.registry import register_env
 from algorithm.rl.env_warpper import RLlibEnvWrapper
+from ray.rllib.agents.a3c.a2c import A2CTrainer
+from utils.saving_and_loading import load_torch_model_weights
+import os
 
 
 def social_rewards(model):
@@ -24,7 +27,7 @@ class CloudManufacturing(BaseEnvironment):
     name = "CloudManufacturing"
 
     def __init__(self, num_order=10, num_service=5, width=20, height=20, num_organization=2, episode_length=200,
-                 ratio_low=0, ratio_medium=1, tax_rate=0):
+                 ratio_low=0, ratio_medium=1, tax_rate=0, is_training=True, ckpt=None, run_configuration=None):
         super().__init__()
         # 初始时的order和agent
 
@@ -55,6 +58,7 @@ class CloudManufacturing(BaseEnvironment):
         self.generate_services(num_service)
         self.generate_orders(num_order)
         self.set_intelligence(self.new_services)
+        self.is_training = is_training
 
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
@@ -64,6 +68,9 @@ class CloudManufacturing(BaseEnvironment):
             model_reporters={"Social Reward": social_rewards},  # 计算社会整体收益
             # agent_reporters={"Service Num": lambda m: m.schedule.get_type_count(ServiceAgent)}
         )
+
+        if self.is_training == False:
+            self.init_rl(ckpt, run_configuration)
 
     # 修改agent的智能等级
     # 设定为同一智能体的智能等级，一经初始化设定后无法再修改，防止出现在执行任务时突然变更，影响系统效果。
@@ -418,6 +425,49 @@ class CloudManufacturing(BaseEnvironment):
                 agent.energy += total_tax/num_agent
 
 
+
+    def init_rl(self, ckpt, run_configuration):
+        trainer = build_Trainer(run_configuration)
+        trainer.restore(str(ckpt))
+        starting_weights_path_agents = run_configuration["general"].get(
+            "restore_torch_weights_agents", ""
+        )
+
+        starting_weights_path_agents = os.path.join("policy", starting_weights_path_agents)
+        load_torch_model_weights(trainer, starting_weights_path_agents)
+
+        starting_weights_path_planner = run_configuration["general"].get(
+            "restore_torch_weights_planner", ""
+        )
+
+        trainer_config = run_configuration.get("trainer")
+        obs = self.reset()
+        obs = {
+            k: {
+                k1: v1 if type(v1) is np.ndarray else np.array([v1])
+                for k1, v1 in v.items()
+            }
+            for k, v in obs.items()
+        }
+        self.trainer = trainer
+        self.obs = obs
+        return self.trainer, self.obs
+
+    def compute_rl_step(self):
+
+        results = {}
+        actions = {}
+        for agent in self.match_agent:
+            results[str(agent.unique_id)] = self.trainer.compute_action(self.obs[str(agent.unique_id)],
+                                                                   policy_id="a",
+                                                                   full_fetch=False )
+            actions[str(agent.unique_id)] = results[str(agent.unique_id)][0]
+        self.action_parse(actions)
+
+
+
+
+
     def step(self):
         """Advance the model by one step."""
 
@@ -442,6 +492,8 @@ class CloudManufacturing(BaseEnvironment):
         reward = dict()
         reward1 = dict()
 
+        if self.is_training == False:
+            self.compute_rl_step()
         # 低智能也是先确定匹配的大小，所以我抽出来了
 
         self.match_order, self.match_agent = self.matching_service_order()
@@ -483,7 +535,7 @@ class CloudManufacturing(BaseEnvironment):
         # 激活agent，每个agent执行自己全部动作
 
         # 生成本轮新的企业和订单
-
+        self.obs = obs
         return obs, reward, done, info
 
 
@@ -544,5 +596,39 @@ def generate_difficulty():
 def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
     return RLlibEnvWrapper(env_config, mesaEnv=CloudManufacturing)
 
+def build_Trainer( run_configuration):
+    trainer_config = run_configuration.get("trainer")
+    env_config = run_configuration.get("env")["env_config"]
+
+    # === Multiagent Policies ===
+    dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
+
+        # Policy tuples for agent/planner policy types
+    agent_policy_tuple = (
+            None,
+            dummy_env.observation_space,
+            dummy_env.action_space,
+            run_configuration.get("agent_policy"),
+        )
+
+    policies = {"a": agent_policy_tuple}
+
+    def policy_mapping_fun(i):
+        return "a"
+
+    trainer_config.update({
+            "env_config": env_config,
+            'framework': 'torch',
+            "multiagent": {
+                "policies": policies,
+                "policies_to_train": ["a"],
+                "policy_mapping_fn": policy_mapping_fun,
+            },
+            "num_workers": trainer_config.get("num_workers")
+        })
+
+    trainer = A2CTrainer(env=run_configuration.get("env")["env_name"],config=trainer_config)
+
+    return trainer
 
 register_env(CloudManufacturing.name, env_creator)
