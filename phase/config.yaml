@@ -13,7 +13,7 @@ env:
 trainer:
   num_workers: 7
   batch_mode: truncate_episodes
-#  no_done_at_end: false
+  #  no_done_at_end: false
   ignore_worker_failures: true
   observation_filter: NoFilter
   rollout_fragment_length: 20

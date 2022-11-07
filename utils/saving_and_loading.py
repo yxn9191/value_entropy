@@ -1,17 +1,19 @@
-import torch
-import pickle
 import logging
 import os
+import pickle
 import sys
+
+import torch
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
+
+
 def save_torch_model_weights(trainer, ckpt_dir, global_step):
     w = trainer.get_weights(["a"])
     pol = trainer.get_policy("a")
     model_w_array = pol.model.state_dict()
-
 
     fn = os.path.join(
         ckpt_dir, "torch.weights.global-step-{}".format(global_step)
@@ -26,6 +28,7 @@ def save_torch_model_weights(trainer, ckpt_dir, global_step):
     torch.save(model_w_array, fn)
     logger.info("Saved torch weights @ %s", fn)
 
+
 def save_ckpt(trainer, result, ckpt_frequency, run_dir):
     ckpt_dir = os.path.join(run_dir, "ckpts")
 
@@ -34,7 +37,7 @@ def save_ckpt(trainer, result, ckpt_frequency, run_dir):
 
     global_step = result["timesteps_total"]
     if global_step % ckpt_frequency == 0:
-        save_torch_model_weights(trainer,ckpt_dir,global_step)
+        save_torch_model_weights(trainer, ckpt_dir, global_step)
         path = trainer.save(ckpt_dir)
         print("checkpoint saved at", path)
         return path

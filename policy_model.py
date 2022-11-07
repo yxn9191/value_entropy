@@ -2,8 +2,6 @@ import math
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
 from gym.spaces import Box, Dict
 from ray.rllib.models import ModelCatalog
 from ray.rllib.models.modelv2 import ModelV2
@@ -32,10 +30,8 @@ def attention(self_input, other_inputs):
     alpha = [torch.matmul(self_input, other_inputs[i].T) / math.sqrt(self_input.shape[-1]) for i in
              range(other_inputs.shape[0])]
     bate = nn.Softmax(dim=-1)(torch.stack(alpha))
-    c_i = torch.sum(torch.bmm(bate, other_inputs),dim=0)
+    c_i = torch.sum(torch.bmm(bate, other_inputs), dim=0)
     return c_i
-
-
 
 
 class AgentPolicy(TorchModelV2, nn.Module):
@@ -66,7 +62,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
         self.atten_shape = 0
         for k, v in obs_space.spaces.items():
             self._input_keys.append(k)
-            if k == _MASK_NAME :
+            if k == _MASK_NAME:
                 pass
             elif k == _OTHER_NAME:
                 self.atten_shape = v.shape[1]
@@ -77,8 +73,8 @@ class AgentPolicy(TorchModelV2, nn.Module):
         self.fc1_dim = self.model_config["custom_model_config"]["fc1_dim"]
         self.fc2_dim = self.model_config["custom_model_config"]["fc2_dim"]
         self.fc1 = SlimFC(self.fc_input_shape, self.fc1_dim)
-        self.fc2 = SlimFC(self.fc1_dim*2, self.num_outputs)
-        self.fc3 = SlimFC(self.fc1_dim*2, self.fc2_dim)
+        self.fc2 = SlimFC(self.fc1_dim * 2, self.num_outputs)
+        self.fc3 = SlimFC(self.fc1_dim * 2, self.fc2_dim)
 
         self.softmax = nn.Softmax(dim=1)
 
