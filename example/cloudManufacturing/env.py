@@ -24,7 +24,7 @@ class CloudManufacturing(BaseEnvironment):
     name = "CloudManufacturing"
 
     def __init__(self, num_order=10, num_service=5, width=20, height=20, num_organization=2, episode_length=200,
-                 ratio_low=0, ratio_medium=1):
+                 ratio_low=0, ratio_medium=1, tax_rate=0):
         super().__init__()
         # 初始时的order和agent
 
@@ -49,6 +49,7 @@ class CloudManufacturing(BaseEnvironment):
         self.ratio_high = 1 - self.ratio_low - self.ratio_medium
         self.match_agent = []
         self.match_order = []
+        self.tax_rate = tax_rate
 
 
         self.generate_services(num_service)
@@ -403,6 +404,19 @@ class CloudManufacturing(BaseEnvironment):
                             for a_id in order_action[o_id][service_type].keys():
                                 self._agent_lookup[a_id].action = -1
                         order_.services = []
+    # 纳税然后进行重分配
+    def pay_taxex(self):
+        total_tax = 0
+        num_agent = 0
+        for agent in self.schedule.agents:
+            if isinstance(agent, Agent):
+                total_tax += agent.energy * self.tax_rate
+                agent.energy -= agent.energy * self.tax_rate
+                num_agent +=1
+        for agent in self.schedule.agents:
+            if isinstance(agent, Agent):
+                agent.energy += total_tax/num_agent
+
 
     def step(self):
         """Advance the model by one step."""
@@ -415,6 +429,9 @@ class CloudManufacturing(BaseEnvironment):
                     del self._resource_lookup[str(agent.unique_id)]
                 elif isinstance(agent, Agent):
                     del self._agent_lookup[str(agent.unique_id)]
+        #假设纳税期为10个周期
+        if self.schedule.steps%10 == 0:
+            self.pay_taxex()
 
         self.generate_orders(10)
         self.generate_services(2)
