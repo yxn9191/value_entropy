@@ -1,19 +1,20 @@
 # 服务节点【提供服务者-企业】
 from random import randint
 
-from base.agent import Agent
+from base.geoagent import GeoAgent
 import random
 import math
 
 
-class ServiceAgent(Agent):
+class ServiceAgent(GeoAgent):
     name = "Service"
 
     def __init__(self, unique_id,
                  model,
+                 shape,
                  service_type,
                  difficulty,
-                 organization,
+                 organization = None,
                  speed=1,
                  energy=randint(100, 200),
                  consumption=randint(10, 30),
@@ -22,7 +23,7 @@ class ServiceAgent(Agent):
                  move_cost=20,
                  intelligence_level=2
                  ):
-        super().__init__(unique_id, model)
+        super().__init__(unique_id, model, shape)
         self.energy = energy  # 企业的能量
         self.service_type = service_type  # 企业可以处理的订单类型：A,B,C
         self.difficulty = difficulty  # 可处理的订单的最大难度等级
@@ -180,21 +181,26 @@ class ServiceAgent(Agent):
             if self.pos == self.order.pos:
                 self.state = 2
 
+    # def move(self):
+    #     print("企业移动了")
+    #     if self.delta_x > 0:
+    #         self.model.grid.move_agent(self, (self.pos[0] + self.speed, self.pos[1]))
+    #         self.delta_x -= self.speed
+    #     elif self.delta_x < 0:
+    #         self.model.grid.move_agent(self, (self.pos[0] - self.speed, self.pos[1]))
+    #         self.delta_x += self.speed
+    #     elif self.delta_x == 0:
+    #         if self.delta_y > 0:
+    #             self.model.grid.move_agent(self, (self.pos[0], self.pos[1] + self.speed))
+    #             self.delta_y -= self.speed
+    #         elif self.delta_y < 0:
+    #             self.model.grid.move_agent(self, (self.pos[0], self.pos[1] - self.speed))
+    #             self.delta_y += self.speed
     def move(self):
-        print("企业移动了")
-        if self.delta_x > 0:
-            self.model.grid.move_agent(self, (self.pos[0] + self.speed, self.pos[1]))
-            self.delta_x -= self.speed
-        elif self.delta_x < 0:
-            self.model.grid.move_agent(self, (self.pos[0] - self.speed, self.pos[1]))
-            self.delta_x += self.speed
-        elif self.delta_x == 0:
-            if self.delta_y > 0:
-                self.model.grid.move_agent(self, (self.pos[0], self.pos[1] + self.speed))
-                self.delta_y -= self.speed
-            elif self.delta_y < 0:
-                self.model.grid.move_agent(self, (self.pos[0], self.pos[1] - self.speed))
-                self.delta_y += self.speed
+        move_x = 0 #待修改
+        move_y = 0
+        self.shape = self.move_point(move_x, move_y)  # Reassign shape
+        self.pos = ( self.shape[0], self.shape[1])
 
         # 移动每一步都有消耗
         self.energy -= self.move_cost * self.speed
