@@ -13,8 +13,6 @@ class BaseEnvironment(mesa.Model):
     name = ""
 
     def __init__(self,
-                 width=None,
-                 height=None,
                  episode_length=None,
                  schedule=None,
                  grid=None,

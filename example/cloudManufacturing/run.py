@@ -9,6 +9,7 @@ from mesa.visualization.modules import ChartModule, TextElement
 from example.cloudManufacturing.env import CloudManufacturing
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.serviceAgent import ServiceAgent
+from base.region import Region
 
 class StepText(TextElement):
     """
@@ -39,19 +40,23 @@ def agent_portrayal(agent):
         portrayal["text"] = agent.order_type
 
     elif type(agent) is ServiceAgent:
-        portrayal["text"] = agent.service_type
-        portrayal["scale"] = 0.9
-        portrayal["Layer"] = 2
-        portrayal["text_color"] = "Red"
+        # portrayal["text"] = agent.service_type
+        # portrayal["scale"] = 0.9
+        # portrayal["Layer"] = 2
+        # portrayal["text_color"] = "Red"
         if agent.service_type == "A":
             portrayal["color"] = "Green"
-            portrayal["Shape"] = "ServiceA.png"
+            #portrayal["Shape"] = "ServiceA.png"
         elif agent.service_type == "B":
             portrayal["color"] = "Blue"
-            portrayal["Shape"] = "ServiceB.png"
+            #portrayal["Shape"] = "ServiceB.png"
         elif agent.service_type == "C":
-            portrayal["color"] = "Red"
-            portrayal["Shape"] = "ServiceC.png"
+            portrayal["color"] = "Black"
+            #portrayal["Shape"] = "ServiceC.png"
+
+    elif type(agent) is Region:
+        portrayal["color"] = "Red"
+
 
     return portrayal
 

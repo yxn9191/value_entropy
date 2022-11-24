@@ -20,7 +20,7 @@ class ServiceAgent(GeoAgent):
                  consumption=randint(10, 30),
                  failure_prob=0.2,
                  cooperation=1,
-                 move_cost=20,
+                 move_cost=0.01,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model, shape)

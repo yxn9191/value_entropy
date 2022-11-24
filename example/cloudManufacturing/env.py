@@ -29,7 +29,7 @@ def social_rewards(model):
 class CloudManufacturing(BaseEnvironment):
     name = "CloudManufacturing"
 
-    def __init__(self, num_order=10, num_service=5, width=20, height=20, num_organization=2, episode_length=200,
+    def __init__(self, num_order=10, num_service=5, num_organization=2, episode_length=200,
                  ratio_low=0, ratio_medium=1, tax_rate=0, is_training=True, ckpt=None, run_configuration=None):
         super().__init__()
         # 初始时的order和agent
@@ -54,7 +54,7 @@ class CloudManufacturing(BaseEnvironment):
         # Set up the grid with patches for every NUTS region
         ac = mesa_geo.AgentCreator(Region, {"model": self})
         self.region = ac.from_file(
-           "data/nuts_rg_60M_2013_lvl_2.geojson", unique_id="NUTS_ID"
+           "data/滨海新区.json", unique_id="name"
         )
         self.grid.add_agents(self.region)
 
@@ -112,17 +112,26 @@ class CloudManufacturing(BaseEnvironment):
     def generate_services(self, new_service_num):
         self.new_services = []
         # 默认每轮新增5企业
-        for j in range(new_service_num):
-            shape = self.region[0].random_point
-            s = ServiceAgent(self.next_id(), self, shape= shape,
-                             service_type=generate_service_type(),
-                             difficulty=generate_difficulty())
-            s.pos = (shape.x, shape.y)
 
-            self.schedule.add(s)
-            self.grid.add_agents(s)
+        for j in range(new_service_num):
+
+            shape = self.region[0].random_point
+            ac_population = mesa_geo.AgentCreator(
+                ServiceAgent,
+                {"model": self, "service_type": generate_service_type(), "difficulty": generate_difficulty()}
+            )
+            # s = ServiceAgent(self.next_id(), self, shape= shape,
+            #                  service_type=generate_service_type(),
+            #                  difficulty=generate_difficulty())
+            this_person = ac_population.create_agent(
+                shape, self.next_id()
+            )
+            this_person.pos = (shape.x, shape.y)
+
+            self.schedule.add(this_person)
+            self.grid.add_agents(this_person)
             #self.random_place_agent(s)
-            self.new_services.append(s)
+            self.new_services.append(this_person)
 
             # self.all_agents.append(s)
             # self._agent_lookup[s.unique_id] = s
