@@ -3,10 +3,13 @@ from copy import deepcopy
 import random
 import numpy as np
 import mesa
+import mesa_geo
+
 from mesa import DataCollector
 
-from base.agent import Agent
-from base.resource import Resource
+from base.geoagent import GeoAgent
+from base.georesource import GeoResource
+from base.region import Region
 
 from base.environment import BaseEnvironment
 from example.cloudManufacturing.orderAgent import OrderAgent
@@ -15,7 +18,7 @@ from example.cloudManufacturing.serviceAgent import ServiceAgent
 from ray.tune.registry import register_env
 from algorithm.rl.env_warpper import RLlibEnvWrapper
 from ray.rllib.agents.a3c.a2c import A2CTrainer
-from utils.saving_and_loading import load_torch_model_weights
+
 import os
 
 
@@ -46,7 +49,15 @@ class CloudManufacturing(BaseEnvironment):
         self.N = 10
 
         self.schedule = mesa.time.RandomActivationByType(self)
-        self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
+        #self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
+        self.grid = mesa_geo.GeoSpace()
+        # Set up the grid with patches for every NUTS region
+        ac = mesa_geo.AgentCreator(Region, {"model": self})
+        self.region = ac.from_file(
+           "data/nuts_rg_60M_2013_lvl_2.geojson", unique_id="NUTS_ID"
+        )
+        self.grid.add_agents(self.region)
+
         self.ratio_low = ratio_low
         self.ratio_medium = ratio_medium
         self.ratio_high = 1 - self.ratio_low - self.ratio_medium
@@ -101,14 +112,16 @@ class CloudManufacturing(BaseEnvironment):
     def generate_services(self, new_service_num):
         self.new_services = []
         # 默认每轮新增5企业
-        organization = Organization(random.randint(1, 2), self, [])
-
         for j in range(new_service_num):
-            s = ServiceAgent(self.next_id(), self, generate_service_type(), generate_difficulty()
-                             , organization)
+            shape = self.region[0].random_point
+            s = ServiceAgent(self.next_id(), self, shape= shape,
+                             service_type=generate_service_type(),
+                             difficulty=generate_difficulty())
+            s.pos = (shape.x, shape.y)
 
             self.schedule.add(s)
-            self.random_place_agent(s)
+            self.grid.add_agents(s)
+            #self.random_place_agent(s)
             self.new_services.append(s)
 
             # self.all_agents.append(s)
@@ -117,10 +130,12 @@ class CloudManufacturing(BaseEnvironment):
     def generate_orders(self, new_orders_num):
         self.new_orders = []
         for i in range(new_orders_num):
-            a = OrderAgent(self.next_id(), self, generate_difficulty(), generate_order_type())
-
+            shape = self.region[0].random_point
+            a = OrderAgent(self.next_id(), self, shape,generate_difficulty(), generate_order_type())
+            a.pos = (shape.x, shape.y)
             self.schedule.add(a)
-            self.random_place_agent(a)
+            self.grid.add_agents(a)
+            # self.random_place_agent(a)
             self.new_orders.append(a)
             # self.all_resources.append(a)
             # self._resource_lookup[a.unique_id] = a
@@ -416,17 +431,18 @@ class CloudManufacturing(BaseEnvironment):
         total_tax = 0
         num_agent = 0
         for agent in self.schedule.agents:
-            if isinstance(agent, Agent):
+            if isinstance(agent, GeoAgent):
                 total_tax += agent.energy * self.tax_rate
                 agent.energy -= agent.energy * self.tax_rate
                 num_agent +=1
         for agent in self.schedule.agents:
-            if isinstance(agent, Agent):
+            if isinstance(agent, GeoAgent):
                 agent.energy += total_tax/num_agent
 
 
 
     def init_rl(self, ckpt, run_configuration):
+        from rl.utils.saving_and_loading import load_torch_model_weights
         trainer = build_Trainer(run_configuration)
         trainer.restore(str(ckpt))
         starting_weights_path_agents = run_configuration["general"].get(
@@ -464,10 +480,6 @@ class CloudManufacturing(BaseEnvironment):
             actions[str(agent.unique_id)] = results[str(agent.unique_id)][0]
         self.action_parse(actions)
 
-
-
-
-
     def step(self):
         """Advance the model by one step."""
 
@@ -475,12 +487,14 @@ class CloudManufacturing(BaseEnvironment):
         for agent in self.schedule.agents:
             if agent.done:
                 self.schedule.remove(agent)
-                if isinstance(agent, Resource):
+                self.grid.remove_agent(agent)
+                if isinstance(agent, GeoResource):
                     del self._resource_lookup[str(agent.unique_id)]
-                elif isinstance(agent, Agent):
+                elif isinstance(agent, GeoAgent):
                     del self._agent_lookup[str(agent.unique_id)]
+
         #假设纳税期为10个周期
-        if self.schedule.steps%10 == 0:
+        if self.schedule.steps % 10 == 0:
             self.pay_taxex()
 
         self.generate_orders(10)

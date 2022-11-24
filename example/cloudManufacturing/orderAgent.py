@@ -1,14 +1,15 @@
 from random import randint
 
-from base.resource import Resource
+from base.georesource import GeoResource
 
 
-class OrderAgent(Resource):
+class OrderAgent(GeoResource):
     name = "Order"
     collectible = True  # 是否可收集
 
     def __init__(self, unique_id,
                  model,
+                 shape,
                  order_difficulty,
                  order_type,
                  vision=6,
@@ -18,7 +19,7 @@ class OrderAgent(Resource):
                  handling_time=2,
                  max_duration=10
                  ):
-        super().__init__(unique_id, model)
+        super().__init__(unique_id, model, shape)
         self.vision = vision  # 订单的可看半径
         self.cost = cost  # 订单的成本
         self.order_type = order_type  # 订单类型 A\B\C的随机组合

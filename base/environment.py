@@ -3,7 +3,9 @@ from mesa import DataCollector
 
 from base.agent import Agent
 from base.resource import Resource
-
+from base.geoagent import GeoAgent
+from base.georesource import GeoResource
+from base.region import Region
 
 class BaseEnvironment(mesa.Model):
     """
@@ -70,9 +72,9 @@ class BaseEnvironment(mesa.Model):
     def set_all_agents_list(self):
         if self.schedule:
             for agent in self.schedule.agents:
-                if isinstance(agent, Resource):
+                if isinstance(agent, Resource) or isinstance(agent, GeoResource):
                     self.all_resources.append(agent)
-                elif isinstance(agent, Agent):
+                elif isinstance(agent, Agent) or isinstance(agent, GeoAgent):
                     self.all_agents.append(agent)
                 else:
                     pass

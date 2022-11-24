@@ -1,7 +1,4 @@
 import argparse
-import logging
-import os
-import sys
 
 import ray
 import yaml
@@ -9,8 +6,8 @@ from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.logger import pretty_print
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
-import policy_model
 from example.cloudManufacturing.env import CloudManufacturing
+from utils.saving_and_loading import *
 
 ray.init(log_to_driver=False)
 
@@ -67,25 +64,10 @@ def build_Trainer(run_configuration):
     })
 
     trainer = A2CTrainer(
-        env= run_configuration.get("env")["env_name"],
+        env=run_configuration.get("env")["env_name"],
         config=trainer_config
     )
     return trainer
-
-
-def save_ckpt(trainer, result, ckpt_frequency, run_dir):
-    ckpt_dir = os.path.join(run_dir, "ckpts")
-
-    for sub_dir in [ckpt_dir]:
-        os.makedirs(sub_dir, exist_ok=True)
-
-    global_step = result["timesteps_total"]
-    if global_step % ckpt_frequency == 0:
-        path = trainer.save(ckpt_dir)
-        print("checkpoint saved at", path)
-        return path
-    else:
-        pass
 
 
 if __name__ == "__main__":
