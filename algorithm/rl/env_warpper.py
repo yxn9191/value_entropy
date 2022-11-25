@@ -7,12 +7,12 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from base.environment import BaseEnvironment
 
 _BIG_NUMBER = 1e20
-
-default_env_config = {
-    "width": 200,
-    "height": 200,
-    "episode_length": 100
-}
+#
+# default_env_config = {
+#     "width": 200,
+#     "height": 200,
+#     "episode_length": 100
+# }
 
 
 def recursive_list_to_np_array(d):
@@ -38,9 +38,10 @@ class RLlibEnvWrapper(MultiAgentEnv):
     """
     """
 
-    def __init__(self, env_config=default_env_config, mesaEnv=BaseEnvironment):
+    def __init__(self, env_config=None, mesaEnv=BaseEnvironment):
         super(RLlibEnvWrapper, self).__init__
         self.env_config = env_config
+
         self.env = mesaEnv(**self.env_config)
 
         obs = self.env.reset()

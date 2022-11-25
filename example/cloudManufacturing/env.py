@@ -1,26 +1,23 @@
 import math
-from copy import deepcopy
+import os
 import random
-import numpy as np
-import mesa
-import mesa_geo
+from copy import deepcopy
 
+import mesa
+from mesa_geo import GeoSpace, AgentCreator
+import numpy as np
 from mesa import DataCollector
 
+from base.environment import BaseEnvironment
 from base.geoagent import GeoAgent
 from base.georesource import GeoResource
 from base.region import Region
-
-from base.environment import BaseEnvironment
 from example.cloudManufacturing.orderAgent import OrderAgent
-from example.cloudManufacturing.organization import Organization
 from example.cloudManufacturing.serviceAgent import ServiceAgent
-from ray.tune.registry import register_env
-from algorithm.rl.env_warpper import RLlibEnvWrapper
 from ray.rllib.agents.a3c.a2c import A2CTrainer
+from ray.tune.registry import register_env
 
-import os
-
+from algorithm.rl.env_warpper import RLlibEnvWrapper
 
 def social_rewards(model):
     return model.total_rewards / model.schedule.get_type_count(ServiceAgent)
@@ -49,12 +46,13 @@ class CloudManufacturing(BaseEnvironment):
         self.N = 10
 
         self.schedule = mesa.time.RandomActivationByType(self)
-        #self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
-        self.grid = mesa_geo.GeoSpace()
+        # self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
+
+        self.grid = GeoSpace()
         # Set up the grid with patches for every NUTS region
-        ac = mesa_geo.AgentCreator(Region, {"model": self})
+        ac = AgentCreator(Region, {"model": self})
         self.region = ac.from_file(
-           "data/滨海新区.json", unique_id="name"
+            "E:\group-intelligence-system\example\cloudManufacturing\data\滨海新区.json", unique_id="name"
         )
         self.grid.add_agents(self.region)
 
@@ -64,7 +62,6 @@ class CloudManufacturing(BaseEnvironment):
         self.match_agent = []
         self.match_order = []
         self.tax_rate = tax_rate
-
 
         self.generate_services(num_service)
         self.generate_orders(num_order)
@@ -114,9 +111,8 @@ class CloudManufacturing(BaseEnvironment):
         # 默认每轮新增5企业
 
         for j in range(new_service_num):
-
             shape = self.region[0].random_point
-            ac_population = mesa_geo.AgentCreator(
+            ac_population = AgentCreator(
                 ServiceAgent,
                 {"model": self, "service_type": generate_service_type(), "difficulty": generate_difficulty()}
             )
@@ -130,7 +126,7 @@ class CloudManufacturing(BaseEnvironment):
 
             self.schedule.add(this_person)
             self.grid.add_agents(this_person)
-            #self.random_place_agent(s)
+            # self.random_place_agent(s)
             self.new_services.append(this_person)
 
             # self.all_agents.append(s)
@@ -140,7 +136,7 @@ class CloudManufacturing(BaseEnvironment):
         self.new_orders = []
         for i in range(new_orders_num):
             shape = self.region[0].random_point
-            a = OrderAgent(self.next_id(), self, shape,generate_difficulty(), generate_order_type())
+            a = OrderAgent(self.next_id(), self, shape, generate_difficulty(), generate_order_type())
             a.pos = (shape.x, shape.y)
             self.schedule.add(a)
             self.grid.add_agents(a)
@@ -435,6 +431,7 @@ class CloudManufacturing(BaseEnvironment):
                             for a_id in order_action[o_id][service_type].keys():
                                 self._agent_lookup[a_id].action = -1
                         order_.services = []
+
     # 纳税然后进行重分配
     def pay_taxex(self):
         total_tax = 0
@@ -443,12 +440,10 @@ class CloudManufacturing(BaseEnvironment):
             if isinstance(agent, GeoAgent):
                 total_tax += agent.energy * self.tax_rate
                 agent.energy -= agent.energy * self.tax_rate
-                num_agent +=1
+                num_agent += 1
         for agent in self.schedule.agents:
             if isinstance(agent, GeoAgent):
-                agent.energy += total_tax/num_agent
-
-
+                agent.energy += total_tax / num_agent
 
     def init_rl(self, ckpt, run_configuration):
         from rl.utils.saving_and_loading import load_torch_model_weights
@@ -458,14 +453,8 @@ class CloudManufacturing(BaseEnvironment):
             "restore_torch_weights_agents", ""
         )
 
-        starting_weights_path_agents = os.path.join("policy", starting_weights_path_agents)
         load_torch_model_weights(trainer, starting_weights_path_agents)
 
-        starting_weights_path_planner = run_configuration["general"].get(
-            "restore_torch_weights_planner", ""
-        )
-
-        trainer_config = run_configuration.get("trainer")
         obs = self.reset()
         obs = {
             k: {
@@ -484,8 +473,8 @@ class CloudManufacturing(BaseEnvironment):
         actions = {}
         for agent in self.match_agent:
             results[str(agent.unique_id)] = self.trainer.compute_action(self.obs[str(agent.unique_id)],
-                                                                   policy_id="a",
-                                                                   full_fetch=False )
+                                                                        policy_id="a",
+                                                                        full_fetch=False)
             actions[str(agent.unique_id)] = results[str(agent.unique_id)][0]
         self.action_parse(actions)
 
@@ -502,7 +491,7 @@ class CloudManufacturing(BaseEnvironment):
                 elif isinstance(agent, GeoAgent):
                     del self._agent_lookup[str(agent.unique_id)]
 
-        #假设纳税期为10个周期
+        # 假设纳税期为10个周期
         if self.schedule.steps % 10 == 0:
             self.pay_taxex()
 
@@ -552,7 +541,6 @@ class CloudManufacturing(BaseEnvironment):
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in obs.keys()}
-
 
         self.datacollector.collect(self)
         # 激活agent，每个agent执行自己全部动作
@@ -615,24 +603,26 @@ def generate_difficulty():
     return random.randint(1, 3)
 
 
-# 注册强化学习环境
-def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
-    return RLlibEnvWrapper(env_config, mesaEnv=CloudManufacturing)
+# # 注册强化学习环境
+# def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
+#     return RLlibEnvWrapper(CloudManufacturing(**env_config))
 
-def build_Trainer( run_configuration):
+# register_env(CloudManufacturing.name, env_creator)
+
+def build_Trainer(run_configuration):
     trainer_config = run_configuration.get("trainer")
     env_config = run_configuration.get("env")["env_config"]
 
     # === Multiagent Policies ===
     dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
 
-        # Policy tuples for agent/planner policy types
+    # Policy tuples for agent/planner policy types
     agent_policy_tuple = (
-            None,
-            dummy_env.observation_space,
-            dummy_env.action_space,
-            run_configuration.get("agent_policy"),
-        )
+        None,
+        dummy_env.observation_space,
+        dummy_env.action_space,
+        run_configuration.get("agent_policy"),
+    )
 
     policies = {"a": agent_policy_tuple}
 
@@ -640,18 +630,19 @@ def build_Trainer( run_configuration):
         return "a"
 
     trainer_config.update({
-            "env_config": env_config,
-            'framework': 'torch',
-            "multiagent": {
-                "policies": policies,
-                "policies_to_train": ["a"],
-                "policy_mapping_fn": policy_mapping_fun,
-            },
-            "num_workers": trainer_config.get("num_workers")
-        })
+        "env_config": env_config,
+        'framework': 'torch',
+        "multiagent": {
+            "policies": policies,
+            "policies_to_train": ["a"],
+            "policy_mapping_fn": policy_mapping_fun,
+        },
+        "num_workers": trainer_config.get("num_workers")
+    })
 
-    trainer = A2CTrainer(env=run_configuration.get("env")["env_name"],config=trainer_config)
+    trainer = A2CTrainer(env=run_configuration.get("env")["env_name"], config=trainer_config)
 
     return trainer
 
-register_env(CloudManufacturing.name, env_creator)
+
+

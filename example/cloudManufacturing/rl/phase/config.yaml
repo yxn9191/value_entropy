@@ -2,8 +2,6 @@ env:
   env_config:
     num_order: 10
     num_service: 5
-    width: 20
-    height: 20
     num_organization: 2
     episode_length: 200
     ratio_low: 0

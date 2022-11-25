@@ -5,7 +5,7 @@ from base.agent import Agent
 from base.resource import Resource
 from base.geoagent import GeoAgent
 from base.georesource import GeoResource
-from base.region import Region
+
 
 class BaseEnvironment(mesa.Model):
     """

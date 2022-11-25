@@ -2,18 +2,31 @@ import argparse
 
 import ray
 import yaml
+from ray.tune.registry import register_env
+
+from example.cloudManufacturing.env import CloudManufacturing
+
+from utils.saving_and_loading import *
+#必须后面引入不然会报错
+from algorithm.rl.env_warpper import RLlibEnvWrapper
+
 from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.logger import pretty_print
-
-from algorithm.rl.env_warpper import RLlibEnvWrapper
-from example.cloudManufacturing.env import CloudManufacturing
-from utils.saving_and_loading import *
-
 ray.init(log_to_driver=False)
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
+register_env(CloudManufacturing.name, lambda env_config: RLlibEnvWrapper(env_config, CloudManufacturing))
+# from ray.tune.registry import register_env
+
+
+
+# def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
+#     return RLlibEnvWrapper(env_config, CloudManufacturing)
+#
+#
+# register_env(CloudManufacturing.name, env_creator)
 
 
 def process_args():
@@ -37,8 +50,8 @@ def build_Trainer(run_configuration):
     env_config = run_configuration.get("env")["env_config"]
 
     # === Multiagent Policies ===
-    dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
 
+    dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
     # Policy tuples for agent/planner policy types
     agent_policy_tuple = (
         None,
@@ -64,6 +77,7 @@ def build_Trainer(run_configuration):
     })
 
     trainer = A2CTrainer(
+        # env = RLlibEnvWrapper,
         env=run_configuration.get("env")["env_name"],
         config=trainer_config
     )
@@ -75,6 +89,7 @@ if __name__ == "__main__":
     # 获取参数
     run_dir, run_config = process_args()
     # 创建训练器
+
     trainer = build_Trainer(run_config)
 
     # 开始训练
