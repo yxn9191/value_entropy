@@ -27,7 +27,7 @@ class CloudManufacturing(BaseEnvironment):
     name = "CloudManufacturing"
 
     def __init__(self, num_order=10, num_service=5, num_organization=2, episode_length=200,
-                 ratio_low=0, ratio_medium=1, tax_rate=0, is_training=True, ckpt=None, run_configuration=None):
+                 ratio_low=0, ratio_medium=1, tax_rate=0, is_training=True, trainer=None):
         super().__init__()
         # 初始时的order和agent
 
@@ -52,7 +52,7 @@ class CloudManufacturing(BaseEnvironment):
         # Set up the grid with patches for every NUTS region
         ac = AgentCreator(Region, {"model": self})
         self.region = ac.from_file(
-            "E:\group-intelligence-system\example\cloudManufacturing\data\滨海新区.json", unique_id="name"
+            "/home/bertrand/Desktop/group-intelligence-system/example/cloudManufacturing/data/滨海新区.json", unique_id="name"
         )
         self.grid.add_agents(self.region)
 
@@ -78,7 +78,15 @@ class CloudManufacturing(BaseEnvironment):
         )
 
         if self.is_training == False:
-            self.init_rl(ckpt, run_configuration)
+            self.obs = self.reset()
+            self.trainer = trainer
+            self.obs = {
+                k: {
+                    k1: v1 if type(v1) is np.ndarray else np.array([v1])
+                    for k1, v1 in v.items()
+                }
+                for k, v in self.obs.items()
+            }
 
     # 修改agent的智能等级
     # 设定为同一智能体的智能等级，一经初始化设定后无法再修改，防止出现在执行任务时突然变更，影响系统效果。
@@ -362,20 +370,21 @@ class CloudManufacturing(BaseEnvironment):
                             T.add(order)
                         else:
                             break
-
         return list(T), list(W)
 
     # 平台反选
     def order_select(self):
-
         self.finish_orders = 0
+        #当前没有进行匹配的序列
+        if len(self.match_order) == 0 and len(self.match_agent) == 0:
+            return 0
         order_action = dict()
         # 排除没有匹配的agent的影响
         for agent in self._agent_lookup.values():
             if agent not in self.match_agent:
                 agent.action_parse(-1)
         for a_id, o_id in self.actions.items():
-            if int(a_id) < 0:
+            if int(a_id) <= 0:
                 continue
             if int(o_id) >= len(self.match_order):
                 agent = self._agent_lookup[a_id]
@@ -444,28 +453,21 @@ class CloudManufacturing(BaseEnvironment):
         for agent in self.schedule.agents:
             if isinstance(agent, GeoAgent):
                 agent.energy += total_tax / num_agent
-
-    def init_rl(self, ckpt, run_configuration):
-        from rl.utils.saving_and_loading import load_torch_model_weights
-        trainer = build_Trainer(run_configuration)
-        trainer.restore(str(ckpt))
-        starting_weights_path_agents = run_configuration["general"].get(
-            "restore_torch_weights_agents", ""
-        )
-
-        load_torch_model_weights(trainer, starting_weights_path_agents)
-
-        obs = self.reset()
-        obs = {
-            k: {
-                k1: v1 if type(v1) is np.ndarray else np.array([v1])
-                for k1, v1 in v.items()
-            }
-            for k, v in obs.items()
-        }
-        self.trainer = trainer
-        self.obs = obs
-        return self.trainer, self.obs
+    #
+    # def init_rl(self, trainer):
+    #
+    #     trainer = build_Trainer(run_configuration)
+    #     trainer.restore(str(ckpt))
+    #     starting_weights_path_agents = run_configuration["general"].get(
+    #         "restore_torch_weights_agents", ""
+    #     )
+    #
+    #     load_torch_model_weights(trainer, starting_weights_path_agents)
+    #
+    #     obs = self.reset()
+    #
+    #     self.obs = obs
+    #     return self.trainer, self.obs
 
     def compute_rl_step(self):
 
@@ -502,17 +504,15 @@ class CloudManufacturing(BaseEnvironment):
 
         alpha = 0.1
         reward = dict()
-        reward1 = dict()
 
         if self.is_training == False:
             self.compute_rl_step()
         # 低智能也是先确定匹配的大小，所以我抽出来了
-
         self.match_order, self.match_agent = self.matching_service_order()
         # 低智能和中智能的可能动作，存入agent
         self.get_actions()
 
-        obs = self.generate_observations()
+        self.obs = self.generate_observations()
         # 存入高智能的动作
         if self.actions is not None:
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
@@ -540,14 +540,13 @@ class CloudManufacturing(BaseEnvironment):
 
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}
-        info = {k: {} for k in obs.keys()}
+        info = {k: {} for k in self.obs.keys()}
 
         self.datacollector.collect(self)
         # 激活agent，每个agent执行自己全部动作
 
         # 生成本轮新的企业和订单
-        self.obs = obs
-        return obs, reward, done, info
+        return self.obs, reward, done, info
 
 
 # 计算两位置的直线距离
@@ -603,46 +602,46 @@ def generate_difficulty():
     return random.randint(1, 3)
 
 
-# # 注册强化学习环境
-# def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
-#     return RLlibEnvWrapper(CloudManufacturing(**env_config))
+# 注册强化学习环境
+def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
+    return RLlibEnvWrapper(env_config, CloudManufacturing)
 
-# register_env(CloudManufacturing.name, env_creator)
+register_env(CloudManufacturing.name, env_creator)
 
-def build_Trainer(run_configuration):
-    trainer_config = run_configuration.get("trainer")
-    env_config = run_configuration.get("env")["env_config"]
-
-    # === Multiagent Policies ===
-    dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
-
-    # Policy tuples for agent/planner policy types
-    agent_policy_tuple = (
-        None,
-        dummy_env.observation_space,
-        dummy_env.action_space,
-        run_configuration.get("agent_policy"),
-    )
-
-    policies = {"a": agent_policy_tuple}
-
-    def policy_mapping_fun(i):
-        return "a"
-
-    trainer_config.update({
-        "env_config": env_config,
-        'framework': 'torch',
-        "multiagent": {
-            "policies": policies,
-            "policies_to_train": ["a"],
-            "policy_mapping_fn": policy_mapping_fun,
-        },
-        "num_workers": trainer_config.get("num_workers")
-    })
-
-    trainer = A2CTrainer(env=run_configuration.get("env")["env_name"], config=trainer_config)
-
-    return trainer
-
+# def build_Trainer(run_configuration):
+#     trainer_config = run_configuration.get("trainer")
+#     env_config = run_configuration.get("env")["env_config"]
+#
+#     # === Multiagent Policies ===
+#     dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
+#
+#     # Policy tuples for agent/planner policy types
+#     agent_policy_tuple = (
+#         None,
+#         dummy_env.observation_space,
+#         dummy_env.action_space,
+#         run_configuration.get("agent_policy"),
+#     )
+#
+#     policies = {"a": agent_policy_tuple}
+#
+#     def policy_mapping_fun(i):
+#         return "a"
+#
+#     trainer_config.update({
+#         "env_config": env_config,
+#         'framework': 'torch',
+#         "multiagent": {
+#             "policies": policies,
+#             "policies_to_train": ["a"],
+#             "policy_mapping_fn": policy_mapping_fun,
+#         },
+#         "num_workers": trainer_config.get("num_workers")
+#     })
+#
+#     trainer = A2CTrainer(env=run_configuration.get("env")["env_name"], config=trainer_config)
+#
+#     return trainer
+#
 
 

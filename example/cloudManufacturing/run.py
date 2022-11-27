@@ -1,5 +1,4 @@
 import mesa
-import mesa_geo
 import profile
 from mesa_geo.visualization.MapModule import MapModule
 
@@ -10,7 +9,10 @@ from example.cloudManufacturing.env import CloudManufacturing
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 from base.region import Region
-
+from rl.doTrain import build_Trainer, process_args
+from rl.utils.saving_and_loading import load_torch_model_weights
+import rl.policy_model
+import os
 class StepText(TextElement):
     """
     Display a text count of how many steps have been taken
@@ -60,6 +62,22 @@ def agent_portrayal(agent):
 
     return portrayal
 
+# 获取参数
+run_dir, run_config = process_args()
+# 创建训练器
+trainer = build_Trainer(run_config)
+ckpt = run_config["general"].get(
+            "ckpt_path", ""
+        )
+
+trainer.restore(str(ckpt))
+
+starting_weights_path_agents = run_config["general"].get(
+            "restore_torch_weights_agents", ""
+        )
+# starting_weights_path_agents = os.path.join(run_dir, starting_weights_path_agents)
+load_torch_model_weights(trainer, starting_weights_path_agents)
+
 
 model_params = {
     # "title": mesa.visualization.StaticText("Parameters:"),
@@ -81,6 +99,7 @@ model_params = {
     "tax_rate":   UserSettableParameter(
         "slider","Initial tax_rate", value=1, min_value=0, max_value=1, step=0.1
     ),
+    "trainer": trainer
 }
 
 map_element = MapModule(portrayal_method=agent_portrayal, view=[52, 12], zoom=4)

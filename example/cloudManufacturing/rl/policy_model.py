@@ -1,5 +1,5 @@
 import math
-import fiona
+
 import torch
 import torch.nn as nn
 from gym.spaces import Box, Dict
@@ -9,7 +9,11 @@ from ray.rllib.models.torch.misc import SlimFC
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils import override
 from ray.rllib.utils.framework import try_import_torch
+import sys
+import  os
 
+current_path = os.path.split(os.path.realpath(__file__))[0]
+sys.path.append(current_path)
 torch, nn = try_import_torch()
 
 _MASK_NAME = "action_mask"

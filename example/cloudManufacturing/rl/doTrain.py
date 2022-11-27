@@ -1,32 +1,26 @@
 import argparse
+import os
+import sys
 
 import ray
 import yaml
-from ray.tune.registry import register_env
 
+current_path = os.path.split(os.path.realpath(__file__))[0]
+sys.path.append(current_path)
+import policy_model
 from example.cloudManufacturing.env import CloudManufacturing
 
 from utils.saving_and_loading import *
-#必须后面引入不然会报错
+# 必须后面引入不然会报错
 from algorithm.rl.env_warpper import RLlibEnvWrapper
-
 from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.logger import pretty_print
+
 ray.init(log_to_driver=False)
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
-register_env(CloudManufacturing.name, lambda env_config: RLlibEnvWrapper(env_config, CloudManufacturing))
-# from ray.tune.registry import register_env
-
-
-
-# def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
-#     return RLlibEnvWrapper(env_config, CloudManufacturing)
-#
-#
-# register_env(CloudManufacturing.name, env_creator)
 
 
 def process_args():
@@ -37,12 +31,12 @@ def process_args():
     )
 
     args = parser.parse_args()
-
-    config_path = os.path.join(args.run_dir, "config.yaml")
+    run_dir = os.path.join(current_path, args.run_dir)
+    config_path = os.path.join(run_dir, "config.yaml")
 
     with open(config_path, "r") as f:
         run_configuration = yaml.safe_load(f)
-    return args.run_dir, run_configuration
+    return run_dir, run_configuration
 
 
 def build_Trainer(run_configuration):
@@ -97,6 +91,7 @@ if __name__ == "__main__":
     # 当前训练轮数
     num_episodes_done = 0
 
+
     while num_episodes_done < run_config["general"]["episodes"]:
         # Training
         result = trainer.train()
@@ -124,6 +119,9 @@ if __name__ == "__main__":
     # Finish up
     logger.info("Complete training!")
     path = trainer.save()
+    print(path)
+    # save_snapshot(trainer, run_dir)
+    # save_torch_model_weights(trainer, run_dir, global_step)
     logger.info("Final ckpt saved! All done.")
 
     ray.shutdown()  # shutdown Ray after use
