@@ -4,7 +4,7 @@ from random import randint
 from base.geoagent import GeoAgent
 import random
 import math
-
+from shapely.geometry import Point
 
 class ServiceAgent(GeoAgent):
     name = "Service"
@@ -15,8 +15,8 @@ class ServiceAgent(GeoAgent):
                  service_type,
                  difficulty,
                  organization = None,
-                 speed=1,
-                 energy=randint(100, 200),
+                 speed=100,
+                 energy=randint(100000, 200000),
                  consumption=randint(10, 30),
                  failure_prob=0.2,
                  cooperation=1,
@@ -117,14 +117,9 @@ class ServiceAgent(GeoAgent):
         prob = random.uniform(0, 1)
         # 失败
         if prob >= self.failure_prob and self.order:
-            try:
-                value = self.order.bonus / len(self.order.services)
-            except ZeroDivisionError:
 
-                raise TypeError(self.unique_id, self.model._resource_lookup[str(self.order.unique_id)].order_type,
-                                self.model.actions, self.action, self.service_type, self.intelligence_level,
-                                [order.unique_id for order in self.model.match_order],
-                                [agent.unique_id for agent in self.model.match_agent])
+            value = self.order.bonus / len(self.order.services)
+
             cost = self.order.cost / len(self.order.services) + sum(
                 [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) * self.move_cost
             self.state = 1  # 状态改变，开始移动
@@ -159,8 +154,6 @@ class ServiceAgent(GeoAgent):
         # 如果当前时刻，订单完成
         if self.state == 2 and self.order_end_time == self.model.schedule.steps:
             self.state = 0
-            # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
-            self.energy += self.order.bonus / len(self.order.services)
             flag = 0
             #所有合作的企业都处理完了，订单才算处理完了
             for a_id in self.order.services:
@@ -169,12 +162,16 @@ class ServiceAgent(GeoAgent):
                     flag = 1
                     break
             if flag == 0:
+                for a_id in self.order.services:
+                    agent = self.model._agent_lookup[a_id]
+                    # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
+                    agent.energy += self.order.bonus / len(self.order.services)
                 self.order.done = True
             print("_______订单处理完成_________", self.order.unique_id,self.order.pos)
 
         if self.state == 0:
             value, cost = self.process_order()
-            self.model.total_rewards += value-cost
+            # self.model.total_rewards += value - cost
         elif self.state == 1:
             self.move()
             # 到达地点，转为处理订单状态
@@ -197,10 +194,17 @@ class ServiceAgent(GeoAgent):
     #             self.model.grid.move_agent(self, (self.pos[0], self.pos[1] - self.speed))
     #             self.delta_y += self.speed
     def move(self):
-        move_x = 0 #待修改
-        move_y = 0
-        self.shape = self.move_point(move_x, move_y)  # Reassign shape
-        self.pos = ( self.shape[0], self.shape[1])
-
-        # 移动每一步都有消耗
+        if math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(self.pos, self.order.pos)])) > self.speed:
+            dx = abs(self.pos[0] - self.order.pos[0])
+            dy = abs(self.pos[1] - self.order.pos[1])
+            angle = math.atan2(dy, dx)
+            angle = int(angle * 180 / math.pi)
+            move_x = self.shape * math.cos(angle)#待修改
+            move_y = self.shape * math.sin(angle)
+            self.shape = self.move_point(move_x, move_y)  # Reassign shape
+            self.pos = (self.shape[0], self.shape[1])
+        else:
+            self.shape = Point(self.order.pos[0], self.order.pos[1])
+            self.pos = self.order.pos
+            # 移动每一步都有消耗
         self.energy -= self.move_cost * self.speed

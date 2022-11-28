@@ -14,17 +14,20 @@ from base.georesource import GeoResource
 from base.region import Region
 from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.serviceAgent import ServiceAgent
-from ray.rllib.agents.a3c.a2c import A2CTrainer
 from ray.tune.registry import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
 
+import sys
+current_path = os.path.split(os.path.realpath(__file__))[0]
+sys.path.append(current_path)
 def social_rewards(model):
     return model.total_rewards / model.schedule.get_type_count(ServiceAgent)
 
 
 class CloudManufacturing(BaseEnvironment):
     name = "CloudManufacturing"
+    MAP_COORDS = [117.222503, 39.117489]
 
     def __init__(self, num_order=10, num_service=5, num_organization=2, episode_length=200,
                  ratio_low=0, ratio_medium=1, tax_rate=0, is_training=True, trainer=None):
@@ -49,10 +52,10 @@ class CloudManufacturing(BaseEnvironment):
         # self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
 
         self.grid = GeoSpace()
-        # Set up the grid with patches for every NUTS region
+
         ac = AgentCreator(Region, {"model": self})
         self.region = ac.from_file(
-            "/home/bertrand/Desktop/group-intelligence-system/example/cloudManufacturing/data/滨海新区.json", unique_id="name"
+            "data/滨海新区.json", unique_id="name"
         )
         self.grid.add_agents(self.region)
 
@@ -108,10 +111,10 @@ class CloudManufacturing(BaseEnvironment):
         for agent in high_agents:
             agent.set_intelligence(2)
 
-    def random_place_agent(self, agent):
-        x = self.random.randrange(self.grid.width)
-        y = self.random.randrange(self.grid.height)
-        self.grid.place_agent(agent, (x, y))
+    # def random_place_agent(self, agent):
+    #     x = self.random.randrange(self.grid.width)
+    #     y = self.random.randrange(self.grid.height)
+    #     self.grid.place_agent(agent, (x, y))
         # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
 
     def generate_services(self, new_service_num):
@@ -124,9 +127,9 @@ class CloudManufacturing(BaseEnvironment):
                 ServiceAgent,
                 {"model": self, "service_type": generate_service_type(), "difficulty": generate_difficulty()}
             )
-            # s = ServiceAgent(self.next_id(), self, shape= shape,
-            #                  service_type=generate_service_type(),
-            #                  difficulty=generate_difficulty())
+            s = ServiceAgent(self.next_id(), self, shape= shape,
+                             service_type=generate_service_type(),
+                             difficulty=generate_difficulty())
             this_person = ac_population.create_agent(
                 shape, self.next_id()
             )

@@ -42,10 +42,11 @@ def agent_portrayal(agent):
         portrayal["text"] = agent.order_type
 
     elif type(agent) is ServiceAgent:
-        # portrayal["text"] = agent.service_type
-        # portrayal["scale"] = 0.9
-        # portrayal["Layer"] = 2
+        portrayal["text"] = agent.service_type
+        portrayal["scale"] = 0.9
+        portrayal["Layer"] = 2
         # portrayal["text_color"] = "Red"
+        portrayal['radius'] = "1"
         if agent.service_type == "A":
             portrayal["color"] = "Green"
             #portrayal["Shape"] = "ServiceA.png"
@@ -53,11 +54,11 @@ def agent_portrayal(agent):
             portrayal["color"] = "Blue"
             #portrayal["Shape"] = "ServiceB.png"
         elif agent.service_type == "C":
-            portrayal["color"] = "Black"
+            portrayal["color"] = "Red"
             #portrayal["Shape"] = "ServiceC.png"
 
     elif type(agent) is Region:
-        portrayal["color"] = "Red"
+        portrayal["color"] = "Black"
 
 
     return portrayal
@@ -102,7 +103,7 @@ model_params = {
     "trainer": trainer
 }
 
-map_element = MapModule(portrayal_method=agent_portrayal, view=[52, 12], zoom=4)
+map_element = MapModule(agent_portrayal, CloudManufacturing.MAP_COORDS, 10, 500, 500)
 step_text = StepText()
 chart = mesa.visualization.ChartModule(
     [{"Label": "Social Reward", "Color": "red"},

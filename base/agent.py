@@ -25,7 +25,7 @@ class Agent(mesa.Agent):
                  consumption=None,
                  failure_prob=0,
                  skills=None,
-                 state=0,
+                 move_cost=None,
                  multi_action_mode=False
                  ):
         assert self.name
@@ -39,7 +39,8 @@ class Agent(mesa.Agent):
         self.consumption = consumption,
         self.failure_prob = float(failure_prob),
         self.skills = skills
-        self.state = state  # define the state of the agent
+        self.state = 0  # define the state of the agent
+        self.move_cost = move_cost
         self.multi_action_mode = bool(multi_action_mode)
         self.action = None
         self.done = False  # 是否可以被移除
@@ -60,7 +61,7 @@ class Agent(mesa.Agent):
         self.state = 0
 
     def move(self):
-        self.energy = self.energy - self.consumption
+        self.energy = self.energy - self.speed * self.move_cost
 
     def destroy(self):
         self.done = True

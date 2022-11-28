@@ -28,7 +28,7 @@ class GeoAgent(mesa_geo.GeoAgent):
                  consumption=None,
                  failure_prob=0,
                  skills=None,
-                 state=0,
+                 move_cost = None,
                  multi_action_mode=False
                  ):
         assert self.name
@@ -42,7 +42,8 @@ class GeoAgent(mesa_geo.GeoAgent):
         self.consumption = consumption,
         self.failure_prob = float(failure_prob),
         self.skills = skills
-        self.state = state  # define the state of the agent
+        self.state = 0  # define the state of the agent
+        self.move_cost = move_cost
         self.multi_action_mode = bool(multi_action_mode)
         self.action = None
         self.done = False  # 是否可以被移除
@@ -63,7 +64,7 @@ class GeoAgent(mesa_geo.GeoAgent):
         self.state = 0
 
     def move(self):
-        self.energy = self.energy - self.consumption
+        self.energy = self.energy - self.speed * self.move_cost
 
     def move_point(self, dx, dy):
         """
