@@ -76,9 +76,11 @@ def orders_list(order_num):
 
 # 生成365天订单，生成的为订单列表，列表中的每一个元素为一个单日订单列表
 def all_orders_list():
+    # 目前生成的订单数量是针对两家企业产生的，如果订单的数量觉得不够的话可以修改n的大小，让订单成倍增长
+    n = 1
     all_list = []
     for i in range(1, 366):
-        order_num = int(fitting_dist(i))
+        order_num = n * int(fitting_dist(i))
         all_list.append(orders_list(order_num))
     # print(all_list)
     return all_list
