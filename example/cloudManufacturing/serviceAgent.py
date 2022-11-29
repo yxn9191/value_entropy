@@ -110,9 +110,12 @@ class ServiceAgent(GeoAgent):
         #
         # 高智力
         if self.intelligence_level == 2:
-            if self.action != -1 and self.action is not None:
+            if self.action is not None and self.action > 0 :
                 # 这里也要换成算法1的订单集合
-                self.order = self.model.match_order[self.action]
+                try:
+                    self.order = self.model.match_order[self.action]
+                except IndexError:
+                    raise IndexError(len(self.model.match_order), self.model.obs.keys(), self.model.actions, self.action)
 
         prob = random.uniform(0, 1)
         # 失败
@@ -199,10 +202,10 @@ class ServiceAgent(GeoAgent):
             dy = abs(self.pos[1] - self.order.pos[1])
             angle = math.atan2(dy, dx)
             angle = int(angle * 180 / math.pi)
-            move_x = self.shape * math.cos(angle)#待修改
-            move_y = self.shape * math.sin(angle)
+            move_x = self.speed * math.cos(angle)#待修改
+            move_y = self.speed * math.sin(angle)
             self.shape = self.move_point(move_x, move_y)  # Reassign shape
-            self.pos = (self.shape[0], self.shape[1])
+            self.pos = (self.shape.x, self.shape.y)
         else:
             self.shape = Point(self.order.pos[0], self.order.pos[1])
             self.pos = self.order.pos

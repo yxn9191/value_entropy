@@ -3,9 +3,9 @@ env:
     num_order: 10
     num_service: 5
     num_organization: 2
-    episode_length: 10
+    episode_length: 365
     ratio_low: 0
-    ratio_medium: 0
+    ratio_medium: 0.5
   env_name: CloudManufacturing
 
 trainer:

@@ -17,7 +17,8 @@ from example.cloudManufacturing.serviceAgent import ServiceAgent
 from ray.tune.registry import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
-
+from example.cloudManufacturing.generateOrders import  *
+from shapely.geometry import Point
 import sys
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
@@ -54,10 +55,12 @@ class CloudManufacturing(BaseEnvironment):
         self.grid = GeoSpace()
 
         ac = AgentCreator(Region, {"model": self})
+        geo_path = os.path.join(current_path, "data/滨海新区.json")
         self.region = ac.from_file(
-            "data/滨海新区.json", unique_id="name"
+            geo_path, unique_id="name"
         )
         self.grid.add_agents(self.region)
+        self.all_orders_list = all_orders_list(self.region[0])
 
         self.ratio_low = ratio_low
         self.ratio_medium = ratio_medium
@@ -67,7 +70,7 @@ class CloudManufacturing(BaseEnvironment):
         self.tax_rate = tax_rate
 
         self.generate_services(num_service)
-        self.generate_orders(num_order)
+        self.generate_orders()
         self.set_intelligence(self.new_services)
         self.is_training = is_training
 
@@ -143,12 +146,12 @@ class CloudManufacturing(BaseEnvironment):
             # self.all_agents.append(s)
             # self._agent_lookup[s.unique_id] = s
 
-    def generate_orders(self, new_orders_num):
+    def generate_orders(self):
         self.new_orders = []
-        for i in range(new_orders_num):
-            shape = self.region[0].random_point
-            a = OrderAgent(self.next_id(), self, shape, generate_difficulty(), generate_order_type())
-            a.pos = (shape.x, shape.y)
+        for ord in self.all_orders_list[self.schedule.steps]:
+            shape = Point(ord[-1][0], ord[-1][1])
+            a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus= ord[1], cost= ord[2])
+            a.pos = ord[-1]
             self.schedule.add(a)
             self.grid.add_agents(a)
             # self.random_place_agent(a)
@@ -485,7 +488,7 @@ class CloudManufacturing(BaseEnvironment):
 
     def step(self):
         """Advance the model by one step."""
-
+        self.schedule.step()
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
         for agent in self.schedule.agents:
             if agent.done:
@@ -500,7 +503,7 @@ class CloudManufacturing(BaseEnvironment):
         if self.schedule.steps % 10 == 0:
             self.pay_taxex()
 
-        self.generate_orders(10)
+        self.generate_orders()
         self.generate_services(2)
         self.set_all_agents_list()
         self.set_intelligence(self.new_services)
@@ -539,7 +542,7 @@ class CloudManufacturing(BaseEnvironment):
                 num_agents += 1
 
         self.total_rewards = 0
-        self.schedule.step()
+
 
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}

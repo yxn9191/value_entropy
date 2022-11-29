@@ -53,35 +53,34 @@ def order_process():
 
 
 # 订单位置
-def order_position():
-    random_point = (0, 0)
-
-    return random_point
+def order_position(region):
+    shape = region.random_point
+    return (shape.x, shape.y)
 
 
 # 生成单日订单序列,单日订单序列是由列表组成，列表的每一个元素为一个订单list，
 # 例：[['AC', 76, 17, 2, (0, 0)], ['C', 30, 17, 1, (0, 0)], ['AB', 48, 17, 2, (0, 0)]]
-def orders_list(order_num):
+def orders_list(order_num, region):
     daily_order = []
     for i in range(0, order_num):
         daily_order.append([get_order_type(),
                             order_money(),
                             order_process(),
                             order_difficulty(),
-                            order_position()])
+                            order_position(region)])
 
-    print(daily_order)
     return daily_order
 
 
 # 生成365天订单，生成的为订单列表，列表中的每一个元素为一个单日订单列表
-def all_orders_list():
+def all_orders_list(region):
     # 目前生成的订单数量是针对两家企业产生的，如果订单的数量觉得不够的话可以修改n的大小，让订单成倍增长
     n = 1
     all_list = []
     for i in range(1, 366):
         order_num = n * int(fitting_dist(i))
-        all_list.append(orders_list(order_num))
-    # print(all_list)
+        all_list.append(orders_list(order_num, region))
+
     return all_list
+
 
