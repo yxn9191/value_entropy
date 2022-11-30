@@ -48,7 +48,6 @@ class ServiceAgent(GeoAgent):
         self.delta_x = 0  # 记录要想新位置移动多少x
         self.delta_y = 0  # 记录要往新位置移动多少y
         self.order = None  # 企业正在处理的order
-        self.change = 0
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -111,24 +110,22 @@ class ServiceAgent(GeoAgent):
         #
         # 高智力
         if self.intelligence_level == 2:
-            if self.action is not None and self.action > 0:
+            if self.action is not None and self.action < len(self.model.match_order) and self.action !=-1:
                 # 这里也要换成算法1的订单集合
-                try:
-                    self.order = self.model.match_order[self.action]
-                except IndexError:
-                    raise IndexError(len(self.model.match_order),len(self.model.match_agent),self.model.obs.keys(),
-                                     self.model.actions, self.action,self.intelligence_level)
+                self.order = self.model.match_order[self.action]
+
 
         prob = random.uniform(0, 1)
         # 失败
         if prob >= self.failure_prob and self.order:
-
-            value = self.order.bonus / len(self.order.services)
-
+            try:
+                value = self.order.bonus / len(self.order.services)
+            except ZeroDivisionError:
+                raise TypeError(self.order.occupied,self.order.order_type,self.service_type, self.action)
             cost = self.order.cost / len(self.order.services) + sum(
                 [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) * self.move_cost
-            self.change = 1  # 状态改变，开始移动
-            self.order.occupied = 1  # 任务被占用
+            self.state = 1  # 状态改变，开始移动
+            # self.order.occupied = 1  # 任务被占用
 
             # 在order中保存它被处理结束的时间 !!!没有考虑除以speed无法取整的情况，speed我先设置为1了
             self.order.done_time = self.model.schedule.steps + self.order.handling_time + sum(
@@ -175,8 +172,8 @@ class ServiceAgent(GeoAgent):
             print("_______订单处理完成_________", self.order.unique_id,self.order.pos)
 
         if self.state == 0:
-            value, cost = self.process_order()
-            self.state = self.change
+            self.now_value, self.now_cost = self.process_order()
+
             # self.model.total_rewards += value - cost
         elif self.state == 1:
             self.move()

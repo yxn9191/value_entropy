@@ -151,7 +151,7 @@ class CloudManufacturing(BaseEnvironment):
         try:
             self.all_orders_list[self.schedule.steps]
         except IndexError:
-            raise IndexError(self.schedule.steps)
+            raise IndexError(self.schedule.steps, self.done)
         for ord in self.all_orders_list[self.schedule.steps]:
             shape = Point(ord[-1][0], ord[-1][1])
             a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus= ord[1], cost= ord[2])
@@ -296,7 +296,7 @@ class CloudManufacturing(BaseEnvironment):
             for key in obs[k].keys():
                 if key != "cooperation":
                     _obs[k] += obs[k][key]
-            _obs[k] = _obs[k]
+
 
         num_agent = len(obs)
         while num_agent < self.N:
@@ -336,9 +336,9 @@ class CloudManufacturing(BaseEnvironment):
         while num_agents < self.N:
             obs[str(-num_agents)] = {"cooperation": 0}
             # other = {str(-i): [0, 0, 0, 0, 0, 0] for i in range(1000, 1200)}
-            other = {"orders": [0 for i in range(7 * self.M)]}
+            orders = {"orders": [0 for i in range(7 * self.M)]}
             action_mask = {"action_mask": [0 for i in range(self.M)]}
-            obs[str(-num_agents)].update(other)
+            obs[str(-num_agents)].update(orders)
             obs[str(-num_agents)].update(
                 {"others": [np.array([0 for i in range(self.M * 7 + 1)]) for _ in range(self.N - 1)]})
             obs[str(-num_agents)].update(action_mask)
@@ -422,18 +422,21 @@ class CloudManufacturing(BaseEnvironment):
                     order_.occupied = 1
                     for a_id in order_action[o_id][order_.order_type].keys():
                         if a_id not in order_.services:
-                            self._agent_lookup[a_id].action = -1
+                            agent = self._agent_lookup[a_id]
+                            agent.action_parse(-1)
                 else:
 
                     for a_id in order_action[o_id][order_.order_type].keys():
-                        self._agent_lookup[a_id].action = -1
+                        agent = self._agent_lookup[a_id]
+                        agent.action_parse(-1)
                     order_.services = []
 
             else:
                 if len(order_action[o_id]) < len(order_.order_type):
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
-                            self._agent_lookup[a_id].action = -1
+                            agent = self._agent_lookup[a_id]
+                            agent.action_parse(-1)
                 else:
                     for service_type in order_action[o_id].keys():
                         order_.services.extend([min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0]])
@@ -444,11 +447,13 @@ class CloudManufacturing(BaseEnvironment):
                         for service_type in order_action[o_id].keys():
                             for a_id in order_action[o_id][service_type].keys():
                                 if a_id not in order_.services:
-                                    self._agent_lookup[a_id].action = -1
+                                    agent = self._agent_lookup[a_id]
+                                    agent.action_parse(-1)
                     else:
                         for service_type in order_action[o_id].keys():
                             for a_id in order_action[o_id][service_type].keys():
-                                self._agent_lookup[a_id].action = -1
+                                agent = self._agent_lookup[a_id]
+                                agent.action_parse(-1)
                         order_.services = []
 
     # 纳税然后进行重分配
@@ -492,7 +497,7 @@ class CloudManufacturing(BaseEnvironment):
 
     def step(self):
         """Advance the model by one step."""
-        self.schedule.step()
+
         # 首先检查本轮所有死去的订单和企业，从agent队列中移除
         for agent in self.schedule.agents:
             if agent.done:
@@ -507,8 +512,7 @@ class CloudManufacturing(BaseEnvironment):
         if self.schedule.steps % 10 == 0:
             self.pay_taxex()
 
-        self.generate_orders()
-        self.generate_services(2)
+
         self.set_all_agents_list()
         self.set_intelligence(self.new_services)
 
@@ -519,6 +523,7 @@ class CloudManufacturing(BaseEnvironment):
             self.compute_rl_step()
         # 低智能也是先确定匹配的大小，所以我抽出来了
         self.match_order, self.match_agent = self.matching_service_order()
+        #raise TypeError(self.match_order, self.match_agent)
         # 低智能和中智能的可能动作，存入agent
         self.get_actions()
 
@@ -533,10 +538,10 @@ class CloudManufacturing(BaseEnvironment):
 
             # 平台反选
             self.order_select()
-
+            self.schedule.step()
             for agent in self.match_agent:
                 if agent.intelligence_level == 2:
-                    value, cost = agent.process_order()
+                    value, cost = agent.now_value, agent.now_cost
                     reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
 
             # 生成虚拟企业
@@ -547,16 +552,18 @@ class CloudManufacturing(BaseEnvironment):
 
         self.total_rewards = 0
 
-        self.schedule.step()
+
         # 演化结束的判断，待修改
-        done = {"__all__": self.schedule.steps >= self.episode_length}
+        self.done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}
 
         self.datacollector.collect(self)
         # 激活agent，每个agent执行自己全部动作
 
         # 生成本轮新的企业和订单
-        return self.obs, reward, done, info
+        self.generate_orders()
+        self.generate_services(2)
+        return self.obs, reward, self.done, info
 
 
 # 计算两位置的直线距离
