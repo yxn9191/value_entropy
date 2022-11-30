@@ -48,6 +48,7 @@ class ServiceAgent(GeoAgent):
         self.delta_x = 0  # 记录要想新位置移动多少x
         self.delta_y = 0  # 记录要往新位置移动多少y
         self.order = None  # 企业正在处理的order
+        self.change = 0
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -110,12 +111,13 @@ class ServiceAgent(GeoAgent):
         #
         # 高智力
         if self.intelligence_level == 2:
-            if self.action is not None and self.action > 0 :
+            if self.action is not None and self.action > 0:
                 # 这里也要换成算法1的订单集合
                 try:
                     self.order = self.model.match_order[self.action]
                 except IndexError:
-                    raise IndexError(len(self.model.match_order), self.model.obs.keys(), self.model.actions, self.action)
+                    raise IndexError(len(self.model.match_order),len(self.model.match_agent),self.model.obs.keys(),
+                                     self.model.actions, self.action,self.intelligence_level)
 
         prob = random.uniform(0, 1)
         # 失败
@@ -125,7 +127,7 @@ class ServiceAgent(GeoAgent):
 
             cost = self.order.cost / len(self.order.services) + sum(
                 [abs(a - b) for (a, b) in zip(self.order.pos, self.pos)]) * self.move_cost
-            self.state = 1  # 状态改变，开始移动
+            self.change = 1  # 状态改变，开始移动
             self.order.occupied = 1  # 任务被占用
 
             # 在order中保存它被处理结束的时间 !!!没有考虑除以speed无法取整的情况，speed我先设置为1了
@@ -174,6 +176,7 @@ class ServiceAgent(GeoAgent):
 
         if self.state == 0:
             value, cost = self.process_order()
+            self.state = self.change
             # self.model.total_rewards += value - cost
         elif self.state == 1:
             self.move()

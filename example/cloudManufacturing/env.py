@@ -148,6 +148,10 @@ class CloudManufacturing(BaseEnvironment):
 
     def generate_orders(self):
         self.new_orders = []
+        try:
+            self.all_orders_list[self.schedule.steps]
+        except IndexError:
+            raise IndexError(self.schedule.steps)
         for ord in self.all_orders_list[self.schedule.steps]:
             shape = Point(ord[-1][0], ord[-1][1])
             a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus= ord[1], cost= ord[2])
@@ -305,9 +309,9 @@ class CloudManufacturing(BaseEnvironment):
         for agent in self.all_agents:
             agent.reset()
         self.match_order, self.match_agent = self.matching_service_order()
-        obs = self.generate_observations()
+        self.obs = self.generate_observations()
 
-        return obs
+        return self.obs
 
     # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
@@ -543,7 +547,7 @@ class CloudManufacturing(BaseEnvironment):
 
         self.total_rewards = 0
 
-
+        self.schedule.step()
         # 演化结束的判断，待修改
         done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}

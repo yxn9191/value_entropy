@@ -13,6 +13,9 @@ from rl.doTrain import build_Trainer, process_args
 from rl.utils.saving_and_loading import load_torch_model_weights
 import rl.policy_model
 import os
+import sys
+current_path = os.path.split(os.path.realpath(__file__))[0]
+
 class StepText(TextElement):
     """
     Display a text count of how many steps have been taken
@@ -70,13 +73,13 @@ trainer = build_Trainer(run_config)
 ckpt = run_config["general"].get(
             "ckpt_path", ""
         )
-
+ckpt = os.path.join(current_path, ckpt)
 trainer.restore(str(ckpt))
 
 starting_weights_path_agents = run_config["general"].get(
             "restore_torch_weights_agents", ""
         )
-# starting_weights_path_agents = os.path.join(run_dir, starting_weights_path_agents)
+starting_weights_path_agents = os.path.join(current_path, starting_weights_path_agents)
 load_torch_model_weights(trainer, starting_weights_path_agents)
 
 

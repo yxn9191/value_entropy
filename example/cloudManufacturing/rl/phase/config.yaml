@@ -14,14 +14,14 @@ trainer:
   #  no_done_at_end: false
   ignore_worker_failures: true
   observation_filter: NoFilter
-  rollout_fragment_length: 20
+  rollout_fragment_length: 365
   train_batch_size: 10
 
 general:
-  ckpt_frequency_steps: 10
+  ckpt_frequency_steps: 100
   episodes: 4
-  ckpt_path: /home/bertrand/ray_results/A2C_CloudManufacturing_2022-11-27_20-55-39f5v28u9c/checkpoint_000001
-  restore_torch_weights_agents: /home/bertrand/Desktop/group-intelligence-system/example/cloudManufacturing/rl/phase/ckpts/torch.weights.global-step-100
+  ckpt_path: rl/phase/ckpts/checkpoint_000001
+  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-100
 
 agent_policy:
   clip_param: 0.3
