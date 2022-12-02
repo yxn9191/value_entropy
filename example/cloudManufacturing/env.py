@@ -69,7 +69,7 @@ class CloudManufacturing(BaseEnvironment):
         self.match_order = []
         self.tax_rate = tax_rate
 
-        self.generate_services(num_service)
+        self.init_services(num_service)
         self.generate_orders()
         self.set_intelligence(self.new_services)
         self.is_training = is_training
@@ -120,7 +120,7 @@ class CloudManufacturing(BaseEnvironment):
     #     self.grid.place_agent(agent, (x, y))
         # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
 
-    def generate_services(self, new_service_num):
+    def init_services(self, new_service_num):
         self.new_services = []
         # 默认每轮新增5企业
 
@@ -130,9 +130,7 @@ class CloudManufacturing(BaseEnvironment):
                 ServiceAgent,
                 {"model": self, "service_type": generate_service_type(), "difficulty": generate_difficulty()}
             )
-            s = ServiceAgent(self.next_id(), self, shape= shape,
-                             service_type=generate_service_type(),
-                             difficulty=generate_difficulty())
+
             this_person = ac_population.create_agent(
                 shape, self.next_id()
             )
@@ -140,11 +138,34 @@ class CloudManufacturing(BaseEnvironment):
 
             self.schedule.add(this_person)
             self.grid.add_agents(this_person)
-            # self.random_place_agent(s)
             self.new_services.append(this_person)
 
-            # self.all_agents.append(s)
-            # self._agent_lookup[s.unique_id] = s
+    #企业法繁衍
+    def generate_services(self):
+        self.new_services = []
+        # 默认每轮新增5企业
+        for agent in self.schedule.agents:
+            if isinstance(agent, GeoAgent):
+                if agent.energy >= 1e5:
+                    while 1:
+                        random_point = Point(agent.shape.x + random.uniform(0, 10),agent.shape.y + random.uniform(0, 10))
+                        if self.shape.contains(random_point):
+                            break
+                    ac_population = AgentCreator(
+                        ServiceAgent,
+                        {"model": self, "service_type": agent.service_type, "difficulty": agent.difficulty}
+                    )
+
+                    this_person = ac_population.create_agent(
+                        random_point, self.next_id()
+                    )
+                    this_person.pos = (random_point.x, random_point.y)
+
+                    self.schedule.add(this_person)
+                    self.grid.add_agents(this_person)
+                    self.new_services.append(this_person)
+
+
 
     def generate_orders(self):
         self.new_orders = []
@@ -563,7 +584,7 @@ class CloudManufacturing(BaseEnvironment):
 
         # 生成本轮新的企业和订单
         self.generate_orders()
-        self.generate_services(2)
+        self.generate_services()
         return self.obs, reward, self.done, info
 
 
