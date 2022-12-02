@@ -1,5 +1,11 @@
 import mesa
 import profile
+import os
+import sys
+current_path = os.path.split(os.path.realpath(__file__))[0]
+
+sys.path.append("/home/bertrand/Desktop/group-intelligence-system")
+
 from mesa_geo.visualization.MapModule import MapModule
 
 from mesa_geo.visualization.ModularVisualization import ModularServer
@@ -12,9 +18,7 @@ from base.region import Region
 from rl.doTrain import build_Trainer, process_args
 from rl.utils.saving_and_loading import load_torch_model_weights
 import rl.policy_model
-import os
-import sys
-current_path = os.path.split(os.path.realpath(__file__))[0]
+
 
 class StepText(TextElement):
     """
@@ -34,15 +38,16 @@ def agent_portrayal(agent):
     portrayal = {}
 
     if type(agent) is OrderAgent:
+        portrayal['radius'] = "1"
         if agent.occupied == 0:
-            portrayal["Shape"] = "Order.png"
+            portrayal["color"] = "Gray"
 
         elif agent.occupied == 1:
-            portrayal["Shape"] = "Lock.png"
+            portrayal["color"] = "Black"
 
-        portrayal["scale"] = 0.9
-        portrayal["Layer"] = 1
-        portrayal["text"] = agent.order_type
+        # portrayal["scale"] = 0.9
+        # portrayal["Layer"] = 1
+        # portrayal["text"] = agent.order_type
 
     elif type(agent) is ServiceAgent:
         portrayal["text"] = agent.service_type

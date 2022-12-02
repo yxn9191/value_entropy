@@ -310,6 +310,7 @@ class CloudManufacturing(BaseEnvironment):
             agent.reset()
         self.match_order, self.match_agent = self.matching_service_order()
         self.obs = self.generate_observations()
+        self.schedule.steps = 0
 
         return self.obs
 

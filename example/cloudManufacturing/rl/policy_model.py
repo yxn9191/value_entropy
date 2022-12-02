@@ -10,10 +10,12 @@ from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils import override
 from ray.rllib.utils.framework import try_import_torch
 import sys
-import  os
+import os
 
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
+
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 torch, nn = try_import_torch()
 
 _MASK_NAME = "action_mask"
@@ -30,7 +32,7 @@ def apply_logit_mask(logits, mask):
 
 
 def attention(self_input, other_inputs):
-    other_inputs = torch.permute(other_inputs, (1, 0, 2))
+    other_inputs = other_inputs.permute(1, 0, 2)
     alpha = [torch.matmul(self_input, other_inputs[i].T) / math.sqrt(self_input.shape[-1]) for i in
              range(other_inputs.shape[0])]
     bate = nn.Softmax(dim=-1)(torch.stack(alpha))
@@ -92,7 +94,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])
 
-        # c = self.attention(x, y, y)
+
         c = attention(x, y)
 
         out = torch.cat([x, c], -1)

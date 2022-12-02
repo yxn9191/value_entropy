@@ -141,7 +141,7 @@ class ServiceAgent(GeoAgent):
 
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= self.order.cost / len(self.order.services)
-            print("处理订单了")
+            print("选择订单转为移动")
         else:
             self.order = None
 
@@ -173,9 +173,9 @@ class ServiceAgent(GeoAgent):
 
         if self.state == 0:
             self.now_value, self.now_cost = self.process_order()
-
             # self.model.total_rewards += value - cost
         elif self.state == 1:
+            print("开始移动")
             self.move()
             # 到达地点，转为处理订单状态
             if self.pos == self.order.pos:

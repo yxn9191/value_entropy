@@ -7,6 +7,8 @@ import yaml
 
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
+
+
 import policy_model
 from example.cloudManufacturing.env import CloudManufacturing
 
@@ -40,6 +42,8 @@ def process_args():
 
 
 def build_Trainer(run_configuration):
+    sys.path.append("/home/bertrand/Desktop/group-intelligence-system")
+    print(sys.path)
     trainer_config = run_configuration.get("trainer")
     env_config = run_configuration.get("env")["env_config"]
 
