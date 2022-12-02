@@ -149,7 +149,7 @@ class CloudManufacturing(BaseEnvironment):
                 if agent.energy >= 1e5:
                     while 1:
                         random_point = Point(agent.shape.x + random.uniform(0, 10),agent.shape.y + random.uniform(0, 10))
-                        if self.shape.contains(random_point):
+                        if self.region[0].shape.contains(random_point):
                             break
                     ac_population = AgentCreator(
                         ServiceAgent,
