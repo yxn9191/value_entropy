@@ -146,9 +146,9 @@ class CloudManufacturing(BaseEnvironment):
         # 默认每轮新增5企业
         for agent in self.schedule.agents:
             if isinstance(agent, GeoAgent):
-                if agent.energy >= 1e5:
+                if agent.energy >= 1e6:
                     while 1:
-                        random_point = Point(agent.shape.x + random.uniform(0, 10),agent.shape.y + random.uniform(0, 10))
+                        random_point = Point(agent.shape.x + random.uniform(0, 10), agent.shape.y + random.uniform(0, 10))
                         if self.region[0].shape.contains(random_point):
                             break
                     ac_population = AgentCreator(
