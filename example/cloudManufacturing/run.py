@@ -43,6 +43,7 @@ def agent_portrayal(agent):
             portrayal["color"] = "Gray"
 
         elif agent.occupied == 1:
+            portrayal['radius'] = "2"
             portrayal["color"] = "Black"
 
         # portrayal["scale"] = 0.9

@@ -140,7 +140,7 @@ class CloudManufacturing(BaseEnvironment):
             self.grid.add_agents(this_person)
             self.new_services.append(this_person)
 
-    #企业法繁衍
+    #企业繁衍
     def generate_services(self):
         self.new_services = []
         # 默认每轮新增5企业
@@ -266,8 +266,8 @@ class CloudManufacturing(BaseEnvironment):
             if agent.intelligence_level == 0:
                 # 随机选择一个满足充分约束的订单
                 agent.selected_order_id = random.choice(agent.temp_actions)
-                agent.order = self._resource_lookup[str(agent.selected_order_id)]
-                self.actions.update({str(agent.unique_id): self.match_order.index(agent.order)})
+                agent.order = agent.selected_order_id
+                self.actions.update({str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
             if agent.intelligence_level == 1:
                 # print("medium")
                 # print("temp_actions:", self.temp_actions)
@@ -280,8 +280,8 @@ class CloudManufacturing(BaseEnvironment):
                     order_reward[str(order.unique_id)].append(reward)
                 # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
                 agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
-                agent.order = self._resource_lookup[str(agent.selected_order_id)]
-                self.actions.update({str(agent.unique_id): self.match_order.index(agent.order)})
+                agent.order = agent.selected_order_id
+                self.actions.update({str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
                 # order = None
                 # for temp in self.model.all_resources:
                 #     if str(temp.unique_id) == self.selected_order_id:
@@ -327,8 +327,14 @@ class CloudManufacturing(BaseEnvironment):
 
     def reset(self):
         self.set_all_agents_list()
-        for agent in self.all_agents:
-            agent.reset()
+        for agent in self.schedule.agents:
+            if isinstance(agent, GeoResource):
+                del self._resource_lookup[str(agent.unique_id)]
+            elif isinstance(agent, GeoAgent):
+                agent.reset()
+                del self._agent_lookup[str(agent.unique_id)]
+            self.schedule.remove(agent)
+            self.grid.remove_agent(agent)
         self.match_order, self.match_agent = self.matching_service_order()
         self.obs = self.generate_observations()
         self.schedule.steps = 0

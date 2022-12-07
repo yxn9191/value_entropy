@@ -16,20 +16,22 @@ def fitting_dist(x):
 
 # 订单类型函数，订单的类型有A, B, C, A+B, A+C, B+C, A+B+B七种可能
 def get_order_type():
-    n = random.randint(1, 3)
-    type_table = ['A', 'B', 'C']
-    # print("现在选择组合数量：", n)
-    order_type = ''
-    if n == 1:
-        order_type = random.choice(type_table)
-    elif n == 2:
-        extra_type = random.choice(type_table)
-        # print("extra_type:", extra_type)
-        order_type = 'ABC'.replace(extra_type, '')
-    else:
-        order_type = 'ABC'
+    # n = random.randint(1, 3)
+    # type_table = ['A', 'B', 'C']
+    # # print("现在选择组合数量：", n)
+    # order_type = ''
+    # if n == 1:
+    #     order_type = random.choice(type_table)
+    # elif n == 2:
+    #     extra_type = random.choice(type_table)
+    #     # print("extra_type:", extra_type)
+    #     order_type = 'ABC'.replace(extra_type, '')
+    # else:
+    #     order_type = 'ABC'
     # print(order_type)
-    return order_type
+    #return order_type
+    weight = {"A": 0.3, "B": 0.3, "C": 0.3, "AB": 0.03, "AC": 0.03, "BC": 0.03, "ABC": 0.01}
+    return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
 
 
 # 订单难度，1/2/3
