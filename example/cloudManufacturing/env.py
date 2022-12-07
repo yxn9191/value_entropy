@@ -8,6 +8,7 @@ from mesa_geo import GeoSpace, AgentCreator
 import numpy as np
 from mesa import DataCollector
 
+from analysis.utils.write_to_csv import write_csv_hearders, write_csv_rows
 from base.environment import BaseEnvironment
 from base.geoagent import GeoAgent
 from base.georesource import GeoResource
@@ -17,11 +18,14 @@ from example.cloudManufacturing.serviceAgent import ServiceAgent
 from ray.tune.registry import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
-from example.cloudManufacturing.generateOrders import  *
+from example.cloudManufacturing.generateOrders import *
 from shapely.geometry import Point
 import sys
+
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
+
+
 def social_rewards(model):
     return model.total_rewards / model.schedule.get_type_count(ServiceAgent)
 
@@ -37,6 +41,7 @@ class CloudManufacturing(BaseEnvironment):
 
         self.order_num = num_order
         self.service_num = num_service
+        self.num_a, self.num_b, self.num_c = 0, 0, 0
         self.num_organization = num_organization  # 组织的数目
         self.episode_length = episode_length  # 一次演化的时长
         self.new_orders = []  # 当前时刻产生的订单的数目
@@ -77,12 +82,6 @@ class CloudManufacturing(BaseEnvironment):
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
 
-        # 数据收集器
-        self.datacollector = DataCollector(
-            model_reporters={"Social Reward": social_rewards},  # 计算社会整体收益
-            # agent_reporters={"Service Num": lambda m: m.schedule.get_type_count(ServiceAgent)}
-        )
-
         if self.is_training == False:
             self.obs = self.reset()
             self.trainer = trainer
@@ -118,7 +117,7 @@ class CloudManufacturing(BaseEnvironment):
     #     x = self.random.randrange(self.grid.width)
     #     y = self.random.randrange(self.grid.height)
     #     self.grid.place_agent(agent, (x, y))
-        # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
+    # a.location = (x, y) 这行不需要，place_agent就自动将该属性添加到agent中，属性值为pos
 
     def init_services(self, new_service_num):
         self.new_services = []
@@ -140,7 +139,7 @@ class CloudManufacturing(BaseEnvironment):
             self.grid.add_agents(this_person)
             self.new_services.append(this_person)
 
-    #企业繁衍
+    # 企业繁衍
     def generate_services(self):
         self.new_services = []
         # 默认每轮新增5企业
@@ -148,7 +147,8 @@ class CloudManufacturing(BaseEnvironment):
             if isinstance(agent, GeoAgent):
                 if agent.energy >= 1e6:
                     while 1:
-                        random_point = Point(agent.shape.x + random.uniform(0, 10), agent.shape.y + random.uniform(0, 10))
+                        random_point = Point(agent.shape.x + random.uniform(0, 10),
+                                             agent.shape.y + random.uniform(0, 10))
                         if self.region[0].shape.contains(random_point):
                             break
                     ac_population = AgentCreator(
@@ -165,8 +165,6 @@ class CloudManufacturing(BaseEnvironment):
                     self.grid.add_agents(this_person)
                     self.new_services.append(this_person)
 
-
-
     def generate_orders(self):
         self.new_orders = []
         try:
@@ -175,7 +173,7 @@ class CloudManufacturing(BaseEnvironment):
             raise IndexError(self.schedule.steps, self.done)
         for ord in self.all_orders_list[self.schedule.steps]:
             shape = Point(ord[-1][0], ord[-1][1])
-            a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus= ord[1], cost= ord[2])
+            a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus=ord[1], cost=ord[2])
             a.pos = ord[-1]
             self.schedule.add(a)
             self.grid.add_agents(a)
@@ -267,7 +265,8 @@ class CloudManufacturing(BaseEnvironment):
                 # 随机选择一个满足充分约束的订单
                 agent.selected_order_id = random.choice(agent.temp_actions)
                 agent.order = agent.selected_order_id
-                self.actions.update({str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
+                self.actions.update(
+                    {str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
             if agent.intelligence_level == 1:
                 # print("medium")
                 # print("temp_actions:", self.temp_actions)
@@ -281,7 +280,8 @@ class CloudManufacturing(BaseEnvironment):
                 # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
                 agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
                 agent.order = agent.selected_order_id
-                self.actions.update({str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
+                self.actions.update(
+                    {str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
                 # order = None
                 # for temp in self.model.all_resources:
                 #     if str(temp.unique_id) == self.selected_order_id:
@@ -317,7 +317,6 @@ class CloudManufacturing(BaseEnvironment):
             for key in obs[k].keys():
                 if key != "cooperation":
                     _obs[k] += obs[k][key]
-
 
         num_agent = len(obs)
         while num_agent < self.N:
@@ -413,7 +412,7 @@ class CloudManufacturing(BaseEnvironment):
     # 平台反选
     def order_select(self):
         self.finish_orders = 0
-        #当前没有进行匹配的序列
+        # 当前没有进行匹配的序列
         if len(self.match_order) == 0 and len(self.match_agent) == 0:
             return 0
         order_action = dict()
@@ -496,6 +495,7 @@ class CloudManufacturing(BaseEnvironment):
         for agent in self.schedule.agents:
             if isinstance(agent, GeoAgent):
                 agent.energy += total_tax / num_agent
+
     #
     # def init_rl(self, trainer):
     #
@@ -511,6 +511,22 @@ class CloudManufacturing(BaseEnvironment):
     #
     #     self.obs = obs
     #     return self.trainer, self.obs
+
+    # 将每轮ABC企业的数目写入csv
+    def collect_agent_num(self):
+        if self.schedule.steps == 1:
+            write_csv_hearders("data/agent_num.csv", ["time_step", "nums", "service_type"])
+        for agent in self.schedule.agents:
+            if isinstance(agent, GeoAgent):
+                if agent.service_type == "A":
+                    self.num_a += 1
+                elif agent.service_type == "B":
+                    self.num_b += 1
+                elif agent.service_type == "C":
+                    self.num_c += 1
+        write_csv_rows("data/agent_num.csv", [[self.schedule.steps, self.num_a, 'A'],
+                                              [self.schedule.steps, self.num_b, 'B'],
+                                              [self.schedule.steps, self.num_c, 'C']])
 
     def compute_rl_step(self):
 
@@ -540,7 +556,6 @@ class CloudManufacturing(BaseEnvironment):
         if self.schedule.steps % 10 == 0:
             self.pay_taxex()
 
-
         self.set_all_agents_list()
         self.set_intelligence(self.new_services)
 
@@ -551,7 +566,7 @@ class CloudManufacturing(BaseEnvironment):
             self.compute_rl_step()
         # 低智能也是先确定匹配的大小，所以我抽出来了
         self.match_order, self.match_agent = self.matching_service_order()
-        #raise TypeError(self.match_order, self.match_agent)
+        # raise TypeError(self.match_order, self.match_agent)
         # 低智能和中智能的可能动作，存入agent
         self.get_actions()
 
@@ -580,7 +595,6 @@ class CloudManufacturing(BaseEnvironment):
 
         self.total_rewards = 0
 
-
         # 演化结束的判断，待修改
         self.done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}
@@ -588,9 +602,12 @@ class CloudManufacturing(BaseEnvironment):
         self.datacollector.collect(self)
         # 激活agent，每个agent执行自己全部动作
 
+        self.collect_agent_num()
+
         # 生成本轮新的企业和订单
         self.generate_orders()
         self.generate_services()
+
         return self.obs, reward, self.done, info
 
 
@@ -651,6 +668,7 @@ def generate_difficulty():
 def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
     return RLlibEnvWrapper(env_config, CloudManufacturing)
 
+
 register_env(CloudManufacturing.name, env_creator)
 
 # def build_Trainer(run_configuration):
@@ -688,5 +706,3 @@ register_env(CloudManufacturing.name, env_creator)
 #
 #     return trainer
 #
-
-

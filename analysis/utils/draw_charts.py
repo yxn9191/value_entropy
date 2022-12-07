@@ -13,8 +13,8 @@ plt.style.use('ggplot')
 matplotlib.rcParams['font.sans-serif'] = ['SimHei']
 matplotlib.rcParams['axes.unicode_minus'] = False
 
-DATA_PREFIX = '../data/'
-IMG_PREFIX = '../figs/'
+DATA_PREFIX = 'data/'
+IMG_PREFIX = 'figs/'
 
 
 def read_data(name, header):
@@ -24,7 +24,7 @@ def read_data(name, header):
 
 # 长型数据折线图
 # 注意绘制折线图时我们保存的csv的统一数据样式为 x轴数据|y轴数据|分类数据，见example.csv
-# setting = [,] 第一个参数对哪列数据设置hue，第二个表示对哪列数据设置style，传入的是列名
+# setting = [,] 第一个参数表示对哪列数据设置hue，第二个表示对哪列数据设置style，传入的是列名
 def line_chart(filename, setting, save_name):
     data = read_data(filename, 0)
     # x:横坐标名称，y：纵坐标名称，hue：对分类进行颜色区分,style:对分类进行形状区分
@@ -39,7 +39,7 @@ def line_chart(filename, setting, save_name):
     # plt.show()
 
 
-# 注意绘制热力图时我们保存的csv的统一数据样式为 不含有x、y的行名|列名，见example2.csv
+# 注意绘制热力图时我们保存的csv的统一数据样式为 数据不含有x、y的行名和列名，见example2.csv
 def heat_map(filename, save_name):
     data = read_data(filename, None)
     sns.heatmap(data=data,
