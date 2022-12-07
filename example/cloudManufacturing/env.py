@@ -35,7 +35,7 @@ class CloudManufacturing(BaseEnvironment):
     MAP_COORDS = [117.222503, 39.117489]
 
     def __init__(self, num_order=10, num_service=5, num_organization=2, episode_length=200,
-                 ratio_low=0, ratio_medium=1, tax_rate=0, is_training=True, trainer=None):
+                 ratio_low=0, ratio_medium=0, tax_rate=0, is_training=True, trainer=None):
         super().__init__()
         # 初始时的order和agent
 
@@ -528,6 +528,12 @@ class CloudManufacturing(BaseEnvironment):
                                               [self.schedule.steps, self.num_b, 'B'],
                                               [self.schedule.steps, self.num_c, 'C']])
 
+    # 将每step的平均效能写入csv
+    def collect_avg_reward(self, avg_reward):
+        if self.schedule.steps == 1:
+            write_csv_hearders("data/avg_reward.csv", ["time_step", "avg_reward"])
+        write_csv_rows("data/avg_reward.csv", [[self.schedule.steps, avg_reward]])
+
     def compute_rl_step(self):
 
         results = {}
@@ -589,6 +595,7 @@ class CloudManufacturing(BaseEnvironment):
 
             # 生成虚拟企业
             num_agents = len(reward)
+
             while num_agents < self.N:
                 reward[str(-num_agents)] = 0
                 num_agents += 1
@@ -599,10 +606,11 @@ class CloudManufacturing(BaseEnvironment):
         self.done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}
 
-        self.datacollector.collect(self)
-        # 激活agent，每个agent执行自己全部动作
 
         self.collect_agent_num()
+        print(reward.values())
+        avg_reward = sum(reward.values()) / len(self.all_agents)
+        self.collect_avg_reward(avg_reward)
 
         # 生成本轮新的企业和订单
         self.generate_orders()
