@@ -15,7 +15,7 @@ from example.cloudManufacturing.env import CloudManufacturing
 from utils.saving_and_loading import *
 # 必须后面引入不然会报错
 from algorithm.rl.env_warpper import RLlibEnvWrapper
-from ray.rllib.agents.a3c.a2c import A2CTrainer
+from ray.rllib.algorithms.a2c import A2C
 from ray.tune.logger import pretty_print
 
 ray.init(log_to_driver=False)
@@ -74,7 +74,7 @@ def build_Trainer(run_configuration):
         "num_workers": trainer_config.get("num_workers")
     })
 
-    trainer = A2CTrainer(
+    trainer = A2C(
         # env = RLlibEnvWrapper,
         env=run_configuration.get("env")["env_name"],
         config=trainer_config

@@ -2,6 +2,7 @@ import mesa
 import profile
 import os
 import sys
+
 current_path = os.path.split(os.path.realpath(__file__))[0]
 
 sys.path.append("/home/bertrand/Desktop/group-intelligence-system")
@@ -31,6 +32,7 @@ class StepText(TextElement):
     def render(self, model):
         return "Steps: " + str(model.schedule.steps)
 
+
 def agent_portrayal(agent):
     if agent is None:
         return
@@ -58,36 +60,35 @@ def agent_portrayal(agent):
         portrayal['radius'] = "1"
         if agent.service_type == "A":
             portrayal["color"] = "Green"
-            #portrayal["Shape"] = "ServiceA.png"
+            # portrayal["Shape"] = "ServiceA.png"
         elif agent.service_type == "B":
             portrayal["color"] = "Blue"
-            #portrayal["Shape"] = "ServiceB.png"
+            # portrayal["Shape"] = "ServiceB.png"
         elif agent.service_type == "C":
             portrayal["color"] = "Red"
-            #portrayal["Shape"] = "ServiceC.png"
+            # portrayal["Shape"] = "ServiceC.png"
 
     elif type(agent) is Region:
         portrayal["color"] = "Black"
 
-
     return portrayal
+
 
 # 获取参数
 run_dir, run_config = process_args()
 # 创建训练器
 trainer = build_Trainer(run_config)
 ckpt = run_config["general"].get(
-            "ckpt_path", ""
-        )
+    "ckpt_path", ""
+)
 ckpt = os.path.join(current_path, ckpt)
 trainer.restore(str(ckpt))
 
 starting_weights_path_agents = run_config["general"].get(
-            "restore_torch_weights_agents", ""
-        )
+    "restore_torch_weights_agents", ""
+)
 starting_weights_path_agents = os.path.join(current_path, starting_weights_path_agents)
 load_torch_model_weights(trainer, starting_weights_path_agents)
-
 
 model_params = {
     # "title": mesa.visualization.StaticText("Parameters:"),
@@ -98,16 +99,16 @@ model_params = {
         "slider", "Initial Service Numbers", value=5, min_value=0, max_value=500, step=5
     ),
 
-    "num_order":  UserSettableParameter(
-        "slider", "Initial Order Numbers",value=10, min_value=0, max_value=1000, step=5),
-    "ratio_low":  UserSettableParameter(
+    "num_order": UserSettableParameter(
+        "slider", "Initial Order Numbers", value=10, min_value=0, max_value=1000, step=5),
+    "ratio_low": UserSettableParameter(
         "slider", "Initial ratio_low", value=0, min_value=0, max_value=1, step=0.1
     ),
-    "ratio_medium":  UserSettableParameter(
+    "ratio_medium": UserSettableParameter(
         "slider", "Initial ratio_medium", value=1, min_value=0, max_value=1, step=0.1
     ),
-    "tax_rate":   UserSettableParameter(
-        "slider","Initial tax_rate", value=1, min_value=0, max_value=1, step=0.1
+    "tax_rate": UserSettableParameter(
+        "slider", "Initial tax_rate", value=1, min_value=0, max_value=1, step=0.1
     ),
     "trainer": trainer
 }
