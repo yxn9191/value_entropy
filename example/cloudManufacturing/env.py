@@ -609,7 +609,7 @@ class CloudManufacturing(BaseEnvironment):
 
         self.collect_agent_num()
         print(reward.values())
-        avg_reward = sum(reward.values()) / len(self.all_agents)
+        avg_reward = sum(reward.values()) / len(self.match_agent)
         self.collect_avg_reward(avg_reward)
 
         # 生成本轮新的企业和订单
