@@ -107,6 +107,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
 
         out2 = self.fc4(out2)
         logits = apply_logit_mask(out1, input_dict["obs"][_MASK_NAME])
+        
         self._value_out = out2
         return logits, state
 

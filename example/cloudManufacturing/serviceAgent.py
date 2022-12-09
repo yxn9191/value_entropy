@@ -44,8 +44,8 @@ class ServiceAgent(GeoAgent):
 
         self.intelligence_level = intelligence_level
         self.order_end_time = 0  # 企业选择的订单，结束处理的时间
-        self.now_value =0
-        self.now_cost = 0
+        # self.now_value =0
+        # self.now_cost = 0
         # self.delta_x = 0  # 记录要想新位置移动多少x
         # self.delta_y = 0  # 记录要往新位置移动多少y
         self.order = None  # 企业正在处理的order
@@ -122,7 +122,7 @@ class ServiceAgent(GeoAgent):
             try:
                 value = order.bonus / len(order.services)
             except ZeroDivisionError:
-                raise TypeError(order, self in self.model.match_agent,
+                raise TypeError( self in self.model.match_agent,
                 self.model.necessary_constraint(order,[self.unique_id]),
                 order.occupied,order.order_type,order.order_difficulty,
                 self.difficulty,self.service_type, len(self.model.match_order),self.action)
@@ -176,7 +176,7 @@ class ServiceAgent(GeoAgent):
             print("_______订单处理完成_________", order.unique_id, order.pos)
 
         if self.state == 0:
-            self.now_value, self.now_cost = self.process_order()
+            self.process_order()
 
             # self.model.total_rewards += value - cost
         elif self.state == 1:

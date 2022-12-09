@@ -15,7 +15,7 @@ from example.cloudManufacturing.orderAgent import OrderAgent
 from example.cloudManufacturing.serviceAgent import ServiceAgent
 from ray.tune.registry import register_env
 
-from algorithm.rl.env_warpper import RLlibEnvWrapper
+from algorithm.rl.env_warpper import RLlibEnvWrapper, recursive_list_to_np_array
 from example.cloudManufacturing.generateOrders import *
 from shapely.geometry import Point
 import sys
@@ -493,14 +493,12 @@ class CloudManufacturing(BaseEnvironment):
     def pay_taxex(self):
         total_tax = 0
         num_agent = 0
-        for agent in self.schedule.agents:
-            if isinstance(agent, GeoAgent):
-                total_tax += agent.energy * self.tax_rate
-                agent.energy -= agent.energy * self.tax_rate
-                num_agent += 1
-        for agent in self.schedule.agents:
-            if isinstance(agent, GeoAgent):
-                agent.energy += total_tax / num_agent
+        for agent in self._agent_lookup.values():
+            total_tax += agent.energy * self.tax_rate
+            agent.energy -= agent.energy * self.tax_rate
+            num_agent += 1
+        for agent in self._agent_lookup.values():
+            agent.energy += total_tax / num_agent
 
     #
     # def init_rl(self, trainer):
@@ -575,10 +573,10 @@ class CloudManufacturing(BaseEnvironment):
         actions = {}
         for agent in self.match_agent:
             if agent.intelligence_level == 2:
-                results[str(agent.unique_id)] = self.trainer.compute_action(self.obs[str(agent.unique_id)],
+                results[str(agent.unique_id)] = self.trainer.compute_action(recursive_list_to_np_array(self.obs[str(agent.unique_id)]),
                                                                         policy_id="a",
                                                                         full_fetch=False)
-                actions[str(agent.unique_id)] = results[str(agent.unique_id)][0]
+                actions[str(agent.unique_id)] = results[str(agent.unique_id)]
         self.actions.update(actions)
 
     def step(self):
@@ -628,10 +626,7 @@ class CloudManufacturing(BaseEnvironment):
             self.schedule.step()
             for agent in self.match_agent:
                 if agent.intelligence_level == 2:
-                    if self.is_training == False:
-                        value, cost = agent.now_value, agent.now_cost
-                    else:
-                        value, cost = agent.process_order()
+                    value, cost = agent.process_order()
                     reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
 
             # 生成虚拟企业
@@ -655,19 +650,19 @@ class CloudManufacturing(BaseEnvironment):
             else:
                 avg_reward = 0
             self.collect_avg_reward(avg_reward, "avg_reward.csv")
-            if self.ratio_high == 1 and tax_rate < 0.1:
+            if self.ratio_high == 1 and self.tax_rate < 0.1:
                 if len(self.match_agent) > 0:
                     avg_reward = sum(reward.values()) / len(self.match_agent)
                 else:
                     avg_reward = 0
                 self.collect_avg_reward(avg_reward, "low_rate.csv")
-            elif self.ratio_high == 1 and tax_rate < 0.2:
+            elif self.ratio_high == 1 and self.tax_rate < 0.2:
                 if len(self.match_agent) > 0:
                     avg_reward = sum(reward.values()) / len(self.match_agent)
                 else:
                     avg_reward = 0
                 self.collect_avg_reward(avg_reward, "mid_rate.csv")
-            elif self.ratio_high == 1 and tax_rate < 0.3:
+            elif self.ratio_high == 1 and self.tax_rate < 0.3:
                 if len(self.match_agent) > 0:
                     avg_reward = sum(reward.values()) / len(self.match_agent)
                 else:

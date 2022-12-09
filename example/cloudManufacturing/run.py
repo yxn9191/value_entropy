@@ -102,10 +102,10 @@ model_params = {
     "num_order": UserSettableParameter(
         "slider", "Initial Order Numbers", value=10, min_value=0, max_value=1000, step=5),
     "ratio_low": UserSettableParameter(
-        "slider", "Initial ratio_low", value=0.6, min_value=0, max_value=1, step=0.1
+        "slider", "Initial ratio_low", value=0.0, min_value=0, max_value=1, step=0.1
     ),
     "ratio_medium": UserSettableParameter(
-        "slider", "Initial ratio_medium", value=0.4, min_value=0, max_value=1, step=0.1
+        "slider", "Initial ratio_medium", value=0.0, min_value=0, max_value=1, step=0.1
     ),
     "tax_rate": UserSettableParameter(
         "slider", "Initial tax_rate", value=0.5, min_value=0, max_value=1, step=0.1
