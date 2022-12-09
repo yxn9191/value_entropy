@@ -90,6 +90,8 @@ class AgentPolicy(TorchModelV2, nn.Module):
     def forward(self, input_dict,
                 state,
                 seq_lens):
+
+      
         x = torch.cat([input_dict["obs"][k] for k in self.fc_keys], -1)
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])

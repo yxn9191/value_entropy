@@ -15,12 +15,12 @@ class ServiceAgent(GeoAgent):
                  service_type,
                  difficulty,
                  organization = None,
-                 speed=500,
+                 speed=5e3,
                  energy=randint(1e5, 2e5),
-                 consumption=randint(10, 30),
+                 consumption=randint(100, 300),
                  failure_prob=0.2,
                  cooperation=1,
-                 move_cost=0.01,
+                 move_cost= 1e-3,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model, shape)
@@ -44,7 +44,8 @@ class ServiceAgent(GeoAgent):
 
         self.intelligence_level = intelligence_level
         self.order_end_time = 0  # 企业选择的订单，结束处理的时间
-
+        self.now_value =0
+        self.now_cost = 0
         # self.delta_x = 0  # 记录要想新位置移动多少x
         # self.delta_y = 0  # 记录要往新位置移动多少y
         self.order = None  # 企业正在处理的order
@@ -114,17 +115,15 @@ class ServiceAgent(GeoAgent):
                 # 这里也要换成算法1的订单集合
                 self.order = self.model.match_order[self.action].unique_id
 
-
-
         prob = random.uniform(0, 1)
         # 失败
         if prob >= self.failure_prob and self.order:
-            print(self.service_type, self.order, self.unique_id, self.intelligence_level)
-            order = self.model.match_order[self.action]
+            order = self.model._resource_lookup[str(self.order)]
             try:
                 value = order.bonus / len(order.services)
             except ZeroDivisionError:
-                raise TypeError(self.model.necessary_constraint(order,[self.unique_id]),
+                raise TypeError(order, self in self.model.match_agent,
+                self.model.necessary_constraint(order,[self.unique_id]),
                 order.occupied,order.order_type,order.order_difficulty,
                 self.difficulty,self.service_type, len(self.model.match_order),self.action)
             cost = order.cost / len(order.services) + \
