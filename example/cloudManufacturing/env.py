@@ -623,7 +623,6 @@ class CloudManufacturing(BaseEnvironment):
                 avg_reward = 0
             self.collect_avg_reward(avg_reward, "avg_reward.csv")
 
-
         # 生成本轮新的企业和订单
         self.generate_orders()
         self.generate_services()
