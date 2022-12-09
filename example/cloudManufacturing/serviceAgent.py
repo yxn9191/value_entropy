@@ -16,7 +16,7 @@ class ServiceAgent(GeoAgent):
                  difficulty,
                  organization = None,
                  speed=500,
-                 energy=randint(100000, 200000),
+                 energy=randint(1e5, 2e5),
                  consumption=randint(10, 30),
                  failure_prob=0.2,
                  cooperation=1,
@@ -110,7 +110,7 @@ class ServiceAgent(GeoAgent):
         #
         # 高智力
         if self.intelligence_level == 2:
-            if self.action is not None and self.action < len(self.model.match_order) and self.action !=-1:
+            if self.action is not None and self.action < len(self.model.match_order) and self.action !=-1 and self.order:
                 # 这里也要换成算法1的订单集合
                 self.order = self.model.match_order[self.action].unique_id
 
@@ -120,11 +120,13 @@ class ServiceAgent(GeoAgent):
         # 失败
         if prob >= self.failure_prob and self.order:
             print(self.service_type, self.order, self.unique_id, self.intelligence_level)
-            order = self.model._resource_lookup[str(self.order)]
+            order = self.model.match_order[self.action]
             try:
                 value = order.bonus / len(order.services)
             except ZeroDivisionError:
-                raise TypeError(order.occupied,order.order_type,self.service_type, self.action)
+                raise TypeError(self.model.necessary_constraint(order,[self.unique_id]),
+                order.occupied,order.order_type,order.order_difficulty,
+                self.difficulty,self.service_type, len(self.model.match_order),self.action)
             cost = order.cost / len(order.services) + \
                   sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost
             self.state = 1  # 状态改变，开始移动
