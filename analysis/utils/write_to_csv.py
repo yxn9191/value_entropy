@@ -23,3 +23,9 @@ def write_csv_rows(file_name, rows):
         f_csv = csv.writer(f)
         f_csv.writerows(rows)
     f.close()
+
+def write_csv_rows_cover(file_name, rows):
+    with open(file_name, 'w', newline='', encoding='utf-8') as f:
+        f_csv = csv.writer(f)
+        f_csv.writerows(rows)
+    f.close()

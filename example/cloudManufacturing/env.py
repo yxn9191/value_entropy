@@ -1,14 +1,12 @@
 import math
 import os
-import random
 from copy import deepcopy
 
 import mesa
 from mesa_geo import GeoSpace, AgentCreator
 import numpy as np
-from mesa import DataCollector
 
-from analysis.utils.write_to_csv import write_csv_hearders, write_csv_rows
+from analysis.utils.write_to_csv import write_csv_hearders, write_csv_rows,write_csv_rows_cover
 from base.environment import BaseEnvironment
 from base.geoagent import GeoAgent
 from base.georesource import GeoResource
@@ -565,7 +563,7 @@ class CloudManufacturing(BaseEnvironment):
             self.pos_matrix = new_matrix
             print(self.pos_matrix)
         # 注意写入csv时，转置后才是横着x，纵向y
-        write_csv_rows("data/high_reward_heatmap.csv", self.pos_matrix.T.tolist())
+        write_csv_rows_cover("data/high_reward_heatmap.csv", self.pos_matrix.T.tolist())
 
     def compute_rl_step(self):
         results = {}
