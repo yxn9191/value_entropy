@@ -613,6 +613,7 @@ class CloudManufacturing(BaseEnvironment):
         self.done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}
 
+
         if self.is_training == False:
             self.collect_agent_num()
             print(reward.values())
@@ -621,6 +622,7 @@ class CloudManufacturing(BaseEnvironment):
             else:
                 avg_reward = 0
             self.collect_avg_reward(avg_reward, "avg_reward.csv")
+
 
         # 生成本轮新的企业和订单
         self.generate_orders()
