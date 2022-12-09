@@ -73,6 +73,7 @@ class CloudManufacturing(BaseEnvironment):
         self.match_agent = []
         self.match_order = []
         self.tax_rate = tax_rate
+        self.pos_matrix = None
 
         self.init_services(num_service)
         self.generate_orders()
@@ -534,6 +535,33 @@ class CloudManufacturing(BaseEnvironment):
             write_csv_hearders("data/avg_reward.csv", ["time_step", "avg_reward"])
         write_csv_rows("data/avg_reward.csv", [[self.schedule.steps, avg_reward]])
 
+    # 将企业的位置写入csv
+    # pos:{agentID:agent.pos}
+    def collect_agent_pos(self, pos):
+        x = []
+        y = []
+        for v in pos.values():
+            x.append(round(v[0]))
+            y.append(round(v[1]))
+        if self.schedule.steps == 1:
+            self.pos_matrix = np.zeros((max(x), max(y)), dtype=int)
+            for m, n in pos.values():
+                self.pos_matrix[m - 1][n - 1] += 1
+                print(self.pos_matrix)
+        else:
+            o_x, o_y = self.pos_matrix.shape
+            new_matrix = np.zeros((max(max(x), o_x), max(max(y), o_y)), dtype=int)
+            for m, n in pos.values():
+                new_matrix[m - 1][n - 1] += 1
+            print(new_matrix)
+            for i in range(self.pos_matrix.shape[0]):
+                for j in range(self.pos_matrix.shape[1]):
+                    new_matrix[i][j] += self.pos_matrix[i][j]
+            self.pos_matrix = new_matrix
+            print(self.pos_matrix)
+        # 注意写入csv时，转置后才是横着x，纵向y
+        write_csv_rows("data/high_reward_heatmap.csv", self.pos_matrix.T.tolist())
+
     def compute_rl_step(self):
 
         results = {}
@@ -606,7 +634,6 @@ class CloudManufacturing(BaseEnvironment):
         self.done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}
 
-
         self.collect_agent_num()
         # print(reward.values())
         # print(self.match_agent)
@@ -615,6 +642,9 @@ class CloudManufacturing(BaseEnvironment):
         if self.match_agent:
             avg_reward = sum(reward.values()) / len(self.match_agent)
         self.collect_avg_reward(avg_reward)
+
+        # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos}
+        self.collect_agent_pos()
 
         # 生成本轮新的企业和订单
         self.generate_orders()
