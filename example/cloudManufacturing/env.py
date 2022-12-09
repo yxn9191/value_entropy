@@ -135,12 +135,11 @@ class CloudManufacturing(BaseEnvironment):
                 shape, self.next_id()
             )
             this_person.pos = (shape.x, shape.y)
-           
 
             self.schedule.add(this_person)
             self.grid.add_agents(this_person)
             self.new_services.append(this_person)
-        
+
     # 企业繁衍
     def generate_services(self):
         self.new_services = []
@@ -149,7 +148,7 @@ class CloudManufacturing(BaseEnvironment):
             if agent.energy >= 1.5e5:
                 while 1:
                     random_point = Point(agent.shape.x + random.uniform(0, 10),
-                                             agent.shape.y + random.uniform(0, 10))
+                                         agent.shape.y + random.uniform(0, 10))
                     if self.region[0].shape.contains(random_point):
                         break
                 ac_population = AgentCreator(
@@ -158,14 +157,14 @@ class CloudManufacturing(BaseEnvironment):
                 )
 
                 this_person = ac_population.create_agent(
-                     random_point, self.next_id()
+                    random_point, self.next_id()
                 )
                 this_person.pos = (random_point.x, random_point.y)
 
                 self.schedule.add(this_person)
                 self.grid.add_agents(this_person)
                 self.new_services.append(this_person)
-        
+
     def generate_orders(self):
         self.new_orders = []
         for ord in self.all_orders_list[self.schedule.steps]:
@@ -211,7 +210,7 @@ class CloudManufacturing(BaseEnvironment):
     # 判断潜在工人组是否最终可获得该订单（必要条件）,可获得返回1，否则返回0
     def necessary_constraint(self, order, services):
         total_move_cost = 0
-        total_skill = [0 , 0]
+        total_skill = [0, 0]
 
         for service in services:
             service = self._agent_lookup[str(service)]
@@ -222,7 +221,7 @@ class CloudManufacturing(BaseEnvironment):
             total_move_cost += move_len(order.pos, service.pos) * service.move_cost
             total_skill = [int(a or b) for (a, b) in zip(skill_constraint(order, service), total_skill)]
         # 整体预算约束：小组成员的行程代价之和加上处理订单的消耗小于订单给予的价值（等于也不行，那不是白干了）&& 整体技能须满足该订单所有的技能要求
-        if order.bonus >= total_move_cost + order.cost and sum(total_skill) ==2:
+        if order.bonus >= total_move_cost + order.cost and sum(total_skill) == 2:
             return 1
         else:
             return 0
@@ -444,10 +443,10 @@ class CloudManufacturing(BaseEnvironment):
             if len(order_.order_type) == 1:
                 for service in order_action_[o_id][order_.order_type].keys():
                     if not self.necessary_constraint(order_, service):
-                        del order_action[o_id][order_.order_type][service] 
+                        del order_action[o_id][order_.order_type][service]
                         agent = self._agent_lookup.get(str(service), None)
                         agent.action_parse(-1)
-                if len(order_action[o_id][order_.order_type])>0:
+                if len(order_action[o_id][order_.order_type]) > 0:
                     order_.services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
                     self.finish_orders += 1
                     order_.occupied = 1
@@ -548,14 +547,16 @@ class CloudManufacturing(BaseEnvironment):
             x.append(round(v[0]))
             y.append(round(v[1]))
         if self.schedule.steps == 1:
+
             self.pos_matrix = np.zeros((max(x), max(y)), dtype=int)
-            for m, n in pos.values():
+            for m, n in zip(x, y):
+                print(self.pos_matrix.shape)
                 self.pos_matrix[m - 1][n - 1] += 1
                 print(self.pos_matrix)
         else:
             o_x, o_y = self.pos_matrix.shape
             new_matrix = np.zeros((max(max(x), o_x), max(max(y), o_y)), dtype=int)
-            for m, n in pos.values():
+            for m, n in zip(x, y):
                 new_matrix[m - 1][n - 1] += 1
             print(new_matrix)
             for i in range(self.pos_matrix.shape[0]):
@@ -641,18 +642,25 @@ class CloudManufacturing(BaseEnvironment):
         self.done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}
 
-
         if self.is_training == False:
             self.collect_agent_num()
             print(reward.values())
-            if  len(self.match_agent) > 0:
+            if len(self.match_agent) > 0:
                 avg_reward = sum(reward.values()) / len(self.match_agent)
             else:
                 avg_reward = 0
             self.collect_avg_reward(avg_reward, "avg_reward.csv")
-
-        # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos}
-        # self.collect_agent_pos()
+            agent_pos = {}
+            for agent in self.all_agents:
+                if agent.intelligence_level == 2:
+                    print(agent.pos)
+                    # 对agent_pos进行标准化
+                    x = (agent.pos[0] - 13000000) * 0.001
+                    y = (agent.pos[1] - 4650000) * 0.001
+                    agent_pos.update({str(agent.unique_id): (x, y)})
+            # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos}
+            print(agent_pos)
+            self.collect_agent_pos(agent_pos)
 
         # 生成本轮新的企业和订单
         self.generate_orders()
@@ -679,7 +687,7 @@ def skill_constraint(order, service):
     j = 0
     service_diff = 0
     # 是否满足技能点的列表
-    list = [0 , 0]
+    list = [0, 0]
 
     # 判断订单的类型是否为企业可以处理的类型
     if all([(b - a) >= 0 for (a, b) in zip(order.skills[0], service.skills[0])]):
