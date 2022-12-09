@@ -1,0 +1,52 @@
+env:
+  env_config:
+    num_order: 10
+    num_service: 5
+    num_organization: 2
+    episode_length: 200
+    ratio_low: 0
+    ratio_medium: 0
+    tax_rate: 0.15
+  env_name: CloudManufacturing
+
+trainer:
+  num_workers: 1
+  batch_mode: truncate_episodes
+  ignore_worker_failures: true
+  observation_filter: NoFilter
+  rollout_fragment_length: 200
+  train_batch_size: 16
+  num_gpus: 1
+  num_gpus_per_worker: 0
+  no_done_at_end: false
+  num_envs_per_worker: 0
+
+
+general:
+  ckpt_frequency_steps: 1000
+  episodes: 100
+  gpus: 1
+  ckpt_path: rl/phase1/ckpts/checkpoint_000001
+  restore_torch_weights_agents: rl/phase1/ckpts/torch.weights.global-step-100
+
+agent_policy:
+  clip_param: 0.3
+  entropy_coeff: 0.01
+  entropy_coeff_schedule: null
+  gamma: 0.998
+  grad_clip: 10.0
+  kl_coeff: 0.0
+  kl_target: 0.01
+  lambda: 0.98
+  lr: 0.0001
+  lr_schedule: null
+  model:
+    custom_model: AgentPolicy
+    custom_model_config:
+      fc1_dim: 24
+      fc2_dim: 64
+  use_gae: true
+  vf_clip_param: 50.0
+  vf_loss_coeff: 0.05
+  vf_share_layers: false
+
