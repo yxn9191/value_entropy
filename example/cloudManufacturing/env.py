@@ -607,14 +607,14 @@ class CloudManufacturing(BaseEnvironment):
         info = {k: {} for k in self.obs.keys()}
 
 
-        self.collect_agent_num()
-        # print(reward.values())
-        # print(self.match_agent)
-        # print(self.match_order)
-        avg_reward = 0
-        if self.match_agent:
-            avg_reward = sum(reward.values()) / len(self.match_agent)
-        self.collect_avg_reward(avg_reward)
+        if self.is_training == False:
+            self.collect_agent_num()
+            print(reward.values())
+            if  len(self.match_agent) > 0:
+                avg_reward = sum(reward.values()) / len(self.match_agent)
+            else:
+                avg_reward = 0
+            self.collect_avg_reward(avg_reward, "avg_reward.csv")
 
         # 生成本轮新的企业和订单
         self.generate_orders()
