@@ -15,6 +15,7 @@ from example.cloudManufacturing.env import CloudManufacturing
 from utils.saving_and_loading import *
 # 必须后面引入不然会报错
 from algorithm.rl.env_warpper import RLlibEnvWrapper
+from algorithm.rl.callback import MyCallbacks
 from ray.rllib.algorithms.a2c import A2C
 from ray.tune.logger import pretty_print
 
@@ -42,11 +43,10 @@ def process_args():
 
 
 def build_Trainer(run_configuration):
-    sys.path.append("/home/bertrand/Desktop/group-intelligence-system")
-    print(sys.path)
+
     trainer_config = run_configuration.get("trainer")
     env_config = run_configuration.get("env")["env_config"]
-
+    trainer_config["callbacks"] = MyCallbacks
     # === Multiagent Policies ===
 
     dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)

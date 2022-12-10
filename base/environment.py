@@ -1,3 +1,8 @@
+import sys
+import os
+current_path = os.path.split(os.path.realpath(__file__))[0]
+sys.path.append(current_path)
+
 import mesa
 from mesa import DataCollector
 
@@ -5,6 +10,7 @@ from base.agent import Agent
 from base.resource import Resource
 from base.geoagent import GeoAgent
 from base.georesource import GeoResource
+from utils.env_reward import *
 
 
 class BaseEnvironment(mesa.Model):
@@ -79,6 +85,21 @@ class BaseEnvironment(mesa.Model):
 
             self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
             self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}
+
+    def scenario_metrics(self):
+        metrics = dict()
+        energy = np.array([agent.energy for agent in self._agent_lookup.values()])
+        metrics["social/productivity"] = get_productivity(energy)
+        metrics["social/equality"] = get_equality(energy)
+
+        metrics[
+            "social_welfare/coin_eq_times_productivity"
+        ] = metrics["social/productivity"] * metrics["social/equality"]
+
+        return metrics
+
+
+
 
     def step(self):
         pass

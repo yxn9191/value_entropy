@@ -605,7 +605,7 @@ class CloudManufacturing(BaseEnvironment):
 
         # 低智能也是先确定匹配的大小，所以我抽出来了
         self.match_order, self.match_agent = self.matching_service_order()
-        # raise TypeError(self.match_order, self.match_agent)
+
         # 低智能和中智能的可能动作，存入agent
         self.get_actions()
 
@@ -618,8 +618,7 @@ class CloudManufacturing(BaseEnvironment):
             # 这里的self._agent_lookup也要换成算法1获得的企业集合
             for agent_idx, agent_actions in self.actions.items():
                 if int(agent_idx) > 0:
-                    agent = self._agent_lookup.get(str(agent_idx), None)
-                    agent.action_parse(agent_actions)
+                    self._agent_lookup.get(str(agent_idx), None).action_parse(agent_actions)
 
             # 平台反选
             self.order_select()
