@@ -10,8 +10,8 @@ import seaborn.objects as so
 
 # 设置
 plt.style.use('ggplot')
-matplotlib.rcParams['font.sans-serif'] = ['SimHei']
-matplotlib.rcParams['axes.unicode_minus'] = False
+# matplotlib.rcParams['font.sans-serif'] = ['SimHei']
+# matplotlib.rcParams['axes.unicode_minus'] = False
 
 DATA_PREFIX = 'data/'
 IMG_PREFIX = 'figs/'
@@ -37,6 +37,20 @@ def line_chart(filename, setting, save_name):
         sns.lineplot(data=data, x=list(data)[0], y=list(data)[1])
     plt.savefig(IMG_PREFIX + save_name + '.png', dpi=600)
     # plt.show()
+
+
+# 长型数据折线图
+# 注意绘制折线图时我们保存的csv的统一数据样式为 x轴数据|y轴数据|分类数据，见example.csv
+# setting = [,] 第一个参数表示对哪列数据设置hue，第二个表示对哪列数据设置style，传入的是列名
+def files_line_chart(data, setting, save_name):
+    if len(setting) > 0:
+        if len(setting) > 1:
+            sns.lineplot(data=data, x=list(data)[0], y=list(data)[1], hue=setting[0], style=setting[1])
+        else:
+            sns.lineplot(data=data, x=list(data)[0], y=list(data)[1], hue=setting[0])
+    else:
+        sns.lineplot(data=data, x=list(data)[0], y=list(data)[1])
+    plt.savefig(IMG_PREFIX + save_name + '.png', dpi=600)
 
 
 # 注意绘制热力图时我们保存的csv的统一数据样式为 数据不含有x、y的行名和列名，见example2.csv

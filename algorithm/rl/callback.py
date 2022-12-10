@@ -2,7 +2,7 @@ from typing import Dict, Sequence
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper
 
-from ray.rllib.agents.callbacks import DefaultCallbacks
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import MultiAgentEpisode, RolloutWorker
 from ray.rllib.policy import Policy

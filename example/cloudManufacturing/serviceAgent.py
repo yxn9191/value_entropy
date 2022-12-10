@@ -16,11 +16,11 @@ class ServiceAgent(GeoAgent):
                  difficulty,
                  organization = None,
                  speed=5e3,
-                 energy=randint(1e5, 2e5),
-                 consumption=randint(100, 300),
-                 failure_prob=0.2,
+                 energy=random.uniform(1e4, 2e4),
+                 consumption=random.uniform(100, 300),
+                 failure_prob=0.1,
                  cooperation=1,
-                 move_cost= 1e-3,
+                 move_cost= 1e-4,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model, shape)
@@ -111,9 +111,11 @@ class ServiceAgent(GeoAgent):
         #
         # 高智力
         if self.intelligence_level == 2:
-            if self.action is not None and self.action < len(self.model.match_order) and self.action !=-1 and self.order:
+            if self.action is not None and self.action < len(self.model.match_order) and self.action !=-1:
                 # 这里也要换成算法1的订单集合
                 self.order = self.model.match_order[self.action].unique_id
+            else:
+                self.order = None
 
         prob = random.uniform(0, 1)
         # 失败
@@ -127,7 +129,7 @@ class ServiceAgent(GeoAgent):
                 order.occupied,order.order_type,order.order_difficulty,
                 self.difficulty,self.service_type, len(self.model.match_order),self.action)
             cost = order.cost / len(order.services) + \
-                  sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)]) * self.move_cost
+                  math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(order.pos, self.pos)]))* self.move_cost
             self.state = 1  # 状态改变，开始移动
             # self.order.occupied = 1  # 任务被占用
 
@@ -146,6 +148,7 @@ class ServiceAgent(GeoAgent):
             self.energy -= order.cost / len(order.services)
             print("选择订单转为移动")
         else:
+            self.state = 0
             self.order = None
 
         return value, cost
@@ -203,7 +206,10 @@ class ServiceAgent(GeoAgent):
     #             self.model.grid.move_agent(self, (self.pos[0], self.pos[1] - self.speed))
     #             self.delta_y += self.speed
     def move(self):
-        order =  self.model._resource_lookup[str(self.order)]
+        try:
+            order =  self.model._resource_lookup[str(self.order)]
+        except KeyError:
+            raise KeyError(self.action, self.state, self.order)
         if math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(self.pos, order.pos)])) > self.speed:
             dx = self.pos[0] - order.pos[0]
             dy = self.pos[1] - order.pos[1]

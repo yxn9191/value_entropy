@@ -1,7 +1,7 @@
 env:
   env_config:
-    num_order: 10
-    num_service: 5
+    num_order: 20
+    num_service: 10
     num_organization: 2
     episode_length: 200
     ratio_low: 0
@@ -16,18 +16,15 @@ trainer:
   observation_filter: NoFilter
   rollout_fragment_length: 200
   train_batch_size: 200
-  # num_gpus: 1
-  # num_gpus_per_worker: 0
-  # no_done_at_end: false
-  # num_envs_per_worker: 0
+  num_gpus: 1
 
 
 general:
   ckpt_frequency_steps: 1000
   episodes: 100
   gpus: 1
-  ckpt_path: rl/phase2/ckpts/checkpoint_000034
-  restore_torch_weights_agents: rl/phase2/ckpts/torch.weights.global-step-7000
+  ckpt_path: rl/phase1/ckpts/checkpoint_000029
+  restore_torch_weights_agents: rl/phase1/ckpts/torch.weights.global-step-6000
 
 agent_policy:
   clip_param: 0.3

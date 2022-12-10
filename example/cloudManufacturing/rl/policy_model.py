@@ -25,7 +25,7 @@ _OTHER_NAME = "others"
 def apply_logit_mask(logits, mask):
     """Mask values of 1 are valid actions."
     " Add huge negative values to logits with 0 mask values."""
-    logit_mask = torch.ones_like(logits) * -100000
+    logit_mask = torch.ones_like(logits) * -1000000
     logit_mask = logit_mask * (1 - mask)
 
     return logits + logit_mask
