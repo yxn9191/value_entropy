@@ -15,12 +15,12 @@ class ServiceAgent(GeoAgent):
                  service_type,
                  difficulty,
                  organization = None,
-                 speed=5e3,
-                 energy=random.uniform(1e4, 2e4),
-                 consumption=random.uniform(100, 300),
+                 speed=50,
+                 energy=random.uniform(1e3, 5e3),
+                 consumption=random.uniform(1, 10),
                  failure_prob=0.1,
                  cooperation=1,
-                 move_cost= 1e-4,
+                 move_cost= 1,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model, shape)
@@ -175,6 +175,7 @@ class ServiceAgent(GeoAgent):
                     agent = self.model._agent_lookup[a_id]
                     # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
                     agent.energy += order.bonus / len(order.services)
+                    print("获得收益", order.bonus ,  len(order.services))
                 order.done = True
             print("_______订单处理完成_________", order.unique_id, order.pos)
 

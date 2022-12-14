@@ -30,7 +30,7 @@ def process_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--run-dir", type=str, default="phase", help="Path to the directory for this run."
+        "--run-dir", type=str, default="phase1", help="Path to the directory for this run."
     )
 
     args = parser.parse_args()

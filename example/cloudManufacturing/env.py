@@ -59,7 +59,7 @@ class CloudManufacturing(BaseEnvironment):
         self.grid = GeoSpace()
 
         ac = AgentCreator(Region, {"model": self})
-        geo_path = os.path.join(current_path, "data/滨海新区.json")
+        geo_path = os.path.join(current_path, "data/120116.geoJson")
         self.region = ac.from_file(
             geo_path, unique_id="name"
         )
@@ -144,7 +144,8 @@ class CloudManufacturing(BaseEnvironment):
         self.new_services = []
 
         for agent in self._agent_lookup.values():
-            if agent.energy >= 2e4:
+            if agent.energy >= 5e3:
+                print("企业繁衍")
                 while 1:
                     random_point = Point(agent.shape.x + random.uniform(-10, 10),
                                          agent.shape.y + random.uniform(-10, 10))
@@ -153,8 +154,10 @@ class CloudManufacturing(BaseEnvironment):
                 ac_population = AgentCreator(
                     ServiceAgent,
                     {"model": self, "service_type": agent.service_type, "difficulty": agent.difficulty,
-                    "intelligence_level": agent.intelligence_level}
+                    "intelligence_level": agent.intelligence_level, "energy": agent.energy/2}
                 )
+
+                agent.energy = agent.energy/2
 
                 this_person = ac_population.create_agent(
                     random_point, self.next_id()
@@ -189,7 +192,7 @@ class CloudManufacturing(BaseEnvironment):
             return 0
         # print(distance(order.pos, service.pos) <= order.vision,
         # distance(order.pos, service.pos) / service.speed , (order.left_duration - order.handling_time),
-        # distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost),
+        # distance(order.pos, service.pos) * service.move_cost , (order.bonus - order.cost),
         # skill_constraint(order, service).count(1))
         # 如果订单或企业二者有一个是禁止合作的，则技能约束部分必须满足所有技能条件
         if order.cooperation == 0 | service.cooperation == 0:
@@ -538,10 +541,10 @@ class CloudManufacturing(BaseEnvironment):
         write_csv_rows(file_path, [[self.schedule.steps, avg_reward]])
     
     # 将每step的平均效能写入csv
-    def collect_reward_with_tax(self, avg_reward, file_name):
+    def collect_reward_with_tax(self, avg_reward, title, file_name):
         file_path = os.path.join("data", file_name)
         if self.schedule.steps == 1:
-            write_csv_hearders(file_path, ["time_step", "avg_reward","tax_rate"])
+            write_csv_hearders(file_path, ["time_step", title,"tax_rate"])
         write_csv_rows(file_path, [[self.schedule.steps, avg_reward, self.tax_rate]])
 
     # 将企业的位置写入csv
@@ -584,6 +587,50 @@ class CloudManufacturing(BaseEnvironment):
                 actions[str(agent.unique_id)] =int( results[str(agent.unique_id)])
         # print("action", actions)
         self.actions.update(actions)
+
+    def collect_with_rate(self, metrics):
+        if self.ratio_low == 1:
+            if self.tax_rate <= 0.1:
+                filename1 = "low_level_low_rate_prod.csv"
+                filename2 = "low_level_low_rate_eq.csv"
+                filename3 = "low_level_low_rate_eqprod.csv"
+            elif self.tax_rate <= 0.2:
+                filename1 = "low_level_mid_rate_prod.csv"
+                filename2 = "low_level_mid_rate_eq.csv"
+                filename3 = "low_level_mid_rate_eqprod.csv"
+            elif self.tax_rate <= 0.3:
+                filename1 = "low_level_high_rate_prod.csv"
+                filename2 = "low_level_high_rate_eq.csv"
+                filename3 = "low_level_high_rate_eqprod.csv"
+        elif self.ratio_medium == 1:
+            if self.tax_rate <= 0.1:
+                filename1 = "mid_level_low_rate_prod.csv"
+                filename2 = "mid_level_low_rate_eq.csv"
+                filename3 = "mid_level_low_rate_eqprod.csv"
+            elif self.tax_rate <= 0.2:
+                filename1 = "mid_level_mid_rate_prod.csv"
+                filename2 = "mid_level_mid_rate_eq.csv"
+                filename3 = "mid_level_mid_rate_eqprod.csv"
+            elif self.tax_rate <= 0.3:
+                filename1 = "mid_level_high_rate_prod.csv"
+                filename2 = "mid_level_high_rate_eq.csv"
+                filename3 = "mid_level_high_rate_eqprod.csv"
+        elif self.ratio_high == 1:
+            if self.tax_rate <= 0.1:
+                filename1 = "high_level_low_rate_prod.csv"
+                filename2 = "high_level_low_rate_eq.csv"
+                filename3 = "high_level_low_rate_eqprod.csv"
+            elif self.tax_rate <= 0.2:
+                filename1 = "high_level_mid_rate_prod.csv"
+                filename2 = "high_level_mid_rate_eq.csv"
+                filename3 = "high_level_mid_rate_eqprod.csv"
+            elif self.tax_rate <= 0.3:
+                filename1 = "high_level_high_rate_prod.csv"
+                filename2 = "high_level_high_rate_eq.csv"
+                filename3 = "high_level_high_rate_eqprod.csv"
+            self.collect_reward_with_tax(metrics['social/productivity'],  "productivity",filename1)
+            self.collect_reward_with_tax(metrics['social/equality'], "equality", filename2)
+            self.collect_reward_with_tax(metrics['social_welfare/eq_times_productivity'], "eq_times_productivity", filename3)        
 
     def step(self):
         """Advance the model by one step."""
@@ -648,6 +695,7 @@ class CloudManufacturing(BaseEnvironment):
         info = {k: {} for k in self.obs.keys()}
 
         if self.is_training == False:
+            metrics = self.scenario_metrics()
             self.collect_agent_num()
             #print(reward.values())
             if len(self.match_agent) > 0:
@@ -655,31 +703,16 @@ class CloudManufacturing(BaseEnvironment):
             else:
                 avg_reward = 0
             self.collect_avg_reward(avg_reward, "avg_reward.csv")
-            if self.ratio_high == 1 and self.tax_rate < 0.1:
-                if len(self.match_agent) > 0:
-                    avg_reward = sum(reward.values()) / len(self.match_agent)
-                else:
-                    avg_reward = 0
-                self.collect_reward_with_tax(avg_reward, "low_rate.csv")
-            elif self.ratio_high == 1 and self.tax_rate < 0.2:
-                if len(self.match_agent) > 0:
-                    avg_reward = sum(reward.values()) / len(self.match_agent)
-                else:
-                    avg_reward = 0
-                self.collect_reward_with_tax(avg_reward, "mid_rate.csv")
-            elif self.ratio_high == 1 and self.tax_rate < 0.3:
-                if len(self.match_agent) > 0:
-                    avg_reward = sum(reward.values()) / len(self.match_agent)
-                else:
-                    avg_reward = 0
-                self.collect_reward_with_tax(avg_reward, "high_rate.csv")
+            self.collect_with_rate(metrics)
+        
             agent_pos = {}
             for agent in self.all_agents:
                 if agent.intelligence_level == 2:
                     #print(agent.pos)
                     # 对agent_pos进行标准化
-                    x = (agent.pos[0] - 13000000) * 0.001
-                    y = (agent.pos[1] - 4650000) * 0.001
+                    min_x, min_y, max_x, max_y = self.region[0].shape.bounds
+                    x = (agent.pos[0] - min_x) * 0.001
+                    y = (agent.pos[1] - min_y) * 0.001
                     agent_pos.update({str(agent.unique_id): (x, y)})
             # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos}
             #print(agent_pos)

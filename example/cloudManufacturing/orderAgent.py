@@ -12,9 +12,9 @@ class OrderAgent(GeoResource):
                  shape,
                  order_difficulty,
                  order_type,
-                 vision=1e40,
-                 bonus=randint(1e4, 2e4),
-                 cost=randint(1e2, 1e3),
+                 vision=1e3,
+                 bonus=randint(5e3, 1e4),
+                 cost=randint(1e2, 2e2),
                  cooperation=1,
                  handling_time=2,
                  max_duration=10

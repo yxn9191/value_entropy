@@ -108,7 +108,7 @@ model_params = {
         "slider", "Initial ratio_medium", value=0.0, min_value=0, max_value=1, step=0.1
     ),
     "tax_rate": UserSettableParameter(
-        "slider", "Initial tax_rate", value=0.15, min_value=0, max_value=1, step=0.05
+        "slider", "Initial tax_rate", value=0.15, min_value=0, max_value=0.3, step=0.05
     ),
 
     "is_training": False,

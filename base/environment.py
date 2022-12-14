@@ -93,7 +93,7 @@ class BaseEnvironment(mesa.Model):
         metrics["social/equality"] = get_equality(energy)
 
         metrics[
-            "social_welfare/coin_eq_times_productivity"
+            "social_welfare/eq_times_productivity"
         ] = metrics["social/productivity"] * metrics["social/equality"]
 
         return metrics

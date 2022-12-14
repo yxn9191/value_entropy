@@ -1,7 +1,3 @@
-import sys
-import sys
-sys.path.append("/home/bertrand/Desktop/group-intelligence-system")
-
 from analysis.utils.draw_charts import *
 
 def draw_rate_lines():
@@ -13,7 +9,7 @@ def draw_rate_lines():
     files_line_chart(df4, ['tax_rate'], 'tax')
 
 if __name__ == "__main__":
-    # line_chart("agent_num", ['service_type'], 'agent_num')
-    # line_chart("avg_reward", [], "avg_reward")
+    line_chart("agent_num", ['service_type'], 'agent_num')
+    line_chart("avg_reward", [], "avg_reward")
     draw_rate_lines()
     # heat_map("example2", 'fig2')

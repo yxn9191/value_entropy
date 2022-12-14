@@ -30,7 +30,7 @@ def get_order_type():
     #     order_type = 'ABC'
     # print(order_type)
     #return order_type
-    weight = {"A": 0.3, "B": 0.3, "C": 0.3, "AB": 0.03, "AC": 0.03, "BC": 0.03, "ABC": 0.01}
+    weight = {"A": 0.2, "B": 0.2, "C": 0.2, "AB": 0.1, "AC": 0.1, "BC": 0.1, "ABC": 0.1}
     return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
 
 
@@ -45,13 +45,18 @@ def order_cooperation():
 
 
 # 订单金额
-def order_money():
-    return random.randint(30, 80)
+def order_money(order_type):
+    if len(order_type) == 1:
+        return random.randint(5e2, 1e3)
+    elif len(order_type) == 2:
+        return random.randint(7e2, 1.2e3)
+    elif len(order_type) == 3:
+        return random.randint(1e3, 1.5e4)
 
 
 # 订单处理成本
 def order_process():
-    return random.randint(15, 30)
+    return random.randint(1e2, 3e2)
 
 
 # 订单位置
@@ -66,7 +71,7 @@ def orders_list(order_num, region):
     daily_order = []
     for i in range(0, order_num):
         daily_order.append([get_order_type(),
-                            order_money(),
+                            order_money(get_order_type()),
                             order_process(),
                             order_difficulty(),
                             order_position(region)])
