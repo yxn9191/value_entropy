@@ -87,7 +87,7 @@ def all_orders_list(region, rand = True):
         random.seed(0)
     n = 1
     all_list = []
-    for i in range(1, 366):
+    for i in range(1, 500):
         order_num = n * int(fitting_dist(i))
         all_list.append(orders_list(order_num, region))
 

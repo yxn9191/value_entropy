@@ -160,3 +160,91 @@ def load_snapshot(trainer, run_dir, ckpt=None, suffix="", load_latest=False):
     )
 
     return loaded_ckpt_success
+
+def fill_out_run_dir(run_dir):
+    dense_log_dir = os.path.join(run_dir, "dense_logs")
+    ckpt_dir = os.path.join(run_dir, "ckpts")
+
+    for sub_dir in [dense_log_dir, ckpt_dir]:
+        os.makedirs(sub_dir, exist_ok=True)
+
+    latest_filepath = os.path.join(ckpt_dir, "latest_checkpoint.pkl")
+    restore = bool(os.path.isfile(latest_filepath))
+
+    return dense_log_dir, ckpt_dir, restore
+
+def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj):
+    # === Set up Logging & Saving, or Restore ===
+    # All model parameters are always specified in the settings YAML.
+    # We do NOT overwrite / reload settings from the previous checkpoint dir.
+    # 1. For new runs, the only object that will be loaded from the checkpoint dir
+    #    are model weights.
+    # 2. For crashed and restarted runs, load_snapshot will reload the full state of
+    #    the Trainer(s), including metadata, optimizer, and models.
+    (
+        dense_log_directory,
+        ckpt_directory,
+        restore_from_crashed_run,
+    ) = fill_out_run_dir(run_directory)
+
+    # If this is a starting from a crashed run, restore the last trainer snapshot
+    if restore_from_crashed_run:
+        logger.info(
+            "ckpt_dir already exists! Planning to restore using latest snapshot from "
+            "earlier (crashed) run with the same ckpt_dir %s",
+            ckpt_directory,
+        )
+
+        at_loads_a_ok = load_snapshot(
+            trainer_obj, run_directory, load_latest=True
+        )
+
+        # at this point, we need at least one good ckpt restored
+        if not at_loads_a_ok:
+            logger.fatal(
+                "restore_from_crashed_run -> restore_run_dir %s, but no good ckpts "
+                "found/loaded!",
+                run_directory,
+            )
+            sys.exit()
+
+        # === Trainer-specific counters ===
+        training_step_last_ckpt = (
+            int(trainer_obj._timesteps_total) if trainer_obj._timesteps_total else 0
+        )
+        epis_last_ckpt = (
+            int(trainer_obj._episodes_total) if trainer_obj._episodes_total else 0
+        )
+
+    else:
+        logger.info("Not restoring trainer...")
+        # === Trainer-specific counters ===
+        training_step_last_ckpt = 0
+        epis_last_ckpt = 0
+
+        # For new runs, load only torch checkpoint weights
+        starting_weights_path_agents = run_configuration["general"].get(
+            "restore_torch_weights_agents", ""
+        )
+        if starting_weights_path_agents:
+            logger.info("Restoring agents Torch weights...")
+            load_torch_model_weights(trainer_obj, starting_weights_path_agents)
+        else:
+            logger.info("Starting with fresh agent Torch weights.")
+
+        starting_weights_path_planner = run_configuration["general"].get(
+            "restore_torch_weights_planner", ""
+        )
+        if starting_weights_path_planner:
+            logger.info("Restoring planner Torch weights...")
+            load_torch_model_weights(trainer_obj, starting_weights_path_planner)
+        else:
+            logger.info("Starting with fresh planner Torch weights.")
+
+    return (
+        dense_log_directory,
+        ckpt_directory,
+        restore_from_crashed_run,
+        training_step_last_ckpt,
+        epis_last_ckpt,
+    )

@@ -90,6 +90,14 @@ if __name__ == "__main__":
 
     trainer = build_Trainer(run_config)
 
+    (
+        dense_log_dir,
+        ckpt_dir,
+        restore_from_crashed_run,
+        step_last_ckpt,
+        num_parallel_episodes_done,
+    ) = set_up_dirs_and_maybe_restore(run_dir, run_config, trainer)
+    
     # 开始训练
     ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)
     # 当前训练轮数

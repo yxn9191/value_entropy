@@ -184,6 +184,10 @@ class CloudManufacturing(BaseEnvironment):
 
     def generate_orders(self):
         self.new_orders = []
+        try:
+            self.all_orders_list[self.schedule.steps]
+        except IndexError:
+            raise IndexError(self.schedule.steps)
         for ord in self.all_orders_list[self.schedule.steps]:
             shape = Point(ord[-1][0], ord[-1][1])
             a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus=ord[1], cost=ord[2])
@@ -489,23 +493,39 @@ class CloudManufacturing(BaseEnvironment):
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
                             self._agent_lookup.get(str(a_id), None).action_parse(-1)
+                    continue
+                list_service = {}
+                types = list(order_.order_type)
+                if len(order_.order_type) == 2:  
+                    for agent1 in order_action[o_id][types[0]].keys():
+                        for agent2 in order_action[o_id][types[1]].keys():
+                            if self.necessary_constraint(order_,[agent1, agent2]):
+                                list_service[str(agent1.unique_id)+"+"+str(agent2.unique_id)] = \
+                                order_action[o_id][service_type][agent1.unique_id] + order_action[o_id][service_type][agent2.unique_id] 
+                if len(order_.order_type) == 3:
+                    for agent1 in order_action[o_id]["A"].keys():
+                        for agent2 in order_action[o_id]["B"].keys():
+                            for agent3 in order_action[o_id]["C"].keys():
+                                if self.necessary_constraint(order_,[agent1, agent2, agent3]):
+                                    list_service[str(agent1.unique_id)+"+"+str(agent2.unique_id)+"+"+str(agent3.unique_id)]= \
+                                    order_action[o_id][service_type][agent1.unique_id] + \
+                                    order_action[o_id][service_type][agent2.unique_id] + \
+                                    order_action[o_id][service_type][agent3.unique_id] 
+                if len(list_service) > 0:
+                    x = min(list_service.items(), key=lambda x: x[1])[0]
+                    order_.services.extend(x.split("+"))
+                    self._agent_lookup.get(str(order_.services[0]), None).order = order_.unique_id
+                    self.finish_orders += 1
+                    self._resource_lookup.get(str(o_id), None).occupied = 1
+                    for service_type in order_action[o_id].keys():
+                        for a_id in order_action[o_id][service_type].keys():
+                            if a_id not in order_.services:
+                                self._agent_lookup.get(str(a_id), None).action_parse(-1)
                 else:
                     for service_type in order_action[o_id].keys():
-                        order_.services.extend([min(order_action[o_id][service_type].items(), key=lambda x: x[1])[0]])
+                        for a_id in order_action[o_id][service_type].keys():
+                            self._agent_lookup.get(str(a_id), None).action_parse(-1)
 
-                    if self.necessary_constraint(order_, order_.services):
-                        self.finish_orders += 1
-                        self._resource_lookup.get(str(o_id), None).occupied = 1
-                        for service_type in order_action[o_id].keys():
-                            for a_id in order_action[o_id][service_type].keys():
-                                if a_id not in order_.services:
-                                    self._agent_lookup.get(str(a_id), None).action_parse(-1)
-
-                    else:
-                        for service_type in order_action[o_id].keys():
-                            for a_id in order_action[o_id][service_type].keys():
-                                self._agent_lookup.get(str(a_id), None).action_parse(-1)
-                        order_.services = []
 
         # if len(order_action)> 0:
         #     raise TypeError(order_action)

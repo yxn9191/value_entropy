@@ -10,13 +10,13 @@ env:
   env_name: CloudManufacturing
 
 trainer:
-  num_workers: 1
+  num_workers: 2
   batch_mode: truncate_episodes
   ignore_worker_failures: true
   observation_filter: NoFilter
   rollout_fragment_length: 200
-  train_batch_size: 200
-  # num_gpus: 1
+  train_batch_size: 8
+  num_gpus: 1
   # num_gpus_per_worker: 0
   # no_done_at_end: false
   # num_envs_per_worker: 0
