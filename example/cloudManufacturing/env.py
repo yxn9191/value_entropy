@@ -728,16 +728,20 @@ class CloudManufacturing(BaseEnvironment):
 
             agent_pos = {}
             for agent in self.all_agents:
+                flag = 0
                 if agent.intelligence_level == 2:
                     # print(agent.pos)
                     # 对agent_pos进行标准化
+                    flag = 1
                     min_x, min_y, max_x, max_y = self.region[0].shape.bounds
                     x = (agent.pos[0] - min_x) * 0.08
                     y = (agent.pos[1] - min_y) * 0.08
                     agent_pos.update({str(agent.unique_id): (x, y)})
-            # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos}
-            print("agent_pos", agent_pos)
-            self.collect_agent_pos(agent_pos)
+
+            # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos} 
+            # 只有在环境中有高智能的agent才画这个高智能的热力图
+            if flag :
+                self.collect_agent_pos(agent_pos)
 
         # 生成本轮新的企业和订单
         self.generate_orders()
