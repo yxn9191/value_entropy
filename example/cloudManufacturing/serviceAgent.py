@@ -44,7 +44,7 @@ class ServiceAgent(GeoAgent):
 
         self.intelligence_level = intelligence_level
         self.order_end_time = 0  # 企业选择的订单，结束处理的时间
-        # self.now_value =0
+        self.order_select = None
         # self.now_cost = 0
         # self.delta_x = 0  # 记录要想新位置移动多少x
         # self.delta_y = 0  # 记录要往新位置移动多少y
@@ -111,10 +111,8 @@ class ServiceAgent(GeoAgent):
         #
         # 高智力
         if self.intelligence_level == 2:
-            if self.action is not None and self.action < len(self.model.match_order) and self.action !=-1:
+            if self.action is  None or self.action >= len(self.model.match_order) or self.action ==-1:
                 # 这里也要换成算法1的订单集合
-                self.order = self.model.match_order[self.action].unique_id
-            else:
                 self.order = None
 
         prob = random.uniform(0, 1)
@@ -126,7 +124,7 @@ class ServiceAgent(GeoAgent):
             except ZeroDivisionError:
                 raise TypeError(self.model.necessary_constraint(order,[self.unique_id]),
                 order.occupied, order.order_type,order.order_difficulty,
-                self.difficulty, self.service_type, len(self.model.match_order),self.action, self.order, order)
+                self.difficulty, self.service_type, len(self.model.match_order),self.action, self.order,order.order_select, self.order_select)
             cost = order.cost / len(order.services) + \
                   math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(order.pos, self.pos)]))* self.move_cost
             self.state = 1  # 状态改变，开始移动

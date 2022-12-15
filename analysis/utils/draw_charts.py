@@ -47,11 +47,11 @@ def files_line_chart(data, setting, save_name):
     plt.figure()
     if len(setting) > 0:
         if len(setting) > 1:
-            sns.lineplot(data=data, x=list(data)[0], y=list(data)[1], hue=setting[0], style=setting[1])
+            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0], style=setting[1])
         else:
-            sns.lineplot(data=data, x=list(data)[0], y=list(data)[1], hue=setting[0])
+            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0])
     else:
-        sns.lineplot(data=data, x=list(data)[0], y=list(data)[1])
+        sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1])
     plt.savefig(IMG_PREFIX + save_name + '.png', dpi=600)
 
 

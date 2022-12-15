@@ -37,6 +37,7 @@ class OrderAgent(GeoResource):
         self.match_vector(self.order_type, self.order_difficulty)
         self.done = False  # 订单是否被完成
         self.done_time = None # 订单被处理结束的时间
+        self.order_select = None
 
     # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):

@@ -448,6 +448,7 @@ class CloudManufacturing(BaseEnvironment):
                 agent.action_parse(-1)
                 # print(agent.action, self._agent_lookup.get(str(agent.unique_id), None).action)
         for a_id, o_id in self.actions.items():
+
             if int(a_id) <= 0:
                 continue
             if int(o_id) >= len(self.match_order):
@@ -455,6 +456,8 @@ class CloudManufacturing(BaseEnvironment):
                 agent.action_parse(-1)
                 # print(agent.action, self._agent_lookup.get(str(a_id), None).action)
                 continue
+            self._agent_lookup.get(str(a_id), None).order_select=1
+            self.match_order[o_id].order_select=1
             agent = self._agent_lookup.get(str(a_id), None)
             order = self.match_order[o_id]
             if agent.service_type not in list(order.order_type):
@@ -488,6 +491,9 @@ class CloudManufacturing(BaseEnvironment):
                     for a_id in order_action[o_id][order_.order_type].keys():
                         if a_id not in order_.services:
                             self._agent_lookup.get(str(a_id), None).action_parse(-1)
+                        else:
+                            self._agent_lookup.get(str(a_id), None).order = order_.unique_id
+
 
             else:
                 if len(order_action[o_id]) < len(order_.order_type):
@@ -513,6 +519,7 @@ class CloudManufacturing(BaseEnvironment):
                                     order_action[o_id][service_type][agent1.unique_id] + \
                                     order_action[o_id][service_type][agent2.unique_id] + \
                                     order_action[o_id][service_type][agent3.unique_id] 
+
                 if len(list_service) > 0:
                     x = min(list_service.items(), key=lambda x: x[1])[0]
                     order_.services.extend(x.split("+"))
@@ -524,6 +531,8 @@ class CloudManufacturing(BaseEnvironment):
                         for a_id in order_action[o_id][service_type].keys():
                             if str(a_id) not in order_.services:
                                 self._agent_lookup.get(str(a_id), None).action_parse(-1)
+                            else:
+                                self._agent_lookup.get(str(a_id), None).order = order_.unique_id
                 else:
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
