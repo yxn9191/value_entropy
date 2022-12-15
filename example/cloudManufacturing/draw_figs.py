@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 from analysis.utils.draw_charts import *
 
 def draw_rate_lines():
@@ -10,6 +12,9 @@ def draw_rate_lines():
 
 if __name__ == "__main__":
     line_chart("agent_num", ['service_type'], 'agent_num')
-    # line_chart("avg_reward", [], "avg_reward")
-    # draw_rate_lines()
-    # heat_map("high_reward_heatmap", 'high_reward_heatmap')
+    plt.figure()
+    line_chart("avg_reward", [], "avg_reward")
+    plt.figure()
+    draw_rate_lines()
+    plt.figure()
+    heat_map("high_reward_heatmap", 'high_reward_heatmap')
