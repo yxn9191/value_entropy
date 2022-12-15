@@ -59,9 +59,10 @@ def heat_map(filename, save_name):
     sns.heatmap(data=data,
                 annot=False,  # 不显示数据
                 center=0.5,  # 居中
-                xticklabels=True, yticklabels=True,  # 显示x轴和y轴
+                # xticklabels=True, yticklabels=True,  # 显示x轴和y轴
                 square=True,  # 每个方格都是正方形
                 cbar=True,  # 绘制颜色条
+                robust=True
                 )
     plt.savefig(IMG_PREFIX + save_name + '.png', dpi=600)
     # plt.show()

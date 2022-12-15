@@ -703,7 +703,7 @@ class CloudManufacturing(BaseEnvironment):
                 avg_reward = sum(reward.values()) / len(self.match_agent)
             else:
                 avg_reward = 0
-            self.collect_avg_reward(avg_reward, "avg_reward.csv")
+            self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "avg_reward.csv")
             self.collect_with_rate(metrics)
 
             agent_pos = {}
@@ -712,12 +712,12 @@ class CloudManufacturing(BaseEnvironment):
                     # print(agent.pos)
                     # 对agent_pos进行标准化
                     min_x, min_y, max_x, max_y = self.region[0].shape.bounds
-                    x = (agent.pos[0] - min_x) * 0.001
-                    y = (agent.pos[1] - min_y) * 0.001
+                    x = (agent.pos[0] - min_x) * 0.08
+                    y = (agent.pos[1] - min_y) * 0.08
                     agent_pos.update({str(agent.unique_id): (x, y)})
             # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos}
-            # print(agent_pos)
-            # self.collect_agent_pos(agent_pos)
+            print("agent_pos", agent_pos)
+            self.collect_agent_pos(agent_pos)
 
         # 生成本轮新的企业和订单
         self.generate_orders()
