@@ -1,5 +1,6 @@
 import sys
 import os
+from copy import deepcopy
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
 
@@ -48,6 +49,11 @@ class BaseEnvironment(mesa.Model):
         self._agent_lookup = dict()
         self._resource_lookup = dict()
 
+        # 环境中所有的可运动agent
+        self.init_all_agents = deepcopy(self.all_resources)
+        # 环境中所有Resource
+        self.init_all_resources = deepcopy(self.all_resources)
+
         self.actions = None
         # 数据收集器
         self.datacollector = DataCollector()
@@ -56,7 +62,7 @@ class BaseEnvironment(mesa.Model):
     # 重置整个环境
     def reset(self):
         self.set_all_agents_list()
-        for agent in self.all_agents:
+        for agent in self._agent_lookup.values():
             agent.reset()
         obs = self.generate_observations()
 
@@ -82,6 +88,7 @@ class BaseEnvironment(mesa.Model):
                     self.all_agents.append(agent)
                 else:
                     pass
+            
 
             self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
             self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}

@@ -1,6 +1,7 @@
 import numpy as np
 import random
 
+ 
 
 # 订单产生的函数
 def fitting_dist(x):
@@ -47,11 +48,11 @@ def order_cooperation():
 # 订单金额
 def order_money(order_type):
     if len(order_type) == 1:
-        return random.randint(5e2, 1e3)
+        return random.uniform(5e2, 1e3)
     elif len(order_type) == 2:
-        return random.randint(7e2, 1.2e3)
+        return random.uniform(7e2, 1.2e3)
     elif len(order_type) == 3:
-        return random.randint(1e3, 1.5e4)
+        return random.uniform(1e3, 1.5e4)
 
 
 # 订单处理成本
@@ -80,8 +81,10 @@ def orders_list(order_num, region):
 
 
 # 生成365天订单，生成的为订单列表，列表中的每一个元素为一个单日订单列表
-def all_orders_list(region):
+def all_orders_list(region, rand = True):
     # 目前生成的订单数量是针对两家企业产生的，如果订单的数量觉得不够的话可以修改n的大小，让订单成倍增长
+    if not rand :
+        random.seed(0)
     n = 1
     all_list = []
     for i in range(1, 366):

@@ -1,10 +1,11 @@
 import math
 import os
-from copy import deepcopy
+from copy import deepcopy,copy
 
 import mesa
 from mesa_geo import GeoSpace, AgentCreator
 import numpy as np
+import pandas as pd
 
 from analysis.utils.write_to_csv import write_csv_hearders, write_csv_rows,write_csv_rows_cover
 from base.environment import BaseEnvironment
@@ -33,7 +34,7 @@ class CloudManufacturing(BaseEnvironment):
     MAP_COORDS = [117.222503, 39.117489]
 
     def __init__(self, num_order=10, num_service=5, num_organization=2, episode_length=200,
-                 ratio_low=0, ratio_medium=0, tax_rate=0, is_training=True, trainer=None):
+                 ratio_low=0, ratio_medium=0, tax_rate=0, is_training=True, trainer=None, reset_random=True):
         super().__init__()
         # 初始时的order和agent
         # print("__________", num_order, num_service)
@@ -48,6 +49,7 @@ class CloudManufacturing(BaseEnvironment):
         self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
         self.actions = {}
         self.total_rewards = 0
+        self.reset_random = reset_random #重置环境类型 True则为随机新生成，False 则使用固定随机树种子生成
 
         # 算法1中的M（订单）和N（企业）
         self.M = 20
@@ -64,7 +66,7 @@ class CloudManufacturing(BaseEnvironment):
             geo_path, unique_id="name"
         )
         self.grid.add_agents(self.region)
-        self.all_orders_list = all_orders_list(self.region[0])
+        self.all_orders_list = all_orders_list(self.region[0], self.reset_random)
 
         self.ratio_low = ratio_low
         self.ratio_medium = ratio_medium
@@ -74,15 +76,22 @@ class CloudManufacturing(BaseEnvironment):
         self.tax_rate = tax_rate
         self.pos_matrix = None
 
-        self.init_services(num_service)
+        self.init_services(self.service_num)
         self.generate_orders()
         self.set_intelligence(self.new_services)
         self.is_training = is_training
 
+
+        # # 环境中所有的可运动agent
+        # self.init_all_agents = deepcopy(self.new_services)
+        # # 环境中所有Resource
+        # self.init_all_resources = deepcopy(self.new_orders)
+
+
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
 
-        if self.is_training == False:
+        if self.is_training == False :
             self.obs = self.reset()
             self.trainer = trainer
             self.obs = {
@@ -122,19 +131,24 @@ class CloudManufacturing(BaseEnvironment):
     def init_services(self, new_service_num):
         self.new_services = []
         # 默认每轮新增5企业
+        if not self.reset_random:
+            random.seed(0)
+        energy = [random.uniform(1e3, 5e3) for i in range(new_service_num)]
+        consumption = [random.uniform(1, 10) for i in range(new_service_num)]
 
         for j in range(new_service_num):
             shape = self.region[0].random_point
             ac_population = AgentCreator(
                 ServiceAgent,
-                {"model": self, "service_type": generate_service_type(), "difficulty": generate_difficulty()}
+                {"model": self, "service_type": generate_service_type(), "difficulty": generate_difficulty(),
+                "energy": energy[j], "consumption": consumption[j]}
             )
 
             this_person = ac_population.create_agent(
                 shape, self.next_id()
             )
             this_person.pos = (shape.x, shape.y)
-
+        
             self.schedule.add(this_person)
             self.grid.add_agents(this_person)
             self.new_services.append(this_person)
@@ -145,7 +159,7 @@ class CloudManufacturing(BaseEnvironment):
 
         for agent in self._agent_lookup.values():
             if agent.energy >= 5e3:
-                print("企业繁衍")
+                print("企业繁衍",agent.unique_id)
                 while 1:
                     random_point = Point(agent.shape.x + random.uniform(-10, 10),
                                          agent.shape.y + random.uniform(-10, 10))
@@ -178,6 +192,8 @@ class CloudManufacturing(BaseEnvironment):
             self.grid.add_agents(a)
             # self.random_place_agent(a)
             self.new_orders.append(a)
+
+                # self.init_parm[str(a.unique_id)] = {"energy": a.bonus, "pos": a.pos }
             # self.all_resources.append(a)
             # self._resource_lookup[a.unique_id] = a
 
@@ -328,17 +344,21 @@ class CloudManufacturing(BaseEnvironment):
         return _obs
 
     def reset(self):
+        #重新生成企业
         self.schedule.steps = 0
-        for agent in self.schedule.agents:
-            if isinstance(agent, OrderAgent) or isinstance(agent, ServiceAgent):
-                self.schedule.remove(agent)
-                self.grid.remove_agent(agent)
-        self.generate_orders()
-        self.init_services(self.service_num)
+        if self.reset_random :
+            for agent in self.schedule.agents:
+                if isinstance(agent, OrderAgent) or isinstance(agent, ServiceAgent):
+                    self.schedule.remove(agent)
+                    self.grid.remove_agent(agent)
+            self.generate_orders()
+            self.init_services(self.service_num)
         self.set_all_agents_list()
         self.match_order, self.match_agent = self.matching_service_order()
         self.obs = self.generate_observations()
         return self.obs
+
+            
 
     # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
@@ -628,9 +648,10 @@ class CloudManufacturing(BaseEnvironment):
                 filename1 = "high_level_high_rate_prod.csv"
                 filename2 = "high_level_high_rate_eq.csv"
                 filename3 = "high_level_high_rate_eqprod.csv"
-            self.collect_reward_with_tax(metrics['social/productivity'],  "productivity",filename1)
-            self.collect_reward_with_tax(metrics['social/equality'], "equality", filename2)
-            self.collect_reward_with_tax(metrics['social_welfare/eq_times_productivity'], "eq_times_productivity", filename3)        
+
+        self.collect_reward_with_tax(metrics['social/productivity'],  "productivity",filename1)
+        self.collect_reward_with_tax(metrics['social/equality'], "equality", filename2)
+        self.collect_reward_with_tax(metrics['social_welfare/eq_times_productivity'], "eq_times_productivity", filename3)        
 
     def step(self):
         """Advance the model by one step."""

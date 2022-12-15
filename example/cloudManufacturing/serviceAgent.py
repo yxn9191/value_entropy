@@ -15,12 +15,12 @@ class ServiceAgent(GeoAgent):
                  service_type,
                  difficulty,
                  organization = None,
-                 speed=50,
+                 speed=25,
                  energy=random.uniform(1e3, 5e3),
                  consumption=random.uniform(1, 10),
                  failure_prob=0.1,
                  cooperation=1,
-                 move_cost= 1,
+                 move_cost= 0.5,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model, shape)
@@ -134,7 +134,7 @@ class ServiceAgent(GeoAgent):
             # self.order.occupied = 1  # 任务被占用
 
             # 在order中保存它被处理结束的时间 !!!没有考虑除以speed无法取整的情况，speed我先设置为1了
-            order.done_time = self.model.schedule.steps + order.handling_time + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)]) / self.speed
+            #order.done_time = self.model.schedule.steps + order.handling_time + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)]) / self.speed
 
             # 记录企业的订单处理完成时间
             self.order_end_time = self.model.schedule.steps + order.handling_time + sum(
@@ -146,7 +146,7 @@ class ServiceAgent(GeoAgent):
 
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= order.cost / len(order.services)
-            print("选择订单转为移动")
+            print("选择订单转为移动", value, cost)
         else:
             self.state = 0
             self.order = None
@@ -177,6 +177,7 @@ class ServiceAgent(GeoAgent):
                     agent.energy += order.bonus / len(order.services)
                     print("获得收益", order.bonus ,  len(order.services))
                 order.done = True
+
             print("_______订单处理完成_________", order.unique_id, order.pos)
 
         if self.state == 0:
@@ -220,8 +221,10 @@ class ServiceAgent(GeoAgent):
             move_y = self.speed * math.sin(angle)
             self.shape = self.move_point(-move_x, -move_y)  # Reassign shape
             self.pos = (self.shape.x, self.shape.y)
+            self.energy -= self.move_cost * self.speed
         else:
             self.shape = Point(order.pos[0], order.pos[1])
             self.pos = order.pos
+            self.energy -= self.move_cost *  math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(self.pos, order.pos)]))
             # 移动每一步都有消耗
-        self.energy -= self.move_cost * self.speed
+        
