@@ -20,14 +20,12 @@ trainer:
   num_cpus_for_driver: 2
   num_gpus: 1
 
-
-
 general:
   ckpt_frequency_steps: 1000
   episodes: 10
   gpus: 1
   ckpt_path: 
-  restore_torch_weights_agents: 
+  restore_torch_weights_agents:
 
 agent_policy:
   clip_param: 0.3

@@ -40,6 +40,7 @@ def save_ckpt(trainer, result, ckpt_frequency, run_dir):
     if global_step % ckpt_frequency == 0:
         save_torch_model_weights(trainer, ckpt_dir, global_step)
         path = trainer.save(ckpt_dir)
+        remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
         print("checkpoint saved at", path)
         return path
     else:
@@ -78,26 +79,26 @@ def remote_env_fun(trainer, env_function):
             result[env_id] = output
     return result
 
-def save_snapshot(trainer, ckpt_dir, suffix=""):
-    # Create a new trainer snapshot
-    filepath = trainer.save(ckpt_dir)
-    filepath_metadata = filepath + ".tune_metadata"
+# def save_snapshot(trainer, ckpt_dir, suffix=""):
+#     # Create a new trainer snapshot
+#     filepath = trainer.save(ckpt_dir)
+#     filepath_metadata = filepath + ".tune_metadata"
 
-    # Copy this to a standardized name (to only keep the latest)
-    latest_filepath = os.path.join(
-        ckpt_dir, "latest_checkpoint{}.pkl".format("." + suffix if suffix != "" else "")
-    )
-    latest_filepath_metadata = latest_filepath + ".tune_metadata"
-    shutil.copy(filepath, latest_filepath)
-    shutil.copy(filepath_metadata, latest_filepath_metadata)
-    # Get rid of the timestamped copy to prevent accumulating too many large files
-    os.remove(filepath)
-    os.remove(filepath_metadata)
+#     # Copy this to a standardized name (to only keep the latest)
+#     latest_filepath = os.path.join(
+#         ckpt_dir, "latest_checkpoint{}.pkl".format("." + suffix if suffix != "" else "")
+#     )
+#     latest_filepath_metadata = latest_filepath + ".tune_metadata"
+#     shutil.copy(filepath, latest_filepath)
+#     shutil.copy(filepath_metadata, latest_filepath_metadata)
+#     # Get rid of the timestamped copy to prevent accumulating too many large files
+#     os.remove(filepath)
+#     os.remove(filepath_metadata)
 
-    # Also take snapshots of each environment object
-    remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
+#     # Also take snapshots of each environment object
+#     remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
 
-    logger.info("Saved Trainer snapshot + Env object @ %s", latest_filepath)
+#     logger.info("Saved Trainer snapshot + Env object @ %s", latest_filepath)
 
 
 def load_snapshot(trainer, run_dir, ckpt=None, suffix="", load_latest=False):
@@ -196,7 +197,7 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
         )
 
         at_loads_a_ok = load_snapshot(
-            , run_directory, load_latest=True
+            trainer_obj, run_directory, load_latest=True
         )
 
         # at this point, we need at least one good ckpt restored
