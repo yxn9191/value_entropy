@@ -72,7 +72,7 @@ class GeoAgent(mesa_geo.GeoAgent):
         dx:  Distance to move in x-axis
         dy:  Distance to move in y-axis
         """
-        return Point(self.geometry.x + dx, self.geometry.y + dy)
+        return Point(self.shape.x + dx, self.shape.y + dy)
 
     def destroy(self):
         self.done = True

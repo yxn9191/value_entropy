@@ -12,9 +12,9 @@ class OrderAgent(GeoResource):
                  shape,
                  order_difficulty,
                  order_type,
-                 vision=1e20,
-                 bonus=randint(100, 200),
-                 cost=randint(5, 10),
+                 vision=80,
+                 bonus=randint(5e3, 1e4),
+                 cost=randint(1e2, 2e2),
                  cooperation=1,
                  handling_time=2,
                  max_duration=10
@@ -37,6 +37,7 @@ class OrderAgent(GeoResource):
         self.match_vector(self.order_type, self.order_difficulty)
         self.done = False  # 订单是否被完成
         self.done_time = None # 订单被处理结束的时间
+        self.order_select = None
 
     # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):

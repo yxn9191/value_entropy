@@ -1,0 +1,8 @@
+timestep,value,agent_type,agent_level
+0,100,a,1
+1,200,b,3
+2,150,a,2
+3,160,c,2
+4,200,c,2
+5,170,b,1
+6,100,c,3

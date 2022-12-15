@@ -7,13 +7,16 @@ import yaml
 
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
+
+
 import policy_model
 from example.cloudManufacturing.env import CloudManufacturing
 
 from utils.saving_and_loading import *
 # 必须后面引入不然会报错
 from algorithm.rl.env_warpper import RLlibEnvWrapper
-from ray.rllib.agents.a3c.a2c import A2CTrainer
+from algorithm.rl.callback import MyCallbacks
+from ray.rllib.algorithms.a2c import A2C
 from ray.tune.logger import pretty_print
 
 ray.init(log_to_driver=False)
@@ -27,7 +30,7 @@ def process_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--run-dir", type=str, default="phase", help="Path to the directory for this run."
+        "--run-dir", type=str, default="phase1", help="Path to the directory for this run."
     )
 
     args = parser.parse_args()
@@ -40,9 +43,10 @@ def process_args():
 
 
 def build_Trainer(run_configuration):
+
     trainer_config = run_configuration.get("trainer")
     env_config = run_configuration.get("env")["env_config"]
-
+    trainer_config["callbacks"] = MyCallbacks
     # === Multiagent Policies ===
 
     dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
@@ -70,7 +74,7 @@ def build_Trainer(run_configuration):
         "num_workers": trainer_config.get("num_workers")
     })
 
-    trainer = A2CTrainer(
+    trainer = A2C(
         # env = RLlibEnvWrapper,
         env=run_configuration.get("env")["env_name"],
         config=trainer_config
@@ -85,6 +89,14 @@ if __name__ == "__main__":
     # 创建训练器
 
     trainer = build_Trainer(run_config)
+
+    (
+        dense_log_dir,
+        ckpt_dir,
+        restore_from_crashed_run,
+        step_last_ckpt,
+        num_parallel_episodes_done,
+    ) = set_up_dirs_and_maybe_restore(run_dir, run_config, trainer)
 
     # 开始训练
     ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)

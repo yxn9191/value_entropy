@@ -10,10 +10,12 @@ from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils import override
 from ray.rllib.utils.framework import try_import_torch
 import sys
-import  os
+import os
 
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
+
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 torch, nn = try_import_torch()
 
 _MASK_NAME = "action_mask"
@@ -23,14 +25,14 @@ _OTHER_NAME = "others"
 def apply_logit_mask(logits, mask):
     """Mask values of 1 are valid actions."
     " Add huge negative values to logits with 0 mask values."""
-    logit_mask = torch.ones_like(logits) * -100000
+    logit_mask = torch.ones_like(logits) * -1000000
     logit_mask = logit_mask * (1 - mask)
 
     return logits + logit_mask
 
 
 def attention(self_input, other_inputs):
-    other_inputs = torch.permute(other_inputs, (1, 0, 2))
+    other_inputs = other_inputs.permute(1, 0, 2)
     alpha = [torch.matmul(self_input, other_inputs[i].T) / math.sqrt(self_input.shape[-1]) for i in
              range(other_inputs.shape[0])]
     bate = nn.Softmax(dim=-1)(torch.stack(alpha))
@@ -88,11 +90,13 @@ class AgentPolicy(TorchModelV2, nn.Module):
     def forward(self, input_dict,
                 state,
                 seq_lens):
+
+      
         x = torch.cat([input_dict["obs"][k] for k in self.fc_keys], -1)
         x = self.fc1(x)
         y = self.fc1(input_dict["obs"][_OTHER_NAME])
 
-        # c = self.attention(x, y, y)
+
         c = attention(x, y)
 
         out = torch.cat([x, c], -1)
@@ -103,6 +107,7 @@ class AgentPolicy(TorchModelV2, nn.Module):
 
         out2 = self.fc4(out2)
         logits = apply_logit_mask(out1, input_dict["obs"][_MASK_NAME])
+        
         self._value_out = out2
         return logits, state
 

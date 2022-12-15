@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from example.cloudManufacturing.env import CloudManufacturing
 
 from ray.tune.registry import register_env
@@ -8,6 +9,8 @@ def env_creator(env_config):  # 此处的 env_config对应 我们在建立traine
 
 
 register_env(CloudManufacturing.name, env_creator)
+=======
+>>>>>>> 0ea7186f5ff1f557087e095c3e6bfb476e8ce558
 
 
 
