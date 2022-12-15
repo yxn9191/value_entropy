@@ -196,7 +196,7 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
         )
 
         at_loads_a_ok = load_snapshot(
-            trainer_obj, run_directory, load_latest=True
+            , run_directory, load_latest=True
         )
 
         # at this point, we need at least one good ckpt restored
@@ -215,7 +215,27 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
         epis_last_ckpt = (
             int(trainer_obj._episodes_total) if trainer_obj._episodes_total else 0
         )
+    elif run_configuration["general"].get("ckpt_path", ""):
+        at_loads_a_ok = load_snapshot(
+           trainer = trainer_obj, run_dir=run_directory, ckpt=run_configuration["general"].get("ckpt_path", "") 
+        )
 
+        # at this point, we need at least one good ckpt restored
+        if not at_loads_a_ok:
+            logger.fatal(
+                "restore_from_crashed_run -> restore_run_dir %s, but no good ckpts "
+                "found/loaded!",
+                run_directory,
+            )
+            sys.exit()
+
+        # === Trainer-specific counters ===
+        training_step_last_ckpt = (
+            int(trainer_obj._timesteps_total) if trainer_obj._timesteps_total else 0
+        )
+        epis_last_ckpt = (
+            int(trainer_obj._episodes_total) if trainer_obj._episodes_total else 0
+        )
     else:
         logger.info("Not restoring trainer...")
         # === Trainer-specific counters ===

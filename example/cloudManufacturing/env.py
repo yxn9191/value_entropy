@@ -480,8 +480,9 @@ class CloudManufacturing(BaseEnvironment):
                         self._agent_lookup.get(str(service), None).action_parse(-1)
                         # agent.action_parse(-1)
                 if len(order_action[o_id][order_.order_type]) > 0:
-                    order_.services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
+                    self._resource_lookup.get(str(o_id), None).services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
                     self._agent_lookup.get(str(order_.services[0]), None).order = order_.unique_id
+                    self._resource_lookup.get(str(o_id), None).occupied = 1
                     self.finish_orders += 1
                     self._resource_lookup.get(str(o_id), None).occupied = 1
                     for a_id in order_action[o_id][order_.order_type].keys():
@@ -502,6 +503,7 @@ class CloudManufacturing(BaseEnvironment):
                             if self.necessary_constraint(order_,[agent1, agent2]):
                                 list_service[str(agent1.unique_id)+"+"+str(agent2.unique_id)] = \
                                 order_action[o_id][service_type][agent1.unique_id] + order_action[o_id][service_type][agent2.unique_id] 
+                
                 if len(order_.order_type) == 3:
                     for agent1 in order_action[o_id]["A"].keys():
                         for agent2 in order_action[o_id]["B"].keys():
@@ -517,9 +519,10 @@ class CloudManufacturing(BaseEnvironment):
                     self._agent_lookup.get(str(order_.services[0]), None).order = order_.unique_id
                     self.finish_orders += 1
                     self._resource_lookup.get(str(o_id), None).occupied = 1
+                    self._resource_lookup.get(str(o_id), None).services.extend(x.split("+"))
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
-                            if a_id not in order_.services:
+                            if str(a_id) not in order_.services:
                                 self._agent_lookup.get(str(a_id), None).action_parse(-1)
                 else:
                     for service_type in order_action[o_id].keys():
@@ -716,6 +719,7 @@ class CloudManufacturing(BaseEnvironment):
 
             # 平台反选
             self.order_select()
+
             self.schedule.step()
             for agent in self.match_agent:
                 if agent.intelligence_level == 2:

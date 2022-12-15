@@ -3,31 +3,31 @@ env:
     num_order: 10
     num_service: 5
     num_organization: 2
-    episode_length: 200
+    episode_length: 365
     ratio_low: 0
     ratio_medium: 0
-    tax_rate: 0.15
+    tax_rate: 0.25
   env_name: CloudManufacturing
 
 trainer:
-  num_workers: 2
+  num_workers: 1
   batch_mode: truncate_episodes
   ignore_worker_failures: true
   observation_filter: NoFilter
   rollout_fragment_length: 200
-  train_batch_size: 8
+  train_batch_size: 200
+  num_gpus_per_worker: 1
+  num_cpus_for_driver: 2
   num_gpus: 1
-  # num_gpus_per_worker: 0
-  # no_done_at_end: false
-  # num_envs_per_worker: 0
+
 
 
 general:
   ckpt_frequency_steps: 1000
-  episodes: 100
+  episodes: 10
   gpus: 1
-  ckpt_path: rl/phase2/ckpts/checkpoint_000034
-  restore_torch_weights_agents: rl/phase2/ckpts/torch.weights.global-step-7000
+  ckpt_path: 
+  restore_torch_weights_agents: 
 
 agent_policy:
   clip_param: 0.3

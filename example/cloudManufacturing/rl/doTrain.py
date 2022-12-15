@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
         # 保存训练器参数
         step_last_ckpt = save_ckpt(trainer, result, ckpt_frequency, run_dir)
-    save_snapshot(trainer, ckpt_dir)
+
     # Finish up
     logger.info("Complete training!")
     path = trainer.save()
