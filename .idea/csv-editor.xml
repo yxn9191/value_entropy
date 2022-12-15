@@ -38,6 +38,27 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/example/cloudManufacturing/data/high_level_mid_rate_eq.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/high_level_mid_rate_eqprod.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/high_level_mid_rate_prod.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/example/cloudManufacturing/data/high_reward_heatmap.csv">
           <value>
             <Attribute>
