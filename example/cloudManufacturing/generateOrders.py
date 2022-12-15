@@ -15,7 +15,7 @@ def fitting_dist(x):
     return fitting_model
 
 
-# 订单类型函数，订单的类型有A, B, C, A+B, A+C, B+C, A+B+B七种可能
+# 订单类型函数，订单的类型有A, B, C, A+B, A+C, B+C, A+B+C七种可能
 def get_order_type():
     # n = random.randint(1, 3)
     # type_table = ['A', 'B', 'C']
