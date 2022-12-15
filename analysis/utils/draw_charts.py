@@ -26,6 +26,7 @@ def read_data(name, header):
 # 注意绘制折线图时我们保存的csv的统一数据样式为 x轴数据|y轴数据|分类数据，见example.csv
 # setting = [,] 第一个参数表示对哪列数据设置hue，第二个表示对哪列数据设置style，传入的是列名
 def line_chart(filename, setting, save_name):
+    plt.figure()
     data = read_data(filename, 0)
     # x:横坐标名称，y：纵坐标名称，hue：对分类进行颜色区分,style:对分类进行形状区分
     if len(setting) > 0:
@@ -43,6 +44,7 @@ def line_chart(filename, setting, save_name):
 # 注意绘制折线图时我们保存的csv的统一数据样式为 x轴数据|y轴数据|分类数据，见example.csv
 # setting = [,] 第一个参数表示对哪列数据设置hue，第二个表示对哪列数据设置style，传入的是列名
 def files_line_chart(data, setting, save_name):
+    plt.figure()
     if len(setting) > 0:
         if len(setting) > 1:
             sns.lineplot(data=data, x=list(data)[0], y=list(data)[1], hue=setting[0], style=setting[1])
@@ -55,6 +57,7 @@ def files_line_chart(data, setting, save_name):
 
 # 注意绘制热力图时我们保存的csv的统一数据样式为 数据不含有x、y的行名和列名，见example2.csv
 def heat_map(filename, save_name):
+    plt.figure()
     data = read_data(filename, None)
     sns.heatmap(data=data,
                 annot=False,  # 不显示数据

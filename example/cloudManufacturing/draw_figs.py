@@ -12,9 +12,6 @@ def draw_rate_lines():
 
 if __name__ == "__main__":
     line_chart("agent_num", ['service_type'], 'agent_num')
-    plt.figure()
     line_chart("avg_reward", [], "avg_reward")
-    plt.figure()
     draw_rate_lines()
-    plt.figure()
     heat_map("high_reward_heatmap", 'high_reward_heatmap')
