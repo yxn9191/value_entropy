@@ -97,7 +97,7 @@ if __name__ == "__main__":
         step_last_ckpt,
         num_parallel_episodes_done,
     ) = set_up_dirs_and_maybe_restore(run_dir, run_config, trainer)
-    
+
     # 开始训练
     ckpt_frequency = run_config["general"].get("ckpt_frequency_steps", 0)
     # 当前训练轮数
@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
         # 保存训练器参数
         step_last_ckpt = save_ckpt(trainer, result, ckpt_frequency, run_dir)
-
+    save_snapshot(trainer, ckpt_dir)
     # Finish up
     logger.info("Complete training!")
     path = trainer.save()

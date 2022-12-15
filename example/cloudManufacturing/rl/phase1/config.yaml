@@ -23,7 +23,7 @@ trainer:
 
 general:
   ckpt_frequency_steps: 1000
-  episodes: 100
+  episodes: 10
   gpus: 1
   ckpt_path: 
   restore_torch_weights_agents:
