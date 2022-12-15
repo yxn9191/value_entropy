@@ -3,7 +3,6 @@ from example.cloudManufacturing.env import CloudManufacturing
 from ray.tune.registry import register_env
 from algorithm.rl.env_warpper import RLlibEnvWrapper
 
-print("hhh")
 def env_creator(env_config):  # 此处的 env_config对应 我们在建立trainer时传入的dict env_config
     return RLlibEnvWrapper(env_config, CloudManufacturing)
 
