@@ -45,7 +45,11 @@ def process_args():
 def build_Trainer(run_configuration):
 
     trainer_config = run_configuration.get("trainer")
-    env_config = run_configuration.get("env")["env_config"]
+    # env_config = run_configuration.get("env")["env_config"]
+    env_config = {
+        "env_config_dict": run_configuration.get("env")["env_config"],
+        "num_envs_per_worker": trainer_config.get("num_envs_per_worker"),
+    }
     trainer_config["callbacks"] = MyCallbacks
     # === Multiagent Policies ===
 
@@ -71,14 +75,18 @@ def build_Trainer(run_configuration):
             "policies_to_train": ["a"],
             "policy_mapping_fn": policy_mapping_fun,
         },
+        "metrics_smoothing_episodes": trainer_config.get("num_workers")
+                                      * trainer_config.get("num_envs_per_worker"),
         "num_workers": trainer_config.get("num_workers")
     })
+
 
     trainer = A2C(
         # env = RLlibEnvWrapper,
         env=run_configuration.get("env")["env_name"],
         config=trainer_config
     )
+
     return trainer
 
 

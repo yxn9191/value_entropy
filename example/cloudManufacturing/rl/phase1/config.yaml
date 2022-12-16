@@ -10,21 +10,19 @@ env:
   env_name: CloudManufacturing
 
 trainer:
-  num_workers: 2
+  num_workers: 1
   batch_mode: truncate_episodes
   ignore_worker_failures: true
   observation_filter: NoFilter
-  rollout_fragment_length: 20
-  microbatch_size: 40
-  train_batch_size: 200
-  num_gpus_per_worker: 1
-  num_cpus_for_driver: 2
+  rollout_fragment_length: 10
   num_envs_per_worker: 2
+  train_batch_size: 20
+  num_gpus_per_worker: 1
   num_gpus: 1
 
 general:
   ckpt_frequency_steps: 1000
-  episodes: 10
+  episodes: 40
   gpus: 1
   ckpt_path: 
   restore_torch_weights_agents:

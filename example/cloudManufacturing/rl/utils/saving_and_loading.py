@@ -6,6 +6,7 @@ import pickle
 import shutil
 import torch
 
+
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
@@ -40,7 +41,7 @@ def save_ckpt(trainer, result, ckpt_frequency, run_dir):
     if global_step % ckpt_frequency == 0:
         save_torch_model_weights(trainer, ckpt_dir, global_step)
         path = trainer.save(ckpt_dir)
-        remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
+        #remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
         print("checkpoint saved at", path)
         return path
     else:
@@ -55,6 +56,8 @@ def load_torch_model_weights(trainer, ckpt):
         trainer.set_weights(weights)
     logger.info("loaded torch model weights:\n\t%s\n", ckpt)
 
+
+
 def remote_env_fun(trainer, env_function):
     """
     Create a dictionary with the following mapping:
@@ -63,9 +66,12 @@ def remote_env_fun(trainer, env_function):
     env_function must be a function that takes an environment as its single argument
     """
 
-    nested_env_ids_and_results = trainer.workers.foreach_worker(
-        lambda w: [(env.env_id, env_function(env)) for env in w.async_env.envs]
-    )
+    def func(w):
+        if w.async_env:
+            return [(env.env_id, env_function(env)) for env in w.async_env.envs]
+
+
+    nested_env_ids_and_results = trainer.workers.foreach_worker( func)
     nested_env_ids_and_results = nested_env_ids_and_results[
         1:
     ]  # Ignore the local worker
@@ -194,12 +200,12 @@ def load_snapshot(trainer, run_dir, ckpt=None, suffix="", load_latest=False):
         raise AssertionError
 
     # Also load snapshots of each environment object
-    remote_env_fun(
-        trainer,
-        lambda env_wrapper: env_wrapper.load_game_object(
-            os.path.join(run_dir, "ckpts")
-        ),
-    )
+    # remote_env_fun(
+    #     trainer,
+    #     lambda env_wrapper: env_wrapper.load_game_object(
+    #         os.path.join(run_dir, "ckpts")
+    #     ),
+    # )
 
     return loaded_ckpt_success
 
