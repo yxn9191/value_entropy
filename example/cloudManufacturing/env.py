@@ -182,10 +182,9 @@ class CloudManufacturing(BaseEnvironment):
 
     def generate_orders(self):
         self.new_orders = []
-        try:
-            self.all_orders_list[self.schedule.steps]
-        except IndexError:
-            raise IndexError(self.schedule.steps)
+
+        self.all_orders_list[self.schedule.steps]
+
         for ord in self.all_orders_list[self.schedule.steps]:
             shape = Point(ord[-1][0], ord[-1][1])
             a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus=ord[1], cost=ord[2])
@@ -303,6 +302,7 @@ class CloudManufacturing(BaseEnvironment):
                 agent.order = agent.selected_order_id
                 self.actions.update(
                     {str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
+                print(self.actions)
                 # order = None
                 # for temp in self.model.all_resources:
                 #     if str(temp.unique_id) == self.selected_order_id:
