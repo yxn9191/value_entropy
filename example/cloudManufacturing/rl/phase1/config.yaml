@@ -14,9 +14,9 @@ trainer:
   batch_mode: truncate_episodes
   ignore_worker_failures: true
   observation_filter: NoFilter
-  rollout_fragment_length: 10
+  rollout_fragment_length: 100
   num_envs_per_worker: 2
-  train_batch_size: 20
+  train_batch_size: 200
   num_gpus_per_worker: 1
   num_gpus: 1
 
@@ -24,8 +24,8 @@ general:
   ckpt_frequency_steps: 1000
   episodes: 40
   gpus: 1
-  ckpt_path: 
-  restore_torch_weights_agents:
+  ckpt_path: rl/phase1/ckpts/checkpoint_000557
+  restore_torch_weights_agents: rl/phase1/ckpts/torch.weights.global-step-12000
 
 agent_policy:
   clip_param: 0.3

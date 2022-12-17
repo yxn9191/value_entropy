@@ -295,11 +295,11 @@ class CloudManufacturing(BaseEnvironment):
                 order_reward = {str(order_id): [] for order_id in agent.temp_actions}
                 for order_id in agent.temp_actions:
                     order = self._resource_lookup[str(order_id)]
-                    reward = order.bonus - sum(
-                        [abs(a - b) for (a, b) in zip(order.pos, agent.pos)]) * agent.move_cost - order.cost
+                    reward = order.bonus - distance(order.pos, agent.pos) * agent.move_cost - order.cost
                     order_reward[str(order.unique_id)].append(reward)
-                # 只选择自己计算出的代价最小的order，不考虑合作分配和社会整体
-                agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[0][0]
+                # 只选择自己计算出的收益最大的order，不考虑合作分配和社会整体
+                agent.selected_order_id = sorted(order_reward.items(), key=lambda o: o[1])[-1][0]
+
                 agent.order = agent.selected_order_id
                 self.actions.update(
                     {str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
@@ -428,6 +428,7 @@ class CloudManufacturing(BaseEnvironment):
                             T.add(order)
                         else:
                             break
+
         return list(T), list(W)
 
     # 平台反选
