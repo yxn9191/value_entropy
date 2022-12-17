@@ -45,6 +45,34 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/example/cloudManufacturing/data/high_agent_num.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/high_avg_reward.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/high_energy_type.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/high_level_high_rate_eqprod.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/example/cloudManufacturing/data/high_level_mid_rate_eq.csv">
           <value>
             <Attribute>
@@ -74,6 +102,34 @@
           </value>
         </entry>
         <entry key="/example/cloudManufacturing/data/high_reward_heatmap.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/low_agent_num.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/low_avg_reward.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/medium_agent_num.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/medium_avg_reward.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

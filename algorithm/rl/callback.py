@@ -15,7 +15,7 @@ class MyCallbacks(DefaultCallbacks):
     def on_episode_end(self, worker: RolloutWorker, base_env: BaseEnv,
                        policies: Dict[PolicyID, Policy],
                        episode: MultiAgentEpisode, **kwargs):
-        envs: Sequence[RLlibEnvWrapper] = base_env.get_unwrapped()
+        envs: Sequence[RLlibEnvWrapper] = base_env.get_sub_environments()
         social_metrics = pd.DataFrame([
             e.env.scenario_metrics()
             for e in envs

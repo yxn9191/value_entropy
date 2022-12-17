@@ -1,14 +1,17 @@
 import sys
 import os
+
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append("/home/bertrand/Desktop/group-intelligence-system")
 import matplotlib.pyplot as plt
 
 from analysis.utils.draw_charts import *
 
+
 def df_conact(df1, df2, df3):
-    df = df1.append(df2, ignore_index = True)
-    return  df.append(df3, ignore_index = True)
+    df = df1.append(df2, ignore_index=True)
+    return df.append(df3, ignore_index=True)
+
 
 def draw_rate_lines(name1, name2, name3, filename):
     df1 = read_data(name1, 0)
@@ -17,10 +20,22 @@ def draw_rate_lines(name1, name2, name3, filename):
     df4 = df_conact(df1, df2, df3)
     files_line_chart(df4, ['tax_rate'], filename)
 
+
 if __name__ == "__main__":
     # line_chart("agent_num", ['service_type'], 'agent_num')
-    # line_chart("avg_reward", [], "avg_reward")
-    # draw_rate_lines()
+    # line_chart("low_agent_num", ['service_type'], 'low_agent_num')
+    # line_chart("medium_agent_num", ['service_type'], 'medium_agent_num')
+    line_chart("high_agent_num", ['service_type'], 'high_agent_num')
+    #
+    # # line_chart("avg_reward", [], "avg_reward")
+    # line_chart("low_avg_reward", [], "low_avg_reward")
+    # line_chart("medium_avg_reward", [], "medium_avg_reward")
+    # line_chart("high_avg_reward", [], "high_avg_reward")
+    # #
+    # line_chart("low_energy_type", ['service_type'], "low_energy_type")
+    # line_chart("medium_energy_type", ['service_type'], "medium_energy_type")
+    line_chart("high_energy_type", ['service_type'], "high_energy_type")
+    #
     # heat_map("high_reward_heatmap", 'high_reward_heatmap')
     draw_rate_lines("low_level_low_rate_eq", "low_level_mid_rate_eq", "low_level_high_rate_eq","low_eq")
     draw_rate_lines("low_level_low_rate_prod", "low_level_mid_rate_prod", "low_level_high_rate_prod","low_prod")
