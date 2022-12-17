@@ -1,6 +1,6 @@
 import math
 import os
-from copy import deepcopy,copy
+from copy import deepcopy, copy
 
 import mesa
 from mesa_geo import GeoSpace, AgentCreator
@@ -49,7 +49,7 @@ class CloudManufacturing(BaseEnvironment):
         self.finish_orders = 0  # 当前预期可以完成的order的数目（step中可以算到）
         self.actions = {}
         self.total_rewards = 0
-        self.reset_random = reset_random #重置环境类型 True则为随机新生成，False 则使用固定随机树种子生成
+        self.reset_random = reset_random  # 重置环境类型 True则为随机新生成，False 则使用固定随机树种子生成
 
         # 算法1中的M（订单）和N（企业）
         self.M = 20
@@ -81,17 +81,15 @@ class CloudManufacturing(BaseEnvironment):
         self.set_intelligence(self.new_services)
         self.is_training = is_training
 
-
         # # 环境中所有的可运动agent
         # self.init_all_agents = deepcopy(self.new_services)
         # # 环境中所有Resource
         # self.init_all_resources = deepcopy(self.new_orders)
 
-
         # self.set_all_agents_list()  # 注意！！有了这个函数，self.all_agents和look_up系列会直接同schedule变动，
         # 而不需要额外操作向其中手动添加agent了，此函数每次在环境的step开始时就调用，同步系统中所有存储agent的list
 
-        if self.is_training == False :
+        if self.is_training == False:
             self.obs = self.reset()
             self.trainer = trainer
             self.obs = {
@@ -141,14 +139,14 @@ class CloudManufacturing(BaseEnvironment):
             ac_population = AgentCreator(
                 ServiceAgent,
                 {"model": self, "service_type": generate_service_type(), "difficulty": generate_difficulty(),
-                "energy": energy[j], "consumption": consumption[j]}
+                 "energy": energy[j], "consumption": consumption[j]}
             )
 
             this_person = ac_population.create_agent(
                 shape, self.next_id()
             )
             this_person.pos = (shape.x, shape.y)
-        
+
             self.schedule.add(this_person)
             self.grid.add_agents(this_person)
             self.new_services.append(this_person)
@@ -159,7 +157,7 @@ class CloudManufacturing(BaseEnvironment):
 
         for agent in self._agent_lookup.values():
             if agent.energy >= 5e3:
-                print("企业繁衍",agent.unique_id)
+                print("企业繁衍", agent.unique_id)
                 while 1:
                     random_point = Point(agent.shape.x + random.uniform(-10, 10),
                                          agent.shape.y + random.uniform(-10, 10))
@@ -197,7 +195,7 @@ class CloudManufacturing(BaseEnvironment):
             # self.random_place_agent(a)
             self.new_orders.append(a)
 
-                # self.init_parm[str(a.unique_id)] = {"energy": a.bonus, "pos": a.pos }
+            # self.init_parm[str(a.unique_id)] = {"energy": a.bonus, "pos": a.pos }
             # self.all_resources.append(a)
             # self._resource_lookup[a.unique_id] = a
 
@@ -348,9 +346,9 @@ class CloudManufacturing(BaseEnvironment):
         return _obs
 
     def reset(self):
-        #重新生成企业
+        # 重新生成企业
         self.schedule.steps = 0
-        if self.reset_random :
+        if self.reset_random:
             for agent in self.schedule.agents:
                 if isinstance(agent, OrderAgent) or isinstance(agent, ServiceAgent):
                     self.schedule.remove(agent)
@@ -361,8 +359,6 @@ class CloudManufacturing(BaseEnvironment):
         self.match_order, self.match_agent = self.matching_service_order()
         self.obs = self.generate_observations()
         return self.obs
-
-            
 
     # 生成观察值（强化学习的输入,待修改）
     def generate_observations(self):
@@ -456,8 +452,8 @@ class CloudManufacturing(BaseEnvironment):
                 agent.action_parse(-1)
                 # print(agent.action, self._agent_lookup.get(str(a_id), None).action)
                 continue
-            self._agent_lookup.get(str(a_id), None).order_select=1
-            self.match_order[o_id].order_select=1
+            self._agent_lookup.get(str(a_id), None).order_select = 1
+            self.match_order[o_id].order_select = 1
             agent = self._agent_lookup.get(str(a_id), None)
             order = self.match_order[o_id]
             if agent.service_type not in list(order.order_type):
@@ -483,7 +479,8 @@ class CloudManufacturing(BaseEnvironment):
                         self._agent_lookup.get(str(service), None).action_parse(-1)
                         # agent.action_parse(-1)
                 if len(order_action[o_id][order_.order_type]) > 0:
-                    self._resource_lookup.get(str(o_id), None).services.extend([min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
+                    self._resource_lookup.get(str(o_id), None).services.extend(
+                        [min(order_action[o_id][order_.order_type].items(), key=lambda x: x[1])[0]])
                     self._agent_lookup.get(str(order_.services[0]), None).order = order_.unique_id
                     self._resource_lookup.get(str(o_id), None).occupied = 1
                     self.finish_orders += 1
@@ -503,22 +500,24 @@ class CloudManufacturing(BaseEnvironment):
                     continue
                 list_service = {}
                 types = list(order_.order_type)
-                if len(order_.order_type) == 2:  
+                if len(order_.order_type) == 2:
                     for agent1 in order_action[o_id][types[0]].keys():
                         for agent2 in order_action[o_id][types[1]].keys():
-                            if self.necessary_constraint(order_,[agent1, agent2]):
-                                list_service[str(agent1.unique_id)+"+"+str(agent2.unique_id)] = \
-                                order_action[o_id][service_type][agent1.unique_id] + order_action[o_id][service_type][agent2.unique_id] 
-                
+                            if self.necessary_constraint(order_, [agent1, agent2]):
+                                list_service[str(agent1.unique_id) + "+" + str(agent2.unique_id)] = \
+                                    order_action[o_id][service_type][agent1.unique_id] + \
+                                    order_action[o_id][service_type][agent2.unique_id]
+
                 if len(order_.order_type) == 3:
                     for agent1 in order_action[o_id]["A"].keys():
                         for agent2 in order_action[o_id]["B"].keys():
                             for agent3 in order_action[o_id]["C"].keys():
-                                if self.necessary_constraint(order_,[agent1, agent2, agent3]):
-                                    list_service[str(agent1.unique_id)+"+"+str(agent2.unique_id)+"+"+str(agent3.unique_id)]= \
-                                    order_action[o_id][service_type][agent1.unique_id] + \
-                                    order_action[o_id][service_type][agent2.unique_id] + \
-                                    order_action[o_id][service_type][agent3.unique_id] 
+                                if self.necessary_constraint(order_, [agent1, agent2, agent3]):
+                                    list_service[str(agent1.unique_id) + "+" + str(agent2.unique_id) + "+" + str(
+                                        agent3.unique_id)] = \
+                                        order_action[o_id][service_type][agent1.unique_id] + \
+                                        order_action[o_id][service_type][agent2.unique_id] + \
+                                        order_action[o_id][service_type][agent3.unique_id]
 
                 if len(list_service) > 0:
                     x = min(list_service.items(), key=lambda x: x[1])[0]
@@ -537,7 +536,6 @@ class CloudManufacturing(BaseEnvironment):
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
                             self._agent_lookup.get(str(a_id), None).action_parse(-1)
-
 
         # if len(order_action)> 0:
         #     raise TypeError(order_action)
@@ -570,9 +568,10 @@ class CloudManufacturing(BaseEnvironment):
     #     return self.trainer, self.obs
 
     # 将每轮ABC企业的数目写入csv
-    def collect_agent_num(self):
+    def collect_agent_num(self, file_name):
+        file_path = os.path.join("data", file_name)
         if self.schedule.steps == 1:
-            write_csv_hearders("data/agent_num.csv", ["time_step", "nums", "service_type"])
+            write_csv_hearders(file_path, ["time_step", "nums", "service_type"])
         for agent in self.schedule.agents:
             if isinstance(agent, GeoAgent):
                 if agent.service_type == "A":
@@ -581,7 +580,7 @@ class CloudManufacturing(BaseEnvironment):
                     self.num_b += 1
                 elif agent.service_type == "C":
                     self.num_c += 1
-        write_csv_rows("data/agent_num.csv", [[self.schedule.steps, self.num_a, 'A'],
+        write_csv_rows(file_path, [[self.schedule.steps, self.num_a, 'A'],
                                               [self.schedule.steps, self.num_b, 'B'],
                                               [self.schedule.steps, self.num_c, 'C']])
 
@@ -682,9 +681,10 @@ class CloudManufacturing(BaseEnvironment):
                 filename2 = "high_level_high_rate_eq.csv"
                 filename3 = "high_level_high_rate_eqprod.csv"
 
-        self.collect_reward_with_tax(metrics['social/productivity'],  "productivity",filename1)
+        self.collect_reward_with_tax(metrics['social/productivity'], "productivity", filename1)
         self.collect_reward_with_tax(metrics['social/equality'], "equality", filename2)
-        self.collect_reward_with_tax(metrics['social_welfare/eq_times_productivity'], "eq_times_productivity", filename3)        
+        self.collect_reward_with_tax(metrics['social_welfare/eq_times_productivity'], "eq_times_productivity",
+                                     filename3)
 
     def step(self):
         """Advance the model by one step."""
@@ -750,13 +750,19 @@ class CloudManufacturing(BaseEnvironment):
 
         if self.is_training == False:
             metrics = self.scenario_metrics()
-            self.collect_agent_num()
-            # print(reward.values())
-            if len(self.match_agent) > 0:
-                avg_reward = sum(reward.values()) / len(self.match_agent)
+            if self.ratio_low == 1:
+                self.collect_agent_num("low_agent_num.csv")
+                self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "low_avg_reward.csv")
+            elif self.ratio_medium == 1:
+                self.collect_agent_num("medium_agent_num.csv")
+                self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "medium_avg_reward.csv")
+            elif self.ratio_high == 1:
+                self.collect_agent_num("high_agent_num.csv")
+                self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "high_avg_reward.csv")
             else:
-                avg_reward = 0
-            self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "avg_reward.csv")
+                self.collect_agent_num("agent_num.csv")
+                self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "avg_reward.csv")
+
             self.collect_with_rate(metrics)
 
             agent_pos = {}
@@ -773,7 +779,7 @@ class CloudManufacturing(BaseEnvironment):
 
             # 输入的形式类似：{1: (2, 3), 2: (4, 1), 3: (3, 3), 4: (2, 7)} {agentID:agent.pos} 
             # 只有在环境中有高智能的agent才画这个高智能的热力图
-            if flag :
+            if flag:
                 self.collect_agent_pos(agent_pos)
 
         # 生成本轮新的企业和订单

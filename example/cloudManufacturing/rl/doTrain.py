@@ -30,7 +30,7 @@ def process_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--run-dir", type=str, default="phase1", help="Path to the directory for this run."
+        "--run-dir", type=str, default="phase", help="Path to the directory for this run."
     )
 
     args = parser.parse_args()
@@ -75,7 +75,7 @@ def build_Trainer(run_configuration):
             "policies_to_train": ["a"],
             "policy_mapping_fn": policy_mapping_fun,
         },
-        "metrics_smoothing_episodes": trainer_config.get("num_workers")
+        "metrics_num_episodes_for_smoothing": trainer_config.get("num_workers")
                                       * trainer_config.get("num_envs_per_worker"),
         "num_workers": trainer_config.get("num_workers")
     })
