@@ -59,6 +59,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/example/cloudManufacturing/data/high_energy_type.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/example/cloudManufacturing/data/high_level_high_rate_eqprod.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/example/cloudManufacturing/data/high_level_mid_rate_eq.csv">
           <value>
             <Attribute>

@@ -566,6 +566,18 @@ class CloudManufacturing(BaseEnvironment):
     #
     #     self.obs = obs
     #     return self.trainer, self.obs
+    # 按类型获取energy之和
+    def avg_energy_by_type(self, type):
+        return np.mean(
+            np.array([agent.energy for agent in self._agent_lookup.values() if agent.service_type == type]))
+
+    def collect_energy_by_type(self, data, file_name):
+        file_path = os.path.join("data", file_name)
+        if self.schedule.steps == 1:
+            write_csv_hearders(file_path, ["time_step", "energy", "service_type"])
+        write_csv_rows(file_path, [[self.schedule.steps, data['energy_a'], 'A'],
+                                   [self.schedule.steps, data['energy_b'], 'B'],
+                                   [self.schedule.steps, data['energy_c'], 'C']])
 
     # 将每轮ABC企业的数目写入csv
     def collect_agent_num(self, file_name):
@@ -581,8 +593,8 @@ class CloudManufacturing(BaseEnvironment):
                 elif agent.service_type == "C":
                     self.num_c += 1
         write_csv_rows(file_path, [[self.schedule.steps, self.num_a, 'A'],
-                                              [self.schedule.steps, self.num_b, 'B'],
-                                              [self.schedule.steps, self.num_c, 'C']])
+                                   [self.schedule.steps, self.num_b, 'B'],
+                                   [self.schedule.steps, self.num_c, 'C']])
 
     # 将每step的平均效能写入csv
     def collect_avg_reward(self, avg_reward, file_name):
@@ -749,17 +761,22 @@ class CloudManufacturing(BaseEnvironment):
         info = {k: {} for k in self.obs.keys()}
 
         if self.is_training == False:
+            energy_dict = {'energy_a': self.avg_energy_by_type("A"), 'energy_b': self.avg_energy_by_type("B"), 'energy_c': self.avg_energy_by_type("C")}
             metrics = self.scenario_metrics()
             if self.ratio_low == 1:
+                self.collect_energy_by_type(energy_dict, "low_energy_type.csv")
                 self.collect_agent_num("low_agent_num.csv")
                 self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "low_avg_reward.csv")
             elif self.ratio_medium == 1:
+                self.collect_energy_by_type(energy_dict, "medium_energy_type.csv")
                 self.collect_agent_num("medium_agent_num.csv")
                 self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "medium_avg_reward.csv")
             elif self.ratio_high == 1:
+                self.collect_energy_by_type(energy_dict, "high_energy_type.csv")
                 self.collect_agent_num("high_agent_num.csv")
                 self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "high_avg_reward.csv")
-            else:
+            else:  # 混合模式下
+                self.collect_energy_by_type(energy_dict, "energy_type.csv")
                 self.collect_agent_num("agent_num.csv")
                 self.collect_avg_reward(metrics["social_welfare/eq_times_productivity"], "avg_reward.csv")
 
