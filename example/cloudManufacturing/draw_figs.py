@@ -28,3 +28,6 @@ if __name__ == "__main__":
     draw_rate_lines("mid_level_low_rate_eq", "mid_level_mid_rate_eq", "mid_level_high_rate_eq","mid_eq")
     draw_rate_lines("mid_level_low_rate_prod", "mid_level_mid_rate_prod", "mid_level_high_rate_prod","mid_prod")
     draw_rate_lines("mid_level_low_rate_eqprod", "mid_level_mid_rate_eqprod", "mid_level_high_rate_eqprod","mid_eqprod")
+    draw_rate_lines("high_level_low_rate_eq", "high_level_mid_rate_eq", "high_level_high_rate_eq","high_eq")
+    draw_rate_lines("high_level_low_rate_prod", "high_level_mid_rate_prod", "high_level_high_rate_prod","high_prod")
+    draw_rate_lines("high_level_low_rate_eqprod", "high_level_mid_rate_eqprod", "high_level_high_rate_eqprod","high_eqprod")
