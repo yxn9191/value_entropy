@@ -134,8 +134,7 @@ class ServiceAgent(GeoAgent):
             #order.done_time = self.model.schedule.steps + order.handling_time + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)]) / self.speed
 
             # 记录企业的订单处理完成时间
-            self.order_end_time = self.model.schedule.steps + order.handling_time + sum(
-                [abs(a - b) for (a, b) in zip(order.pos, self.pos)]) / self.speed
+            self.order_end_time = self.model.schedule.steps + order.handling_time + math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(order.pos, self.pos)]))/ self.speed
 
             # 计算移动企业位置
             # self.delta_x = self.order.pos[0] - self.pos[0]
@@ -143,7 +142,7 @@ class ServiceAgent(GeoAgent):
 
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= order.cost / len(order.services)
-            print("选择订单转为移动", value, cost)
+            print("选择订单转为移动", value-cost, order.bonus)
         else:
             self.state = 0
             self.order = None
@@ -172,10 +171,8 @@ class ServiceAgent(GeoAgent):
                     agent = self.model._agent_lookup[a_id]
                     # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
                     agent.energy += order.bonus / len(order.services)
-                    print("获得收益", order.bonus ,  len(order.services))
+                    print("获得收益", order.bonus ,  len(order.services), order.order_type)
                 order.done = True
-
-            print("_______订单处理完成_________", order.unique_id, order.pos)
 
         if self.state == 0:
             if self.intelligence_level !=2:
@@ -183,13 +180,10 @@ class ServiceAgent(GeoAgent):
 
             # self.model.total_rewards += value - cost
         elif self.state == 1:
-            print("开始移动")
             self.move()
             # 到达地点，转为处理订单状态
             if self.pos == self.model._resource_lookup[str(self.order)].pos:
                 self.state = 2
-                print(self.order_end_time , self.model.schedule.steps)
-
     # def move(self):
     #     print("企业移动了")
     #     if self.delta_x > 0:

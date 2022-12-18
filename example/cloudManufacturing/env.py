@@ -53,7 +53,11 @@ class CloudManufacturing(BaseEnvironment):
 
         # 算法1中的M（订单）和N（企业）
         self.M = 20
+
         self.N = 10
+        if not reset_random :
+            random.seed(0)
+
 
         self.schedule = mesa.time.RandomActivationByType(self)
         # self.grid = mesa.space.MultiGrid(width, height, True)  # True一个关于网格是否为环形的布尔值
@@ -75,6 +79,8 @@ class CloudManufacturing(BaseEnvironment):
         self.match_order = []
         self.tax_rate = tax_rate
         self.pos_matrix = None
+
+        
 
         self.init_services(self.service_num)
         self.generate_orders()
@@ -166,7 +172,8 @@ class CloudManufacturing(BaseEnvironment):
                 ac_population = AgentCreator(
                     ServiceAgent,
                     {"model": self, "service_type": agent.service_type, "difficulty": agent.difficulty,
-                     "intelligence_level": agent.intelligence_level, "energy": agent.energy / 2}
+                     "intelligence_level": agent.intelligence_level, "energy": agent.energy / 2, 
+                     "consumption": agent.consumption}
                 )
 
                 agent.energy = agent.energy / 2
@@ -302,7 +309,7 @@ class CloudManufacturing(BaseEnvironment):
                 agent.order = agent.selected_order_id
                 self.actions.update(
                     {str(agent.unique_id): self.match_order.index(self._resource_lookup[str(agent.selected_order_id)])})
-                print(self.actions)
+
                 # order = None
                 # for temp in self.model.all_resources:
                 #     if str(temp.unique_id) == self.selected_order_id:
