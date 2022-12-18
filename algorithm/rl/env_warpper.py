@@ -5,6 +5,8 @@ from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
 from base.environment import BaseEnvironment
+import os
+import dill
 
 _BIG_NUMBER = 1e20
 #
@@ -42,8 +44,13 @@ class RLlibEnvWrapper(MultiAgentEnv):
         super(RLlibEnvWrapper, self).__init__
         self.env_config = env_config
 
-        self.env = mesaEnv(**self.env_config)
-
+        self.env = mesaEnv(**self.env_config["env_config_dict"])
+        if hasattr(env_config, "worker_index"):
+            self.env_id = (
+                env_config["num_envs_per_worker"] * (env_config.worker_index - 1)
+            ) + env_config.vector_index
+        else:
+            self.env_id = None
         obs = self.env.reset()
 
         # 定义动作空间, 定义多少动作该智能体可以选择,即多少订单可以选
@@ -102,6 +109,24 @@ class RLlibEnvWrapper(MultiAgentEnv):
             else:
                 raise TypeError
         return spaces.Dict(dict_of_spaces)
+        
+    @property
+    def pickle_file(self):
+        if self.env_id is None:
+            return "game_object.pkl"
+        return "game_object_{:03d}.pkl".format(self.env_id)
+
+    def save_game_object(self, save_dir):
+        assert os.path.isdir(save_dir)
+        path = os.path.join(save_dir, self.pickle_file)
+        with open(path, "wb") as F:
+            dill.dump(self.env, F)
+
+    def load_game_object(self, save_dir):
+        assert os.path.isdir(save_dir)
+        path = os.path.join(save_dir, self.pickle_file)
+        with open(path, "rb") as F:
+            self.env = dill.load(F)
 
     def reset(self, *args, **kwargs):
         obs = self.env.reset(*args, **kwargs)

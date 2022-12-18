@@ -1,6 +1,7 @@
 import sys
 import os
 from copy import deepcopy
+
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
 
@@ -88,7 +89,6 @@ class BaseEnvironment(mesa.Model):
                     self.all_agents.append(agent)
                 else:
                     pass
-            
 
             self._agent_lookup = {str(agent.unique_id): agent for agent in self.all_agents}
             self._resource_lookup = {str(order.unique_id): order for order in self.all_resources}
@@ -104,7 +104,6 @@ class BaseEnvironment(mesa.Model):
         ] = metrics["social/productivity"] * metrics["social/equality"]
 
         return metrics
-
 
 
 

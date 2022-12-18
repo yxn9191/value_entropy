@@ -47,17 +47,17 @@ def order_cooperation():
 
 # 订单金额
 def order_money(order_type):
-    if len(order_type) == 1:
+    if len(list(order_type))== 1:
         return random.uniform(5e2, 1e3)
-    elif len(order_type) == 2:
-        return random.uniform(7e2, 1.2e3)
-    elif len(order_type) == 3:
-        return random.uniform(1e3, 1.5e4)
+    elif len(list(order_type)) == 2:
+        return random.uniform(1e3, 2e3)
+    elif len(list(order_type)) == 3:
+        return random.uniform(2e3, 3e3)
 
 
 # 订单处理成本
 def order_process():
-    return random.randint(1e2, 3e2)
+    return random.uniform(50, 1e2)
 
 
 # 订单位置
@@ -71,8 +71,9 @@ def order_position(region):
 def orders_list(order_num, region):
     daily_order = []
     for i in range(0, order_num):
-        daily_order.append([get_order_type(),
-                            order_money(get_order_type()),
+        order_type = get_order_type()
+        daily_order.append([order_type,
+                            order_money(order_type),
                             order_process(),
                             order_difficulty(),
                             order_position(region)])
@@ -87,7 +88,7 @@ def all_orders_list(region, rand = True):
         random.seed(0)
     n = 1
     all_list = []
-    for i in range(1, 500):
+    for i in range(1, 366):
         order_num = n * int(fitting_dist(i))
         all_list.append(orders_list(order_num, region))
 

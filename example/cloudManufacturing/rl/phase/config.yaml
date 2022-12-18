@@ -9,17 +9,15 @@ env:
   env_name: CloudManufacturing
 
 trainer:
-  num_workers: 2
+  num_workers: 1
   batch_mode: truncate_episodes
   ignore_worker_failures: true
   observation_filter: NoFilter
-  rollout_fragment_length: 20
-  microbatch_size: 40
-  train_batch_size: 200
-  num_gpus_per_worker: 1
-  num_cpus_for_driver: 2
+  rollout_fragment_length: 100
   num_envs_per_worker: 2
-  num_gpus: 1
+  train_batch_size: 200
+  # num_gpus_per_worker: 1
+  # num_gpus: 1
 
 general:
 <<<<<<< HEAD
@@ -31,9 +29,14 @@ general:
   ckpt_frequency_steps: 1000
   episodes: 100
   gpus: 1
+<<<<<<< HEAD
   ckpt_path: 
   restore_torch_weights_agents: 
 >>>>>>> 0ea7186f5ff1f557087e095c3e6bfb476e8ce558
+=======
+  ckpt_path: rl/phase/ckpts/checkpoint_000024
+  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-5000
+>>>>>>> ada3567b72fbdea97200697308ce6e60c353d0af
 
 agent_policy:
   clip_param: 0.3

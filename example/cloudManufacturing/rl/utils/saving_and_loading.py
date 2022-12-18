@@ -4,7 +4,10 @@ import os
 import sys
 import pickle
 import shutil
+
+import numpy as np
 import torch
+
 
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
@@ -101,24 +104,24 @@ def collect_stored_rollouts(trainer):
     return aggregate_rollouts
 
 
-def accumulate_and_broadcast_saez_buffers(trainer):
-    component_name = "PeriodicBracketTax"
-
-    def extract_local_saez_buffers(env_wrapper):
-        return env_wrapper.env.get_component(component_name).get_local_saez_buffer()
-
-    replica_buffers = remote_env_fun(trainer, extract_local_saez_buffers)
-
-    global_buffer = []
-    for local_buffer in replica_buffers.values():
-        global_buffer += local_buffer
-
-    def set_global_buffer(env_wrapper):
-        env_wrapper.env.get_component(component_name).set_global_saez_buffer(
-            global_buffer
-        )
-
-    _ = remote_env_fun(trainer, set_global_buffer)
+# def accumulate_and_broadcast_saez_buffers(trainer):
+#     component_name = "PeriodicBracketTax"
+#
+#     def extract_local_saez_buffers(env_wrapper):
+#         return env_wrapper.env.get_component(component_name).get_local_saez_buffer()
+#
+#     replica_buffers = remote_env_fun(trainer, extract_local_saez_buffers)
+#
+#     global_buffer = []
+#     for local_buffer in replica_buffers.values():
+#         global_buffer += local_buffer
+#
+#     def set_global_buffer(env_wrapper):
+#         env_wrapper.env.get_component(component_name).set_global_saez_buffer(
+#             global_buffer
+#         )
+#
+#     _ = remote_env_fun(trainer, set_global_buffer)
 
 # def save_snapshot(trainer, ckpt_dir, suffix=""):
 #     # Create a new trainer snapshot
@@ -176,20 +179,20 @@ def load_snapshot(trainer, run_dir, ckpt=None, suffix="", load_latest=False):
         else:
             raise NotImplementedError
     elif ckpt:
-        if os.path.isfile(ckpt):
-            trainer.restore(ckpt)
-            loaded_ckpt_success = True
-            logger.info(
+
+        trainer.restore(ckpt)
+        loaded_ckpt_success = True
+        logger.info(
                 "load_snapshot -> loading %s SUCCESS for %s %s", ckpt, suffix, trainer
             )
-        else:
-            logger.info(
-                "load_snapshot -> loading %s FAILED,"
-                " skipping restoring cpkt for %s %s",
-                ckpt,
-                suffix,
-                trainer,
-            )
+        # else:
+        #     logger.info(
+        #         "load_snapshot -> loading %s FAILED,"
+        #         " skipping restoring cpkt for %s %s",
+        #         ckpt,
+        #         suffix,
+        #         trainer,
+        #     )
     else:
         raise AssertionError
 
@@ -294,14 +297,6 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
         else:
             logger.info("Starting with fresh agent Torch weights.")
 
-        starting_weights_path_planner = run_configuration["general"].get(
-            "restore_torch_weights_planner", ""
-        )
-        if starting_weights_path_planner:
-            logger.info("Restoring planner Torch weights...")
-            load_torch_model_weights(trainer_obj, starting_weights_path_planner)
-        else:
-            logger.info("Starting with fresh planner Torch weights.")
 
     return (
         dense_log_directory,
