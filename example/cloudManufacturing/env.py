@@ -18,7 +18,7 @@ from ray.tune.registry import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper, recursive_list_to_np_array
 from example.cloudManufacturing.generateOrders import *
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 import sys
 
 current_path = os.path.split(os.path.realpath(__file__))[0]
@@ -56,7 +56,7 @@ class CloudManufacturing(BaseEnvironment):
 
         self.N = 10
         if not reset_random :
-            random.seed(0)
+            random.seed(1)
 
 
         self.schedule = mesa.time.RandomActivationByType(self)
@@ -136,7 +136,7 @@ class CloudManufacturing(BaseEnvironment):
         self.new_services = []
         # 默认每轮新增5企业
         if not self.reset_random:
-            random.seed(0)
+            random.seed(1)
         energy = [random.uniform(1e3, 5e3) for i in range(new_service_num)]
         consumption = [random.uniform(1, 10) for i in range(new_service_num)]
 
@@ -166,7 +166,7 @@ class CloudManufacturing(BaseEnvironment):
                 print("企业繁衍", agent.unique_id)
                 while 1:
                     random_point = Point(agent.shape.x + random.uniform(-10, 10),
-                                         agent.shape.y + random.uniform(-10, 10))
+                                        agent.shape.y + random.uniform(-10, 10))
                     if self.region[0].shape.contains(random_point):
                         break
                 ac_population = AgentCreator(
@@ -193,7 +193,7 @@ class CloudManufacturing(BaseEnvironment):
         self.all_orders_list[self.schedule.steps]
 
         for ord in self.all_orders_list[self.schedule.steps]:
-            shape = Point(ord[-1][0], ord[-1][1])
+            shape = Polygon(((ord[-1][0], ord[-1][1]),(ord[-1][0]+10, ord[-1][1]),(ord[-1][0], ord[-1][1]+10)))
             a = OrderAgent(self.next_id(), self, shape, ord[3], ord[0], bonus=ord[1], cost=ord[2])
             a.pos = ord[-1]
             self.schedule.add(a)
@@ -714,6 +714,9 @@ class CloudManufacturing(BaseEnvironment):
             if agent.done:
                 self.schedule.remove(agent)
                 self.grid.remove_agent(agent)
+                
+                print(agent in self.schedule.agents )
+
                 if isinstance(agent, OrderAgent):
                     del self._resource_lookup[str(agent.unique_id)]
                 elif isinstance(agent, ServiceAgent):
