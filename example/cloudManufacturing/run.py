@@ -40,36 +40,40 @@ def agent_portrayal(agent):
     portrayal = {}
 
     if type(agent) is OrderAgent:
-        portrayal['radius'] = "1"
-        if agent.occupied == 0:
-            portrayal["color"] = "Gray"
+        
+        if not agent.done:
+            portrayal['radius'] = "1"
+            if agent.occupied == 0:
+                portrayal["color"] = "Gray"
 
-        elif agent.occupied == 1:
-            portrayal['radius'] = "2"
-            portrayal["color"] = "Black"
+            elif agent.occupied == 1:
+                portrayal['radius'] = "2"
+                portrayal["color"] = "Black"
 
         # portrayal["scale"] = 0.9
         # portrayal["Layer"] = 1
         # portrayal["text"] = agent.order_type
 
     elif type(agent) is ServiceAgent:
-        portrayal["text"] = agent.service_type
-        portrayal["scale"] = 0.9
-        portrayal["Layer"] = 2
-        # portrayal["text_color"] = "Red"
-        portrayal['radius'] = "1"
-        if agent.service_type == "A":
-            portrayal["color"] = "Green"
-            # portrayal["Shape"] = "ServiceA.png"
-        elif agent.service_type == "B":
-            portrayal["color"] = "Blue"
-            # portrayal["Shape"] = "ServiceB.png"
-        elif agent.service_type == "C":
-            portrayal["color"] = "Red"
+
+        if not agent.done:
+            portrayal["text"] = agent.service_type
+            portrayal["scale"] = 0.9
+            portrayal["Layer"] = 2
+            # portrayal["text_color"] = "Red"
+            portrayal['radius'] = "1"
+            if agent.service_type == "A":
+                portrayal["color"] = "Green"
+                # portrayal["Shape"] = "ServiceA.png"
+            elif agent.service_type == "B":
+                portrayal["color"] = "Blue"
+                # portrayal["Shape"] = "ServiceB.png"
+            elif agent.service_type == "C":
+                portrayal["color"] = "Red"
             # portrayal["Shape"] = "ServiceC.png"
 
     elif type(agent) is Region:
-        portrayal["color"] = "Black"
+        portrayal["color"] = "White"
 
     return portrayal
 
