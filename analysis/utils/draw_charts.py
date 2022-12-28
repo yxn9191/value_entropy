@@ -48,11 +48,11 @@ def files_line_chart(data, setting, save_name):
     palet = sns.color_palette("cubehelix",3)
     if len(setting) > 0:
         if len(setting) > 1:
-            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0], style=setting[1], palette=["darkblue","purple","k"])
+            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0], style=setting[1], palette=["steelblue","darkmagenta","k"])
         else:
-            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0],palette=["darkblue","purple","k"] )
+            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0],palette=["steelblue","darkmagenta","k"] )
     else:
-        sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1],palette=["darkblue","purple","k"])
+        sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1],palette=["steelblue","darkmagenta","k"])
     plt.savefig(IMG_PREFIX + save_name + '.png', dpi=1200)
 
 
