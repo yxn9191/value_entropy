@@ -44,15 +44,16 @@ def line_chart(filename, setting, save_name):
 # 注意绘制折线图时我们保存的csv的统一数据样式为 x轴数据|y轴数据|分类数据，见example.csv
 # setting = [,] 第一个参数表示对哪列数据设置hue，第二个表示对哪列数据设置style，传入的是列名
 def files_line_chart(data, setting, save_name):
-    plt.figure()
+    plt.figure(figsize=(7,4))
+    palet = sns.color_palette("cubehelix",3)
     if len(setting) > 0:
         if len(setting) > 1:
-            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0], style=setting[1])
+            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0], style=setting[1], palette=["darkblue","purple","k"])
         else:
-            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0])
+            sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1], hue=setting[0],palette=["darkblue","purple","k"] )
     else:
-        sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1])
-    plt.savefig(IMG_PREFIX + save_name + '.png', dpi=600)
+        sns.lineplot(data=data, x=data.keys()[0], y=data.keys()[1],palette=["darkblue","purple","k"])
+    plt.savefig(IMG_PREFIX + save_name + '.png', dpi=1200)
 
 
 # 注意绘制热力图时我们保存的csv的统一数据样式为 数据不含有x、y的行名和列名，见example2.csv
