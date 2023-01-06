@@ -41,7 +41,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
     """
 
     def __init__(self, env_config=None, mesaEnv=mesa.Model):
-        super(RLlibEnvWrapper, self).__init__
+        super().__init__()
         self.env_config = env_config
 
         self.env = mesaEnv(**self.env_config["env_config_dict"])
@@ -56,7 +56,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
         # 定义动作空间, 定义多少动作该智能体可以选择,即多少订单可以选
         if self.env.all_agents[0].multi_action_mode:
             self.action_space = spaces.MultiDiscrete(
-                self.env.self.env.all_agents[0].action_spaces
+                self.env.all_agents[0].action_spaces
             )
             self.action_space.dtype = np.int64
             self.action_space.nvec = self.action_space.nvec.astype(np.int64)
