@@ -122,7 +122,7 @@ model_params = {
     "reset_random": False
 }
 
-map_element = MapModule(agent_portrayal, CloudManufacturing.MAP_COORDS, 10, 500, 500)
+map_element = MapModule(agent_portrayal, CloudManufacturing.MAP_COORDS, 10, 500, 800)
 step_text = StepText()
 chart = mesa.visualization.ChartModule(
     [{"Label": "Social Reward", "Color": "red"},

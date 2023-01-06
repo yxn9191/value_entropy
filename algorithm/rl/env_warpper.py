@@ -1,10 +1,10 @@
 import warnings
 
+import mesa
 import numpy as np
 from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
-from base.environment import BaseEnvironment
 import os
 import dill
 
@@ -40,7 +40,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
     """
     """
 
-    def __init__(self, env_config=None, mesaEnv=BaseEnvironment):
+    def __init__(self, env_config=None, mesaEnv=mesa.Model):
         super(RLlibEnvWrapper, self).__init__
         self.env_config = env_config
 
