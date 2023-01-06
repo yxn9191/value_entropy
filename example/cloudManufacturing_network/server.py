@@ -2,12 +2,13 @@ import os
 import mesa
 
 from example.cloudManufacturing_network.rl.utils.saving_and_loading import load_torch_model_weights
-from rl.doTrain import process_args, build_Trainer, current_path
-
-from serviceAgent import ServiceAgent
+from example.cloudManufacturing_network.orderAgent import OrderAgent
+from example.cloudManufacturing_network.serviceAgent import ServiceAgent
+from rl.doTrain import process_args, build_Trainer
 from env import CloudManufacturing_network
-from orderAgent import OrderAgent
+
 import rl.policy_model
+
 current_path = os.path.split(os.path.realpath(__file__))[0]
 
 # 获取参数
@@ -29,14 +30,14 @@ load_torch_model_weights(trainer, starting_weights_path_agents)
 
 def network_portrayal(G):
     def node_color(agents):
-        if get_order_agent(agents):
-            # 当该节点上有订单时，颜色为黄色
-            return "Yellow"
-        else:
-            # 否则，根据企业类型决定节点颜色
-            return {"A": "#FF0000", "B": "#008000", "C": "#000080"}.get(
-                get_service_agent(agents).service_type, "#808080"
-            )
+        # if get_order_agent(agents):
+        #     # 当该节点上有订单时，颜色为黄色
+        #     return "Yellow"
+        # else:
+        #     # 否则，根据企业类型决定节点颜色
+        return {"A": "#FF0000", "B": "#008000", "C": "#000080"}.get(
+            get_service_agent(agents).service_type, "#808080"
+        )
 
     def edge_color(agent1, agent2):
         # if State.RESISTANT in (agent1.state, agent2.state):
@@ -137,3 +138,5 @@ server = mesa.visualization.ModularServer(
     model_params,
 )
 server.port = 8523
+# model = CloudManufacturing_network(trainer=trainer, is_training=False)
+# model.run_model()

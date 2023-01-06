@@ -24,7 +24,7 @@ class CloudManufacturing_network(mesa.Model):
             self,
             num_nodes=20,
             avg_node_degree=3,
-            ratio_low=1,
+            ratio_low=0,
             ratio_medium=0,
             is_training=True,
             trainer=None,
@@ -478,7 +478,7 @@ class CloudManufacturing_network(mesa.Model):
                     policy_id="a",
                     full_fetch=False)
                 actions[str(agent.unique_id)] = int(results[str(agent.unique_id)])
-        # print("action", actions)
+        #print("action", actions)
         self.actions.update(actions)
 
     def reset(self):
@@ -572,10 +572,12 @@ class CloudManufacturing_network(mesa.Model):
                         energy=generate_energy(),
                     )
                     # Add the agent to the node
-                    self.grid.place_agent(a, node)
                     a.pos = node
+                    self.grid.place_agent(a, node)
                     self.schedule.add(a)
                     self.new_services.append(a)
+                    print("新加入的节点位置",a.pos)
+
 
         self.set_all_agents_list()
         self.set_intelligence(self.new_services)
@@ -603,9 +605,9 @@ class CloudManufacturing_network(mesa.Model):
             for agent_idx, agent_actions in self.actions.items():
                 if int(agent_idx) > 0:
                     # 当企业本轮没有破产，且目前状态是空闲时，才能传递给它新的动作
-                    if self._agent_lookup.get(str(agent_idx), None) and self._agent_lookup.get(str(agent_idx),
-                                                                                               None).state == 0:
-                        self._agent_lookup.get(str(agent_idx), None).action_parse(agent_actions)
+                    # if self._agent_lookup.get(str(agent_idx), None) and self._agent_lookup.get(str(agent_idx),
+                    #                                                                            None).state == 0:
+                    self._agent_lookup.get(str(agent_idx), None).action_parse(agent_actions)
 
             # 平台反选
             self.order_select()
@@ -633,38 +635,13 @@ class CloudManufacturing_network(mesa.Model):
         return self.obs, reward, self.done, info
 
     def run_model(self):
+
         for i in range(300):
             # if i == 140:
             #     self.reset()
             self.step()
+            print(self.G.nodes)
 
-    # def test(self):
-    #     l1 = []
-    #     l2 = []
-    #     l3 = []
-    #     l4 = []
-    #     l5 = []
-    #     l6 = []
-    #     for a in self.grid.get_all_cell_contents():
-    #         l1.append(a.unique_id)
-    #         l2.append(a.pos)
-    #     # print("图上存在的agent的id，pos")
-    #     # print(l1, l2)  # 图上存在的agent的id，pos
-    #     # print("self.G.nodes")
-    #     # print(self.G.nodes)  # 所有nodes的id
-    #     for a in self.schedule.agents:
-    #         if isinstance(a, OrderAgent):
-    #             l3.append(a.unique_id)
-    #             l4.append(a.pos)
-    #         elif isinstance(a, ServiceAgent):
-    #             l5.append(a.unique_id)
-    #             l6.append(a.pos)
-    #     # print("运行队列中order的id，pos")
-    #     # print(l3, l4)  # 运行队列中order的id，pos
-    #     # print("运行队列中service的id，pos")
-    #     # print(l5, l6)  # 运行队列中service的id，pos
-    #     print(len(l1) == len(l3) + len(l5))
-    #     print(set(l6) == set(self.G.nodes))
 
 
 # 注册强化学习环境
