@@ -43,7 +43,7 @@ def save_ckpt(trainer, result, ckpt_frequency, run_dir):
     if global_step % ckpt_frequency == 0:
         save_torch_model_weights(trainer, ckpt_dir, global_step)
         path = trainer.save(ckpt_dir)
-        remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
+        #remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
         print("checkpoint saved at", path)
         return path
     else:
