@@ -816,6 +816,10 @@ class CloudManufacturing(BaseEnvironment):
 
         return self.obs, reward, self.done, info
 
+    def run_model(self):
+        for i in range(300):
+            self.step()
+
 
 # 计算两位置的直线距离
 def distance(A, B):
@@ -841,17 +845,6 @@ def skill_constraint(order, service):
     if all([(b - a) >= 0 for (a, b) in zip(order.skills[0], service.skills[0])]):
         list[0] = 1
 
-    # 判断订单的难度是否为企业可以处理的难度
-    # for k in reversed(order.skills[1]):
-    #     order_diff = order_diff + k * 2 ^ i
-    #     i += 1
-
-    # for k in reversed(service.skills[1]):
-    #     service_diff = service_diff + k * 2 ^ j
-    #     j += 1
-
-    # if order_diff <= service_diff:
-    #     list[1] = 1
     if order.order_difficulty <= service.difficulty:
         list[1] = 1
 
@@ -879,38 +872,7 @@ def env_creator(env_config):  # 此处的 env_config对应 我们在建立traine
 
 register_env(CloudManufacturing.name, env_creator)
 
-# def build_Trainer(run_configuration):
-#     trainer_config = run_configuration.get("trainer")
-#     env_config = run_configuration.get("env")["env_config"]
-#
-#     # === Multiagent Policies ===
-#     dummy_env = RLlibEnvWrapper(env_config, CloudManufacturing)
-#
-#     # Policy tuples for agent/planner policy types
-#     agent_policy_tuple = (
-#         None,
-#         dummy_env.observation_space,
-#         dummy_env.action_space,
-#         run_configuration.get("agent_policy"),
-#     )
-#
-#     policies = {"a": agent_policy_tuple}
-#
-#     def policy_mapping_fun(i):
-#         return "a"
-#
-#     trainer_config.update({
-#         "env_config": env_config,
-#         'framework': 'torch',
-#         "multiagent": {
-#             "policies": policies,
-#             "policies_to_train": ["a"],
-#             "policy_mapping_fn": policy_mapping_fun,
-#         },
-#         "num_workers": trainer_config.get("num_workers")
-#     })
-#
-#     trainer = A2CTrainer(env=run_configuration.get("env")["env_name"], config=trainer_config)
-#
-#     return trainer
-#
+
+if __name__ == "__main__":
+    model = CloudManufacturing()
+    model.run_model()
