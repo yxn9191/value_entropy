@@ -13,7 +13,6 @@ trainer:
   ignore_worker_failures: true
   observation_filter: NoFilter
   rollout_fragment_length: 200
-#  microbatch_size: 40
   train_batch_size: 200
 #  num_gpus_per_worker: 1
   num_envs_per_worker: 2
