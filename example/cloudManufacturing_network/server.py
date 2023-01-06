@@ -7,8 +7,8 @@ from rl.doTrain import process_args, build_Trainer, current_path
 from serviceAgent import ServiceAgent
 from env import CloudManufacturing_network
 from orderAgent import OrderAgent
-
-# current_path = os.path.split(os.path.realpath(__file__))[0]
+import rl.policy_model
+current_path = os.path.split(os.path.realpath(__file__))[0]
 
 # 获取参数
 run_dir, run_config = process_args()

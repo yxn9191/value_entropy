@@ -13,17 +13,17 @@ trainer:
   ignore_worker_failures: true
   observation_filter: NoFilter
   rollout_fragment_length: 200
-  train_batch_size: 800
+  train_batch_size: 200
 #  num_gpus_per_worker: 1
   num_envs_per_worker: 2
 #  num_gpus: 1
 
 general:
-  ckpt_frequency_steps: 1000
+  ckpt_frequency_steps: 100
   episodes: 100
   gpus: 1
-  ckpt_path:
-  restore_torch_weights_agents:
+  ckpt_path: rl/phase/ckpts/checkpoint_000002
+  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-16                                                                                                                                                                     00
 
 agent_policy:
   clip_param: 0.3
