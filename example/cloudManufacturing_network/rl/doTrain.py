@@ -4,12 +4,11 @@ import sys
 
 import ray
 import yaml
-import policy_model #必须引入，不然模型没有注册
+import policy_model  # 必须引入，不然模型没有注册
 from example.cloudManufacturing_network.env import CloudManufacturing_network
 
 current_path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(current_path)
-
 
 from utils.saving_and_loading import *
 # 必须后面引入不然会报错

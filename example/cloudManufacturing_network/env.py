@@ -489,6 +489,12 @@ class CloudManufacturing_network(mesa.Model):
                 if isinstance(agent, OrderAgent) or isinstance(agent, ServiceAgent):
                     self.schedule.remove(agent)
                     self.grid.remove_agent(agent)
+            self.actions = {}
+            # 重新初始化地图
+            prob = self.avg_node_degree / self.num_nodes
+            # 初始网络状态是由num_nodes个节点组成的随机网络，平均节点度数由参数avg_node_degree调控
+            self.G = nx.erdos_renyi_graph(n=self.num_nodes, p=prob)
+            self.grid = mesa.space.NetworkGrid(self.G)
             # 重新初始化企业
             self.init_services()
             self.set_intelligence(self.new_services)
@@ -628,6 +634,8 @@ class CloudManufacturing_network(mesa.Model):
 
     def run_model(self):
         for i in range(300):
+            # if i == 140:
+            #     self.reset()
             self.step()
 
     # def test(self):

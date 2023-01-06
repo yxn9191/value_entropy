@@ -41,7 +41,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
     """
 
     def __init__(self, env_config=None, mesaEnv=mesa.Model):
-        super(RLlibEnvWrapper, self).__init__
+        super(RLlibEnvWrapper, self).__init__()
         self.env_config = env_config
 
         self.env = mesaEnv(**self.env_config["env_config_dict"])
@@ -56,7 +56,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
         # 定义动作空间, 定义多少动作该智能体可以选择,即多少订单可以选
         if self.env.all_agents[0].multi_action_mode:
             self.action_space = spaces.MultiDiscrete(
-                self.env.self.env.all_agents[0].action_spaces
+                self.env.all_agents[0].action_spaces
             )
             self.action_space.dtype = np.int64
             self.action_space.nvec = self.action_space.nvec.astype(np.int64)
@@ -70,7 +70,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
         # 定义观察空间, 定义智能体观察的范围，具体形式为键值对， {name: value}
         sample_agent = list(obs.keys())[0]
         self.observation_space = self._dict_to_spaces_dict(obs[sample_agent])
-        self._agent_ids = self.env._agent_lookup.keys()
+        self._agent_ids = obs.keys()
 
     def get_seed(self):
         return int(self._seed)
@@ -130,6 +130,7 @@ class RLlibEnvWrapper(MultiAgentEnv):
 
     def reset(self, *args, **kwargs):
         obs = self.env.reset(*args, **kwargs)
+        self._agent_ids = obs.keys()
         return recursive_list_to_np_array(obs)
 
     def step(self, action_dict):
