@@ -18,6 +18,7 @@ ckpt = run_config["general"].get(
     "ckpt_path", ""
 )
 ckpt = os.path.join(current_path, ckpt)
+print(ckpt)
 trainer.restore(str(ckpt))
 
 starting_weights_path_agents = run_config["general"].get(
@@ -115,7 +116,7 @@ model_params = {
         "Number of agents", description="Initial Service Numbers", value=20, min_value=0, max_value=500, step=5
     ),
     "ratio_low": mesa.visualization.Slider(
-        "The ratio of low_intelligence", description="Initial ratio_low", value=0.0, min_value=0, max_value=1, step=0.1
+        "The ratio of low_intelligence", description="Initial ratio_low", value=1.0, min_value=0, max_value=1, step=0.1
     ),
     "ratio_medium": mesa.visualization.Slider(
         "The ratio of medium_intelligence", description="Initial ratio_medium", value=0.0, min_value=0, max_value=1,

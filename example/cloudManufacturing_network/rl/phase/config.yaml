@@ -23,7 +23,7 @@ general:
   episodes: 100
   gpus: 1
   ckpt_path: rl/phase/ckpts/checkpoint_000002
-  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-16                                                                                                                                                                     00
+  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-1600
 
 agent_policy:
   clip_param: 0.3
