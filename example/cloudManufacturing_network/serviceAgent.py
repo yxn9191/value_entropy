@@ -5,6 +5,8 @@ import random
 import mesa
 import networkx as nx
 
+from copy import deepcopy
+
 
 class ServiceAgent(mesa.Agent):
     name = "Service"
@@ -17,7 +19,7 @@ class ServiceAgent(mesa.Agent):
                  energy=random.uniform(100, 200),
                  failure_prob=0.1,
                  cooperation=1,
-                 move_cost=3,
+                 move_cost=30,
                  intelligence_level=2,
                  multi_action_mode=False
                  ):
@@ -47,7 +49,8 @@ class ServiceAgent(mesa.Agent):
         self.order_select = None  #
         self.order = None  # 企业正在处理的order，存的是order的unique_id，中低智能时是通过env的get_action()存入的，高智能的是在平台反选里存入的
         self.arrive_pos_time = 0  # 企业到达处理订单的地点的时间
-        self.is_cooperating = 0 # 0不是在协作，1正在协作
+        self.is_cooperating = 0  # 0不是在协作，1正在协作
+        self.last_order = None # 企业上一个处理过的订单
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -101,15 +104,17 @@ class ServiceAgent(mesa.Agent):
         # 企业有一定几率处理订单失败，如果prob >= self.failure_prob则没有失败，接着处理
         if prob >= self.failure_prob and self.order:
             order = self.model._resource_lookup[str(self.order)]
+            order.occupied = 1
             try:
                 # value是企业获得的收益，合作企业是均分收益的
                 value = order.bonus / len(order.services)
                 # 将企业的合作企业们，填入self.cooperation_service
                 if len(order.services) > 1:
-                    print("企业发生了协作！！！")
                     self.is_cooperating = 1
-                    services_remove_self = order.services.remove(str(self.unique_id))
-
+                    # print("order.services", order.services)
+                    services_remove_self = deepcopy(order.services)
+                    services_remove_self.remove(str(self.unique_id))
+                    print("企业{}发生了协作，伙伴为".format(self.unique_id), services_remove_self)
                     for aid in services_remove_self:
                         # if aid != self.unique_id:
                         if str(aid) in self.cooperation_service.keys():
@@ -118,13 +123,13 @@ class ServiceAgent(mesa.Agent):
                             self.cooperation_service[str(aid)] += 1
                             node_list = nx.shortest_path(G=self.model.G, source=self.model._agent_lookup[str(aid)].pos,
                                                          target=self.model._agent_lookup[str(self.unique_id)].pos)
-                            print("source", self.model._agent_lookup[str(aid)].pos)
-                            print("target", self.model._agent_lookup[str(self.unique_id)].pos)
-                            print(str(aid), str(self.unique_id))
-                            print("node_list", node_list)
+                            # print("source", self.model._agent_lookup[str(aid)].pos)
+                            # print("target", self.model._agent_lookup[str(self.unique_id)].pos)
+                            # print(str(aid), str(self.unique_id))
+                            # print("node_list", node_list)
                         else:
                             self.cooperation_service.update({str(aid): 1})
-                    print("该企业的协作企业和次数", self.cooperation_service)
+                    # print("该企业的协作企业和次数", self.cooperation_service)
             except ZeroDivisionError:
                 raise TypeError(self.model.necessary_constraint(order, [self.unique_id]),
                                 order.occupied, order.order_type, order.order_difficulty,
@@ -134,17 +139,15 @@ class ServiceAgent(mesa.Agent):
             cost = order.cost / len(order.services) + self.distance(order) * self.move_cost
             self.state = 1  # 状态改变，开始移动
 
-            # 记录企业的订单处理完成时间
-            self.order_end_time = self.model.schedule.steps + order.handling_time + self.distance(order) / self.speed
             # 记录企业预计到达处理订单的地点的时间
             self.arrive_pos_time = int(self.model.schedule.steps + self.distance(order) / self.speed)
+            # 记录企业的订单处理完成时间
+            self.order_end_time = int(self.arrive_pos_time + order.handling_time)
             print("企业预计到达处理订单的地点的时间:", self.arrive_pos_time)
 
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= order.cost / len(order.services)
-            print("企业选择了订单，接下来开始移动，本次利润将为(考虑了所有消耗):", value - cost,
-                  "选择的订单能提供的总收益(不考虑合作和移动消耗)为:",
-                  order.bonus)
+            print("企业{}选择了订单{}，接下来开始移动，本次利润将为".format(self.unique_id, self.order), value - cost)
         else:
             self.state = 0
             self.order = None
@@ -152,35 +155,15 @@ class ServiceAgent(mesa.Agent):
         return value, cost
 
     def step(self):
+        # 企业可能发生，在还没移动到执行订单时，就快破产了，对此的处理为，一旦他有需要处理的订单，能量就不再减少
+        # 于此同时，移动消耗也发生在获得利益时刻
         if self.energy < 0:
             print("企业破产了，他的id:", self.unique_id)
             self.done = True
 
         # 假定每个step，企业的能量自动减少5
-        self.energy -= 5
-
-        # 如果当前时刻，订单完成
-        if self.state == 2 and self.order_end_time <= self.model.schedule.steps:
-            self.state = 0
-            self.is_cooperating = 0
-            flag = 0
-            # 所有合作的企业都处理完了，订单才算处理完了
-            try:
-                order = self.model._resource_lookup[str(self.order)]
-            except KeyError:
-                raise KeyError(self.order)
-            for a_id in order.services:
-                agent = self.model._agent_lookup[a_id]
-                if agent.state != 0:
-                    flag = 1
-                    break
-            if flag == 0:
-                for a_id in order.services:
-                    agent = self.model._agent_lookup[a_id]
-                    # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
-                    agent.energy += order.bonus / len(order.services)
-                    print("企业处理结束订单，获得收益", order.bonus, len(order.services), order.order_type)
-                order.done = True
+        if not self.order:
+            self.energy -= 5
 
         # 中低智能的process_order()在这里调用，而高智能的在env的step里调用，手动计算了reward，要在env的step最后返回
         if self.state == 0:
@@ -193,18 +176,52 @@ class ServiceAgent(mesa.Agent):
             # 移动消耗依然作数，只是所谓的移动是虚拟的，没有真实改变agent的位置
             # 计算时间，到达了地点，转为处理订单状态
             if int(self.model.schedule.steps) == int(self.arrive_pos_time):
-                print("企业转为处理订单状态")
+                print("企业{}转为处理订单{}状态".format(self.unique_id, self.order))
                 self.state = 2
+
+        # 如果当前时刻，订单完成
+        if self.state == 2 and (int(self.order_end_time) == int(self.model.schedule.steps)):
+            try:
+                order = self.model._resource_lookup[str(self.order)]
+            except KeyError:
+                raise KeyError(self.order)
+            self.state = 0
+            self.is_cooperating = 0
+            self.last_order = self.order
+            self.order = None
+            flag = 0
+            services_remove_self = deepcopy(order.services)
+            services_remove_self.remove(str(self.unique_id))
+            # 所有合作的企业都处理完了，订单才能被销毁，所有企业才能一起获得收益
+            for a_id in services_remove_self:
+                agent = self.model._agent_lookup[str(a_id)]
+                # print("agent.state", agent.state, type(agent.state))
+                # 因为内部调度不是并行的，是randomactive，可能存在一个agent都执行完成订单，而另一个订单还处于没开始执行的情况，这样会导致仅仅通过state
+                # 来判断所有企业都执行完成了订单这件事，是错误的，必须加其他的约束
+                # 应该记录协作企业上一个处理的订单，如果不是当前企业正在处理的订单号，则没有全部处理完成
+                if agent.last_order != self.order:
+                    flag = 1
+                    break
+            if flag == 0:
+                for a_id in order.services:
+                    agent = self.model._agent_lookup[str(a_id)]
+                    # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
+                    agent.energy += order.bonus / len(order.services)
+                    # 为了防止企业提前死去，移动消耗最后再减
+                    agent.energy -= self.move_cost * self.distance(order)
+                    print("企业{}处理结束订单{}，已经分得订单利益{},过程中移动消耗为{},处理订单消耗为{}".format(agent.unique_id, order.unique_id,order.bonus / len(order.services),self.move_cost * self.distance(order),order.cost / len(order.services)))
+                order.done = True
 
     def move(self):
         try:
             order = self.model._resource_lookup[str(self.order)]
+            print("企业{}正在向订单{}移动".format(self.unique_id,self.order))
         except KeyError:
-            raise KeyError(self.action, self.state, self.order)
+            raise KeyError(self.action, self.state, self.order, self.unique_id)
 
-        # 移动每一步都有消耗
-        # 只计算消耗，企业实际不移动了，pos不改变
-        self.energy -= self.move_cost * self.distance(order)
+        # # 移动每一步都有消耗
+        # # 只计算消耗，企业实际不移动了，pos不改变
+        # self.energy -= self.move_cost * self.speed
 
     def distance(self, order):
         if nx.has_path(self.model.grid.G, source=self.pos, target=order.pos):

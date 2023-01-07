@@ -42,7 +42,7 @@ def network_portrayal(G):
 
     def edge_color(agent1, agent2):
         # 如果企业有协作，连边为黑色
-        if agent1.is_cooperating == 1 and agent2.self.is_cooperating == 1:
+        if agent1.is_cooperating == 1 and agent2.is_cooperating == 1:
             return "#000000"
         # 否则连边为灰色
         else:
