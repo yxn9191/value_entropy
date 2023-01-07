@@ -24,7 +24,7 @@ class CloudManufacturing_network(mesa.Model):
             self,
             num_nodes=20,
             avg_node_degree=3,
-            ratio_low=1,
+            ratio_low=0,
             ratio_medium=0,
             is_training=True,
             trainer=None,
@@ -83,8 +83,9 @@ class CloudManufacturing_network(mesa.Model):
 
         self.datacollector = mesa.DataCollector(
             {
-                "num_nodes": lambda a: self.get_nums_of_agents(),
-                "num_orders": lambda a: self.get_nums_of_orders()
+                "productivity": lambda a: self.scenario_metrics()["social/productivity"],
+                "equality": lambda a: self.scenario_metrics()["social/equality"],
+                "social_welfare": lambda a: self.scenario_metrics()["social_welfare/eq_times_productivity"]
             }
         )
 
@@ -200,8 +201,9 @@ class CloudManufacturing_network(mesa.Model):
             if 0 < self.distance(order.pos, service.pos) <= order.vision and \
                     self.distance(order.pos, service.pos) / service.speed <= (
                     order.left_duration - order.handling_time) and \
-                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost) and \
-                    self.skill_constraint(order, service).count(1) == 2:
+                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost):
+                    # and \
+                    # self.skill_constraint(order, service).count(1) == 2:
                 return 1
             else:
                 return 0
@@ -210,8 +212,9 @@ class CloudManufacturing_network(mesa.Model):
             if 0 < self.distance(order.pos, service.pos) <= order.vision and \
                     self.distance(order.pos, service.pos) / service.speed <= (
                     order.left_duration - order.handling_time) and \
-                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost) and \
-                    self.skill_constraint(order, service).count(1) > 0:
+                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost):
+                    # and \
+                    # self.skill_constraint(order, service).count(1) > 0:
 
                 return 1
             else:
@@ -255,7 +258,8 @@ class CloudManufacturing_network(mesa.Model):
             total_move_cost += self.distance(order.pos, service.pos) * service.move_cost
             total_skill = [int(a or b) for (a, b) in zip(self.skill_constraint(order, service), total_skill)]
         # 整体预算约束：小组成员的行程代价之和加上处理订单的消耗小于订单给予的价值（等于也不行，那不是白干了）&& 整体技能须满足该订单所有的技能要求
-        if order.bonus >= total_move_cost + order.cost and sum(total_skill) == 2:
+        # if order.bonus >= total_move_cost + order.cost and sum(total_skill) == 2:
+        if order.bonus >= total_move_cost + order.cost:
             return 1
         else:
             return 0
@@ -334,20 +338,19 @@ class CloudManufacturing_network(mesa.Model):
                     for agent1 in order_action[o_id][types[0]].keys():
                         for agent2 in order_action[o_id][types[1]].keys():
                             if self.necessary_constraint(order_, [agent1, agent2]):
-                                list_service[str(agent1.unique_id) + "+" + str(agent2.unique_id)] = \
-                                    order_action[o_id][service_type][agent1.unique_id] + \
-                                    order_action[o_id][service_type][agent2.unique_id]
+                                list_service[str(agent1) + "+" + str(agent2)] = \
+                                    order_action[o_id][types[0]][agent1] + \
+                                    order_action[o_id][types[1]][agent2]
 
                 if len(order_.order_type) == 3:
                     for agent1 in order_action[o_id]["A"].keys():
                         for agent2 in order_action[o_id]["B"].keys():
                             for agent3 in order_action[o_id]["C"].keys():
                                 if self.necessary_constraint(order_, [agent1, agent2, agent3]):
-                                    list_service[str(agent1.unique_id) + "+" + str(agent2.unique_id) + "+" + str(
-                                        agent3.unique_id)] = \
-                                        order_action[o_id][service_type][agent1.unique_id] + \
-                                        order_action[o_id][service_type][agent2.unique_id] + \
-                                        order_action[o_id][service_type][agent3.unique_id]
+                                    list_service[str(agent1) + "+" + str(agent2) + "+" + str(agent3)] = \
+                                        order_action[o_id]["A"][agent1] + \
+                                        order_action[o_id]["B"][agent2] + \
+                                        order_action[o_id]["C"][agent3]
 
                 if len(list_service) > 0:
                     x = min(list_service.items(), key=lambda x: x[1])[0]
@@ -370,7 +373,7 @@ class CloudManufacturing_network(mesa.Model):
     # 计算graph中两点的最短距离
     def distance(self, agent_pos, order_pos):
         if nx.has_path(self.grid.G, source=agent_pos, target=order_pos):
-            return nx.shortest_path_length(self.grid.G, source=agent_pos, target=order_pos)
+            return nx.shortest_path_length(self.grid.G, source=agent_pos, target=order_pos, weight=None)
         else:
             return -1
 
@@ -567,15 +570,16 @@ class CloudManufacturing_network(mesa.Model):
                     a = ServiceAgent(
                         unique_id=self.next_id(),
                         model=self,
-                        service_type=max_energy_agent.service_type,
+                        service_type=generate_service_type(),  # 如果类型也模仿，会逐渐变成全部地图为同一类型的企业。这个需要思考
                         difficulty=max_energy_agent.difficulty,
                         energy=generate_energy(),
                     )
                     # Add the agent to the node
-                    self.grid.place_agent(a, node)
                     a.pos = node
+                    self.grid.place_agent(a, node)
                     self.schedule.add(a)
                     self.new_services.append(a)
+                    print("新加入的节点位置", a.pos)
 
         self.set_all_agents_list()
         self.set_intelligence(self.new_services)
@@ -603,9 +607,9 @@ class CloudManufacturing_network(mesa.Model):
             for agent_idx, agent_actions in self.actions.items():
                 if int(agent_idx) > 0:
                     # 当企业本轮没有破产，且目前状态是空闲时，才能传递给它新的动作
-                    if self._agent_lookup.get(str(agent_idx), None) and self._agent_lookup.get(str(agent_idx),
-                                                                                               None).state == 0:
-                        self._agent_lookup.get(str(agent_idx), None).action_parse(agent_actions)
+                    # if self._agent_lookup.get(str(agent_idx), None) and self._agent_lookup.get(str(agent_idx),
+                    #                                                                            None).state == 0:
+                    self._agent_lookup.get(str(agent_idx), None).action_parse(agent_actions)
 
             # 平台反选
             self.order_select()
@@ -633,38 +637,12 @@ class CloudManufacturing_network(mesa.Model):
         return self.obs, reward, self.done, info
 
     def run_model(self):
+
         for i in range(300):
             # if i == 140:
             #     self.reset()
             self.step()
-
-    # def test(self):
-    #     l1 = []
-    #     l2 = []
-    #     l3 = []
-    #     l4 = []
-    #     l5 = []
-    #     l6 = []
-    #     for a in self.grid.get_all_cell_contents():
-    #         l1.append(a.unique_id)
-    #         l2.append(a.pos)
-    #     # print("图上存在的agent的id，pos")
-    #     # print(l1, l2)  # 图上存在的agent的id，pos
-    #     # print("self.G.nodes")
-    #     # print(self.G.nodes)  # 所有nodes的id
-    #     for a in self.schedule.agents:
-    #         if isinstance(a, OrderAgent):
-    #             l3.append(a.unique_id)
-    #             l4.append(a.pos)
-    #         elif isinstance(a, ServiceAgent):
-    #             l5.append(a.unique_id)
-    #             l6.append(a.pos)
-    #     # print("运行队列中order的id，pos")
-    #     # print(l3, l4)  # 运行队列中order的id，pos
-    #     # print("运行队列中service的id，pos")
-    #     # print(l5, l6)  # 运行队列中service的id，pos
-    #     print(len(l1) == len(l3) + len(l5))
-    #     print(set(l6) == set(self.G.nodes))
+            print(self.G.nodes)
 
 
 # 注册强化学习环境

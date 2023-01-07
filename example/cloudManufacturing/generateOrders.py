@@ -50,9 +50,9 @@ def order_money(order_type):
     if len(list(order_type))== 1:
         return random.uniform(5e2, 1e3)
     elif len(list(order_type)) == 2:
-        return random.uniform(1e3, 2e3)
+        return random.uniform(3e3, 5e3)
     elif len(list(order_type)) == 3:
-        return random.uniform(2e3, 3e3)
+        return random.uniform(1e4, 3e4)
 
 
 # 订单处理成本

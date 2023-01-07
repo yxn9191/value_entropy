@@ -512,20 +512,19 @@ class CloudManufacturing(BaseEnvironment):
                     for agent1 in order_action[o_id][types[0]].keys():
                         for agent2 in order_action[o_id][types[1]].keys():
                             if self.necessary_constraint(order_, [agent1, agent2]):
-                                list_service[str(agent1.unique_id) + "+" + str(agent2.unique_id)] = \
-                                    order_action[o_id][service_type][agent1.unique_id] + \
-                                    order_action[o_id][service_type][agent2.unique_id]
+                                list_service[str(agent1) + "+" + str(agent2)] = \
+                                    order_action[o_id][types[0]][agent1] + \
+                                    order_action[o_id][types[1]][agent2]
 
                 if len(order_.order_type) == 3:
                     for agent1 in order_action[o_id]["A"].keys():
                         for agent2 in order_action[o_id]["B"].keys():
                             for agent3 in order_action[o_id]["C"].keys():
                                 if self.necessary_constraint(order_, [agent1, agent2, agent3]):
-                                    list_service[str(agent1.unique_id) + "+" + str(agent2.unique_id) + "+" + str(
-                                        agent3.unique_id)] = \
-                                        order_action[o_id][service_type][agent1.unique_id] + \
-                                        order_action[o_id][service_type][agent2.unique_id] + \
-                                        order_action[o_id][service_type][agent3.unique_id]
+                                    list_service[str(agent1) + "+" + str(agent2) + "+" + str(agent3)] = \
+                                        order_action[o_id]["A"][agent1] + \
+                                        order_action[o_id]["B"][agent2] + \
+                                        order_action[o_id]["C"][agent3]
 
                 if len(list_service) > 0:
                     x = min(list_service.items(), key=lambda x: x[1])[0]

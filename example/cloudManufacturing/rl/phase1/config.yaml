@@ -24,8 +24,8 @@ general:
   ckpt_frequency_steps: 1000
   episodes: 40
   gpus: 1
-  ckpt_path: rl/phase1/ckpts/checkpoint_000557
-  restore_torch_weights_agents: rl/phase1/ckpts/torch.weights.global-step-12000
+  ckpt_path:
+  restore_torch_weights_agents:
 
 agent_policy:
   clip_param: 0.3

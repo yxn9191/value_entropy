@@ -20,28 +20,12 @@ trainer:
   # num_gpus: 1
 
 general:
-<<<<<<< HEAD
-  ckpt_frequency_steps: 10
-  episodes: 4
-  ckpt_path: /home/bertrand/ray_results/A2C_CloudManufacturing_2022-11-27_20-55-39f5v28u9c/checkpoint_000001
-  restore_torch_weights_agents: phase/ckpts/torch.weights.global-step-100
-=======
   ckpt_frequency_steps: 1000
   episodes: 100
   gpus: 1
-<<<<<<< HEAD
-<<<<<<< HEAD
-  ckpt_path: 
-  restore_torch_weights_agents: 
->>>>>>> 0ea7186f5ff1f557087e095c3e6bfb476e8ce558
-=======
-  ckpt_path: rl/phase/ckpts/checkpoint_000024
-  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-5000
->>>>>>> ada3567b72fbdea97200697308ce6e60c353d0af
-=======
   ckpt_path:
   restore_torch_weights_agents:
->>>>>>> 105a5c9e750ed651272ecb6b4668ae64bb255278
+
 
 agent_policy:
   clip_param: 0.3

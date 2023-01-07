@@ -2,12 +2,13 @@ import os
 import mesa
 
 from example.cloudManufacturing_network.rl.utils.saving_and_loading import load_torch_model_weights
-from rl.doTrain import process_args, build_Trainer, current_path
-
-from serviceAgent import ServiceAgent
+from example.cloudManufacturing_network.orderAgent import OrderAgent
+from example.cloudManufacturing_network.serviceAgent import ServiceAgent
+from rl.doTrain import process_args, build_Trainer
 from env import CloudManufacturing_network
-from orderAgent import OrderAgent
+
 import rl.policy_model
+
 current_path = os.path.split(os.path.realpath(__file__))[0]
 
 # 获取参数
@@ -30,24 +31,38 @@ load_torch_model_weights(trainer, starting_weights_path_agents)
 
 def network_portrayal(G):
     def node_color(agents):
-        if get_order_agent(agents):
-            # 当该节点上有订单时，颜色为黄色
-            return "Yellow"
-        else:
-            # 否则，根据企业类型决定节点颜色
-            return {"A": "#FF0000", "B": "#008000", "C": "#000080"}.get(
-                get_service_agent(agents).service_type, "#808080"
-            )
+        # if get_order_agent(agents):
+        #     # 当该节点上有订单时，颜色为黄色
+        #     return "Yellow"
+        # else:
+        #     # 否则，根据企业类型决定节点颜色
+        return {"A": "#FF0000", "B": "#008000", "C": "#000080"}.get(
+            get_service_agent(agents).service_type, "#808080"
+        )
 
     def edge_color(agent1, agent2):
-        # if State.RESISTANT in (agent1.state, agent2.state):
-        #     return "#000000"
-        return "#e8e8e8"
+        # 如果企业有协作，连边为黑色
+        if agent1.is_cooperating == 1 and agent2.self.is_cooperating == 1:
+            return "#000000"
+        # 否则连边为灰色
+        else:
+            return "#e8e8e8"
 
+    # 修改为给边增加权重绘图
     def edge_width(agent1, agent2):
         # if State.RESISTANT in (agent1.state, agent2.state):
         #     return 3
-        return 2
+        # 根据企业的协作次数，改变连边粗细
+        num = agent1.cooperation_service.get(str(agent2.unique_id), None)
+        if num:
+            if num == 1:
+                return 3
+            elif num == 2:
+                return 4
+            else:
+                return 5
+        else:
+            return 2
 
     # 分别返回source节点的serviceAgent，返回target节点的serviceAgent
     def get_agents(source, target):
@@ -70,9 +85,8 @@ def network_portrayal(G):
     def get_size(agents):
         energy = get_service_agent(agents).energy
         if energy > 0:
-            return energy / 30 if energy < 360 else 12
+            return energy / 30 if energy < 300 else 10
         else:
-            print("出现了energy<0的显示问题")
             return 5
 
     portrayal = dict()
@@ -103,8 +117,9 @@ def network_portrayal(G):
 network = mesa.visualization.NetworkModule(network_portrayal, 500, 800)
 chart = mesa.visualization.ChartModule(
     [
-        {"Label": "num_nodes", "Color": "#FF0000"},
-        {"Label": "num_orders", "Color": "#008000"}
+        {"Label": "productivity", "Color": "#FF0000"},
+        {"Label": "equality", "Color": "#008000"},
+        {"Label": "social_welfare", "Color": "#000080"}
     ]
 )
 
@@ -138,3 +153,5 @@ server = mesa.visualization.ModularServer(
     model_params,
 )
 server.port = 8523
+# model = CloudManufacturing_network(trainer=trainer, is_training=False)
+# model.run_model()
