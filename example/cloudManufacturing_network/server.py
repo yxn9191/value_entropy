@@ -40,14 +40,28 @@ def network_portrayal(G):
         )
 
     def edge_color(agent1, agent2):
-        # if State.RESISTANT in (agent1.state, agent2.state):
-        #     return "#000000"
-        return "#e8e8e8"
+        # 如果企业有协作，连边为黑色
+        if agent1.is_cooperating == 1 and agent2.self.is_cooperating == 1:
+            return "#000000"
+        # 否则连边为灰色
+        else:
+            return "#e8e8e8"
 
+    # 修改为给边增加权重绘图
     def edge_width(agent1, agent2):
         # if State.RESISTANT in (agent1.state, agent2.state):
         #     return 3
-        return 2
+        # 根据企业的协作次数，改变连边粗细
+        num = agent1.cooperation_service.get(str(agent2.unique_id), None)
+        if num:
+            if num == 1:
+                return 3
+            elif num == 2:
+                return 4
+            else:
+                return 5
+        else:
+            return 2
 
     # 分别返回source节点的serviceAgent，返回target节点的serviceAgent
     def get_agents(source, target):
@@ -69,11 +83,9 @@ def network_portrayal(G):
 
     def get_size(agents):
         energy = get_service_agent(agents).energy
-        print("energy",energy)
         if energy > 0:
             return energy / 15 if energy < 150 else 10
         else:
-            print("出现了energy<0的显示问题")
             return 5
 
     portrayal = dict()

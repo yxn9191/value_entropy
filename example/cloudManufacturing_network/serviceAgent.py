@@ -35,7 +35,7 @@ class ServiceAgent(mesa.Agent):
         self.move_cost = move_cost  # 移动单位距离的开销
         self.failure_prob = failure_prob  # 企业处理失败订单的概率
         self.create_time = self.model.schedule.steps  # 企业agent被创建时间
-        self.cooperation_service = []
+        self.cooperation_service = {}  # 企业的协作计数，{str(协作agentid):协作次数}
         self.multi_action_mode = bool(multi_action_mode)
         self.match_vector(self.service_type, self.difficulty)
         self.done = False  # 是否可以被移除
@@ -47,6 +47,7 @@ class ServiceAgent(mesa.Agent):
         self.order_select = None  #
         self.order = None  # 企业正在处理的order，存的是order的unique_id，中低智能时是通过env的get_action()存入的，高智能的是在平台反选里存入的
         self.arrive_pos_time = 0  # 企业到达处理订单的地点的时间
+        self.is_cooperating = 0 # 0不是在协作，1正在协作
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -103,6 +104,26 @@ class ServiceAgent(mesa.Agent):
             try:
                 # value是企业获得的收益，合作企业是均分收益的
                 value = order.bonus / len(order.services)
+                # 将企业的合作企业们，填入self.cooperation_service
+                if len(order.services) > 1:
+                    print("企业发生了协作！！！")
+                    self.is_cooperating = 1
+                    services_remove_self = order.services.remove(self.unique_id)
+                    for aid in services_remove_self:
+                        # if aid != self.unique_id:
+                        if str(aid) in self.cooperation_service.keys():
+                            # print("合作伙伴是否连通",
+                            # nx.has_path(self.model.G,source=self.model._agent_lookup[str(aid)].pos,target=self.model._agent_lookup[str(self.unique_id)].pos))
+                            self.cooperation_service[str(aid)] += 1
+                            node_list = nx.shortest_path(G=self.model.G, source=self.model._agent_lookup[str(aid)].pos,
+                                                         target=self.model._agent_lookup[str(self.unique_id)].pos)
+                            print("source", self.model._agent_lookup[str(aid)].pos)
+                            print("target", self.model._agent_lookup[str(self.unique_id)].pos)
+                            print(str(aid), str(self.unique_id))
+                            print("node_list", node_list)
+                        else:
+                            self.cooperation_service.update({str(aid): 1})
+                    print("该企业的协作企业和次数", self.cooperation_service)
             except ZeroDivisionError:
                 raise TypeError(self.model.necessary_constraint(order, [self.unique_id]),
                                 order.occupied, order.order_type, order.order_difficulty,
@@ -140,6 +161,7 @@ class ServiceAgent(mesa.Agent):
         # 如果当前时刻，订单完成
         if self.state == 2 and self.order_end_time <= self.model.schedule.steps:
             self.state = 0
+            self.is_cooperating = 0
             flag = 0
             # 所有合作的企业都处理完了，订单才算处理完了
             try:
@@ -185,6 +207,6 @@ class ServiceAgent(mesa.Agent):
 
     def distance(self, order):
         if nx.has_path(self.model.grid.G, source=self.pos, target=order.pos):
-            return nx.shortest_path_length(self.model.grid.G, source=self.pos, target=order.pos)
+            return nx.shortest_path_length(self.model.grid.G, source=self.pos, target=order.pos, weight=None)
         else:
             return -1

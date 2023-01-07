@@ -33,7 +33,7 @@ class OrderAgent(mesa.Agent):
         self.time_end = self.time_start + self.max_duration
         self.order_satisfaction = 0  # 订单方的满意度
         self.skills = [[]]  # 技能向量基本形式
-        self.services = []  # 参加完成该订单的企业
+        self.services = []  # 参加完成该订单的企业，存的是agent的unique_id
         self.match_vector(self.order_type, self.order_difficulty)
         self.done = False  # 订单是否被完成
         self.done_time = None  # 订单被处理结束的时间

@@ -370,7 +370,7 @@ class CloudManufacturing_network(mesa.Model):
     # 计算graph中两点的最短距离
     def distance(self, agent_pos, order_pos):
         if nx.has_path(self.grid.G, source=agent_pos, target=order_pos):
-            return nx.shortest_path_length(self.grid.G, source=agent_pos, target=order_pos)
+            return nx.shortest_path_length(self.grid.G, source=agent_pos, target=order_pos,weight=None)
         else:
             return -1
 
@@ -567,7 +567,7 @@ class CloudManufacturing_network(mesa.Model):
                     a = ServiceAgent(
                         unique_id=self.next_id(),
                         model=self,
-                        service_type=max_energy_agent.service_type,
+                        service_type=generate_service_type(), # 如果类型也模仿，会逐渐变成全部地图为同一类型的企业。这个需要思考
                         difficulty=max_energy_agent.difficulty,
                         energy=generate_energy(),
                     )
