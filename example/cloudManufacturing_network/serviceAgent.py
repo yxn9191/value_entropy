@@ -50,7 +50,7 @@ class ServiceAgent(mesa.Agent):
         self.order = None  # 企业正在处理的order，存的是order的unique_id，中低智能时是通过env的get_action()存入的，高智能的是在平台反选里存入的
         self.arrive_pos_time = 0  # 企业到达处理订单的地点的时间
         self.is_cooperating = 0  # 0不是在协作，1正在协作
-        self.last_order = None # 企业上一个处理过的订单
+        self.last_orders = []  # 企业曾经处理过的订单
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -143,7 +143,7 @@ class ServiceAgent(mesa.Agent):
             self.arrive_pos_time = int(self.model.schedule.steps + self.distance(order) / self.speed)
             # 记录企业的订单处理完成时间
             self.order_end_time = int(self.arrive_pos_time + order.handling_time)
-            print("企业预计到达处理订单的地点的时间:", self.arrive_pos_time)
+            # print("企业预计到达处理订单的地点的时间:", self.arrive_pos_time)
 
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= order.cost / len(order.services)
@@ -187,35 +187,40 @@ class ServiceAgent(mesa.Agent):
                 raise KeyError(self.order)
             self.state = 0
             self.is_cooperating = 0
-            self.last_order = self.order
+            self.last_orders.append(self.order)
+            print(self.last_orders)
             self.order = None
-            flag = 0
-            services_remove_self = deepcopy(order.services)
-            services_remove_self.remove(str(self.unique_id))
-            # 所有合作的企业都处理完了，订单才能被销毁，所有企业才能一起获得收益
-            for a_id in services_remove_self:
-                agent = self.model._agent_lookup[str(a_id)]
-                # print("agent.state", agent.state, type(agent.state))
-                # 因为内部调度不是并行的，是randomactive，可能存在一个agent都执行完成订单，而另一个订单还处于没开始执行的情况，这样会导致仅仅通过state
-                # 来判断所有企业都执行完成了订单这件事，是错误的，必须加其他的约束
-                # 应该记录协作企业上一个处理的订单，如果不是当前企业正在处理的订单号，则没有全部处理完成
-                if agent.last_order != self.order:
-                    flag = 1
-                    break
-            if flag == 0:
-                for a_id in order.services:
-                    agent = self.model._agent_lookup[str(a_id)]
-                    # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
-                    agent.energy += order.bonus / len(order.services)
-                    # 为了防止企业提前死去，移动消耗最后再减
-                    agent.energy -= self.move_cost * self.distance(order)
-                    print("企业{}处理结束订单{}，已经分得订单利益{},过程中移动消耗为{},处理订单消耗为{}".format(agent.unique_id, order.unique_id,order.bonus / len(order.services),self.move_cost * self.distance(order),order.cost / len(order.services)))
-                order.done = True
+            # flag = 0
+            # # 所有合作的企业都处理完了，订单才能被销毁，所有企业才能一起获得收益
+            # for a_id in order.services:
+            #     agent = self.model._agent_lookup[str(a_id)]
+            #     # print("agent.state", agent.state, type(agent.state))
+            #     # 因为内部调度不是并行的，是randomactive，可能存在一个agent都执行完成订单，而另一个订单还处于没开始执行的情况，这样会导致仅仅通过state
+            #     # 来判断所有企业都执行完成了订单这件事，是错误的，必须加其他的约束
+            #     # 应该记录协作企业曾经处理过的订单序列，如果不含当前企业正在处理的订单号，则没有全部处理完成
+            #     if self.order not in agent.last_orders:
+            #         print("agent.last_orders", agent.last_orders)
+            #         flag = 1
+            #         break
+            # if flag == 0:
+            #     for a_id in order.services:
+            #         agent = self.model._agent_lookup[str(a_id)]
+            #         # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
+            self.energy += order.bonus / len(order.services)
+            # 为了防止企业提前死去，移动消耗最后再减
+            self.energy -= self.move_cost * self.distance(order)
+            print("企业{}处理结束订单{}，已经分得订单利益{},过程中移动消耗为{},处理订单消耗为{}".format(
+                self.unique_id, order.unique_id, order.bonus / len(order.services),
+                self.move_cost * self.distance(order), order.cost / len(order.services)))
+            order.process_times += 1
+            #     order.done = True
+            # else:
+            #     print("企业{}等待其他企业处理订单".format(self.unique_id))
 
     def move(self):
         try:
             order = self.model._resource_lookup[str(self.order)]
-            print("企业{}正在向订单{}移动".format(self.unique_id,self.order))
+            print("企业{}正在向订单{}移动".format(self.unique_id, self.order))
         except KeyError:
             raise KeyError(self.action, self.state, self.order, self.unique_id)
 

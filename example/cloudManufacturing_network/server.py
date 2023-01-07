@@ -56,11 +56,11 @@ def network_portrayal(G):
         num = agent1.cooperation_service.get(str(agent2.unique_id), None)
         if num:
             if num == 1:
-                return 3
-            elif num == 2:
                 return 4
+            elif num == 2:
+                return 6
             else:
-                return 5
+                return 9
         else:
             return 2
 

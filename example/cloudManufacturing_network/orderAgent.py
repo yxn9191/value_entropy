@@ -39,6 +39,7 @@ class OrderAgent(mesa.Agent):
         self.done_time = None  # 订单被处理结束的时间
         self.order_select = None
         self.occupied = occupied  # 0表示正常状态，1表示被占用
+        self.process_times = 0 # 订单被企业处理过的次数，如果=类型长度，则订单死亡
 
     # 构建order的技能需求向量
     def match_vector(self, order_type, order_difficulty):
@@ -79,5 +80,8 @@ class OrderAgent(mesa.Agent):
         if self.left_duration == 0:
             # print("订单生命周期结束未被选择，死亡", self.unique_id)
             self.destroy()
+        if self.process_times == len(self.order_type):
+            self.destroy()
+            print("订单被处理完成，死亡")
 
         pass
