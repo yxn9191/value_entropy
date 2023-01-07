@@ -84,7 +84,7 @@ def network_portrayal(G):
     def get_size(agents):
         energy = get_service_agent(agents).energy
         if energy > 0:
-            return energy / 15 if energy < 150 else 10
+            return energy / 30 if energy < 300 else 10
         else:
             return 5
 
@@ -116,8 +116,9 @@ def network_portrayal(G):
 network = mesa.visualization.NetworkModule(network_portrayal, 500, 800)
 chart = mesa.visualization.ChartModule(
     [
-        {"Label": "num_nodes", "Color": "#FF0000"},
-        {"Label": "num_orders", "Color": "#008000"}
+        {"Label": "productivity", "Color": "#FF0000"},
+        {"Label": "equality", "Color": "#008000"},
+        {"Label": "social_welfare", "Color": "#000080"}
     ]
 )
 

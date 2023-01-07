@@ -83,8 +83,9 @@ class CloudManufacturing_network(mesa.Model):
 
         self.datacollector = mesa.DataCollector(
             {
-                "num_nodes": lambda a: self.get_nums_of_agents(),
-                "num_orders": lambda a: self.get_nums_of_orders()
+                "productivity": lambda a: self.scenario_metrics()["social/productivity"],
+                "equality": lambda a: self.scenario_metrics()["social/equality"],
+                "social_welfare": lambda a: self.scenario_metrics()["social_welfare/eq_times_productivity"]
             }
         )
 
@@ -370,7 +371,7 @@ class CloudManufacturing_network(mesa.Model):
     # 计算graph中两点的最短距离
     def distance(self, agent_pos, order_pos):
         if nx.has_path(self.grid.G, source=agent_pos, target=order_pos):
-            return nx.shortest_path_length(self.grid.G, source=agent_pos, target=order_pos,weight=None)
+            return nx.shortest_path_length(self.grid.G, source=agent_pos, target=order_pos, weight=None)
         else:
             return -1
 
@@ -478,7 +479,7 @@ class CloudManufacturing_network(mesa.Model):
                     policy_id="a",
                     full_fetch=False)
                 actions[str(agent.unique_id)] = int(results[str(agent.unique_id)])
-        #print("action", actions)
+        # print("action", actions)
         self.actions.update(actions)
 
     def reset(self):
@@ -567,7 +568,7 @@ class CloudManufacturing_network(mesa.Model):
                     a = ServiceAgent(
                         unique_id=self.next_id(),
                         model=self,
-                        service_type=generate_service_type(), # 如果类型也模仿，会逐渐变成全部地图为同一类型的企业。这个需要思考
+                        service_type=generate_service_type(),  # 如果类型也模仿，会逐渐变成全部地图为同一类型的企业。这个需要思考
                         difficulty=max_energy_agent.difficulty,
                         energy=generate_energy(),
                     )
@@ -576,8 +577,7 @@ class CloudManufacturing_network(mesa.Model):
                     self.grid.place_agent(a, node)
                     self.schedule.add(a)
                     self.new_services.append(a)
-                    print("新加入的节点位置",a.pos)
-
+                    print("新加入的节点位置", a.pos)
 
         self.set_all_agents_list()
         self.set_intelligence(self.new_services)
@@ -641,7 +641,6 @@ class CloudManufacturing_network(mesa.Model):
             #     self.reset()
             self.step()
             print(self.G.nodes)
-
 
 
 # 注册强化学习环境
