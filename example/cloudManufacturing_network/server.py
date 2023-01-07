@@ -69,8 +69,9 @@ def network_portrayal(G):
 
     def get_size(agents):
         energy = get_service_agent(agents).energy
+        print("energy",energy)
         if energy > 0:
-            return energy / 30 if energy < 360 else 12
+            return energy / 15 if energy < 150 else 10
         else:
             print("出现了energy<0的显示问题")
             return 5
