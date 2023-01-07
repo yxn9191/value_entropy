@@ -82,6 +82,6 @@ class OrderAgent(mesa.Agent):
             self.destroy()
         if self.process_times == len(self.order_type):
             self.destroy()
-            print("订单被处理完成，死亡")
+            print("订单{}被处理完成，死亡".format(self.unique_id))
 
         pass
