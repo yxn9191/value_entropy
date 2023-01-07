@@ -108,7 +108,6 @@ class ServiceAgent(mesa.Agent):
                 if len(order.services) > 1:
                     print("企业发生了协作！！！")
                     self.is_cooperating = 1
-
                     services_remove_self = order.services.remove(str(self.unique_id))
 
                     for aid in services_remove_self:

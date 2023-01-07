@@ -354,11 +354,11 @@ class CloudManufacturing_network(mesa.Model):
 
                 if len(list_service) > 0:
                     x = min(list_service.items(), key=lambda x: x[1])[0]
-                    order_.services.extend(x.split("+"))
+                    self._resource_lookup.get(str(o_id), None).services.extend(x.split("+"))
                     self._agent_lookup.get(str(order_.services[0]), None).order = order_.unique_id
                     self.finish_orders += 1
                     self._resource_lookup.get(str(o_id), None).occupied = 1
-                    self._resource_lookup.get(str(o_id), None).services.extend(x.split("+"))
+
                     for service_type in order_action[o_id].keys():
                         for a_id in order_action[o_id][service_type].keys():
                             if str(a_id) not in order_.services:
