@@ -201,8 +201,9 @@ class CloudManufacturing_network(mesa.Model):
             if 0 < self.distance(order.pos, service.pos) <= order.vision and \
                     self.distance(order.pos, service.pos) / service.speed <= (
                     order.left_duration - order.handling_time) and \
-                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost) and \
-                    self.skill_constraint(order, service).count(1) == 2:
+                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost):
+                    # and \
+                    # self.skill_constraint(order, service).count(1) == 2:
                 return 1
             else:
                 return 0
@@ -211,8 +212,9 @@ class CloudManufacturing_network(mesa.Model):
             if 0 < self.distance(order.pos, service.pos) <= order.vision and \
                     self.distance(order.pos, service.pos) / service.speed <= (
                     order.left_duration - order.handling_time) and \
-                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost) and \
-                    self.skill_constraint(order, service).count(1) > 0:
+                    self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost):
+                    # and \
+                    # self.skill_constraint(order, service).count(1) > 0:
 
                 return 1
             else:
@@ -256,7 +258,8 @@ class CloudManufacturing_network(mesa.Model):
             total_move_cost += self.distance(order.pos, service.pos) * service.move_cost
             total_skill = [int(a or b) for (a, b) in zip(self.skill_constraint(order, service), total_skill)]
         # 整体预算约束：小组成员的行程代价之和加上处理订单的消耗小于订单给予的价值（等于也不行，那不是白干了）&& 整体技能须满足该订单所有的技能要求
-        if order.bonus >= total_move_cost + order.cost and sum(total_skill) == 2:
+        # if order.bonus >= total_move_cost + order.cost and sum(total_skill) == 2:
+        if order.bonus >= total_move_cost + order.cost:
             return 1
         else:
             return 0
@@ -358,6 +361,7 @@ class CloudManufacturing_network(mesa.Model):
                     self._resource_lookup.get(str(o_id), None).occupied = 1
                     self._resource_lookup.get(str(o_id), None).services.extend(x.split("+"))
                     for service_type in order_action[o_id].keys():
+                        print("service_type",service_type)
                         for a_id in order_action[o_id][service_type].keys():
                             if str(a_id) not in order_.services:
                                 self._agent_lookup.get(str(a_id), None).action_parse(-1)
