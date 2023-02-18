@@ -117,9 +117,11 @@ def network_portrayal(G):
 network = mesa.visualization.NetworkModule(network_portrayal, 500, 800)
 chart = mesa.visualization.ChartModule(
     [
-        {"Label": "productivity", "Color": "#FF0000"},
+        # {"Label": "productivity", "Color": "#FF0000"},
         {"Label": "equality", "Color": "#008000"},
-        {"Label": "social_welfare", "Color": "#000080"}
+        {"Label": "SUtility", "Color": "#FF8C00"},  # 供给侧效能（社会层：联合效能）
+        {"Label": "DUtility", "Color": "#040082"},  # 需求侧效能
+        {"Label": "Effectiveness", "Color": "red"}  # 服务效能
     ]
 )
 
@@ -131,7 +133,7 @@ model_params = {
         "Number of agents", description="Initial Service Numbers", value=20, min_value=0, max_value=500, step=5
     ),
     "ratio_low": mesa.visualization.Slider(
-        "The ratio of low_intelligence", description="Initial ratio_low", value=1.0, min_value=0, max_value=1, step=0.1
+        "The ratio of low_intelligence", description="Initial ratio_low", value=0.0, min_value=0, max_value=1, step=0.1
     ),
     "ratio_medium": mesa.visualization.Slider(
         "The ratio of medium_intelligence", description="Initial ratio_medium", value=0.0, min_value=0, max_value=1,

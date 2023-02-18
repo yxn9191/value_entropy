@@ -9,7 +9,8 @@ import numpy as np
 from ray.tune import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper, recursive_list_to_np_array
-from base.utils.env_reward import get_equality, get_productivity
+from base.utils.env_reward import get_equality, get_productivity_network, get_effectiveness, get_sutility, get_dutility, \
+    get_self_utility
 from example.cloudManufacturing_network.generateOrders import all_orders_list
 from example.cloudManufacturing_network.generateService import generate_service_type, generate_difficulty, \
     generate_energy
@@ -64,6 +65,11 @@ class CloudManufacturing_network(mesa.Model):
         self.obs = {}  # 局部观测值，是强化学习的输入
         self.is_training = is_training  # model是处于训练状态还是推理状态，True是训练
         self.episode_length = episode_length  # 一次演化的时长
+        # 设定一个social_matrix，用于存系统每个时间上新增的order和以及完成的order
+        # 设定一个agent_matrix,用于存每个agent每个时间上的reward和cost
+        self.social_matrix = dict()  # {时间t:[new_order,finish_order],}
+        self.agent_matrix = dict()  # {时间t:{agent_id:[reward,cost],},}
+        self.agent_utility_matrix = dict()  # 当前时刻系统中agent的个体效能值矩阵
 
         # 环境中每个智能体的当前奖赏值
         self.curr_optimization_metric = dict()
@@ -85,11 +91,14 @@ class CloudManufacturing_network(mesa.Model):
             {
                 "productivity": lambda a: self.scenario_metrics()["social/productivity"],
                 "equality": lambda a: self.scenario_metrics()["social/equality"],
-                "social_welfare": lambda a: self.scenario_metrics()["social_welfare/eq_times_productivity"]
+                "SUtility": lambda a: self.scenario_metrics()["SUtility"],
+                "DUtility": lambda a: self.scenario_metrics()["DUtility"],
+                "Effectiveness": lambda a: self.scenario_metrics()["Effectiveness"]
+
             }
         )
 
-        self.datacollector.collect(self)
+        # self.datacollector.collect(self)
 
     def init_services(self):
         self.new_services = []
@@ -202,8 +211,8 @@ class CloudManufacturing_network(mesa.Model):
                     self.distance(order.pos, service.pos) / service.speed <= (
                     order.left_duration - order.handling_time) and \
                     self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost):
-                    # and \
-                    # self.skill_constraint(order, service).count(1) == 2:
+                # and \
+                # self.skill_constraint(order, service).count(1) == 2:
                 return 1
             else:
                 return 0
@@ -213,8 +222,8 @@ class CloudManufacturing_network(mesa.Model):
                     self.distance(order.pos, service.pos) / service.speed <= (
                     order.left_duration - order.handling_time) and \
                     self.distance(order.pos, service.pos) * service.move_cost <= (order.bonus - order.cost):
-                    # and \
-                    # self.skill_constraint(order, service).count(1) > 0:
+                # and \
+                # self.skill_constraint(order, service).count(1) > 0:
 
                 return 1
             else:
@@ -541,14 +550,47 @@ class CloudManufacturing_network(mesa.Model):
     def scenario_metrics(self):
         metrics = dict()
         energy = np.array([agent.energy for agent in self._agent_lookup.values()])
-        metrics["social/productivity"] = get_productivity(energy)
+        # 当前系统中生态位数m
+        m, niches = self.get_niche()
+        metrics["social/productivity"] = get_productivity_network(niches)
         metrics["social/equality"] = get_equality(energy)
-
-        metrics[
-            "social_welfare/eq_times_productivity"
-        ] = metrics["social/productivity"] * metrics["social/equality"]
+        metrics["SUtility"] = get_sutility(energy, niches)
+        metrics["DUtility"] = get_dutility(self.social_matrix, self.schedule.steps, gamma=0.1)
+        metrics["Effectiveness"] = get_effectiveness(energy, niches, self.social_matrix, self.schedule.steps, gamma=0.1,
+                                                     alpha=0.5)
 
         return metrics
+
+    # 计算时，首先根据指定的生态位划分标准，利用常用的排序算法，对所有个体效能值进行排序，将个体纳入合适的生态位，从而得到生态位数m
+    # 目前只得到了所有的个体效能，接下来要实现对字典进行排序，要先打印出来看看效能的范围，自己确定一个生态位划分标准，然后计算生态位数
+    def get_niche(self):
+        self.agent_utility_matrix = dict()
+        ids = np.array([agent.unique_id for agent in self.all_agents])
+        for id in ids:
+            self_utility = get_self_utility(self.agent_matrix, id, self.schedule.steps, gamma=0.1)
+            self.agent_utility_matrix.update({str(id): self_utility})
+        print("self_utility", self.agent_utility_matrix)  # 得到当前时间段的个体效能总数
+        # 生态位置的划分标准
+        # 生态位的最大值是6
+        # 计算每个生态位上的数目
+        niches = [0, 0, 0, 0, 0, 0, 0]
+        for v in self.agent_utility_matrix.values():
+            if v < -1:
+                niches[0] += 1
+            elif -1 <= v < 0:
+                niches[1] += 1
+            elif 0 <= v < 1:
+                niches[2] += 1
+            elif 1 <= v < 10:
+                niches[3] += 1
+            elif 10 <= v < 50:
+                niches[4] += 1
+            elif 50 <= v < 100:
+                niches[5] += 1
+            elif v >= 100:
+                niches[6] += 1
+        # 得到系统当前生态位数,当前系统生态位的分布情况
+        return sum(i > 0 for i in niches), niches
 
     def step(self):
         self.new_services = []
@@ -599,6 +641,15 @@ class CloudManufacturing_network(mesa.Model):
         if not self.is_training:
             self.compute_rl_step()
 
+        if not self.agent_matrix.get(str(self.schedule.steps)):
+            self.agent_matrix.update({str(self.schedule.steps): {}})
+            for agent in self.all_agents:
+                self.agent_matrix.get(str(self.schedule.steps)).update({str(agent.unique_id): [0, 0]})
+
+        # 初始化的social_matrix
+        if not self.social_matrix.get(str(self.schedule.steps)):
+            self.social_matrix.update({str(self.schedule.steps): [len(self.new_orders), self.finish_orders]})
+
         alpha = 0.1
         reward = dict()
 
@@ -613,15 +664,30 @@ class CloudManufacturing_network(mesa.Model):
 
             # 平台反选
             self.order_select()
-            self.schedule.step()
+            # self.schedule.steps从0开始
+            self.schedule.step()  # 执行这一步骤,step+1
+
+            if not self.agent_matrix.get(str(self.schedule.steps)):
+                self.agent_matrix.update({str(self.schedule.steps): {}})
+                for agent in self.all_agents:
+                    self.agent_matrix.get(str(self.schedule.steps)).update({str(agent.unique_id): [0, 0]})
 
             for agent in self.match_agent:
                 if agent.intelligence_level == 2:
+                    # value是获得的利润，cost是消耗
                     value, cost = agent.process_order()
                     reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
+                    # 更新本轮高智能的agent_matrix（中低智能的在agent的step里更新）
+                    # 每次只有match_agent里的agent才会被记录进入agent_matrix
+                    self.agent_matrix.get(str(self.schedule.steps)).update({str(agent.unique_id): [value, cost]})
 
             # 生成虚拟企业
             num_agents = len(reward)
+
+            # 更新本轮的social_matrix
+            self.social_matrix.update({str(self.schedule.steps): [len(self.new_orders), self.finish_orders]})
+            print("self.social_matrix", self.social_matrix)
+            print("self.agent_matrix", self.agent_matrix)
 
             while num_agents < self.N:
                 reward[str(-num_agents)] = 0
@@ -652,6 +718,4 @@ def env_creator(env_config):  # 此处的 env_config对应 我们在建立traine
 
 register_env(CloudManufacturing_network.name, env_creator)
 
-if __name__ == "__main__":
-    model = CloudManufacturing_network()
-    model.run_model()
+

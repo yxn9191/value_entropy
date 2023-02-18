@@ -168,7 +168,10 @@ class ServiceAgent(mesa.Agent):
         # 中低智能的process_order()在这里调用，而高智能的在env的step里调用，手动计算了reward，要在env的step最后返回
         if self.state == 0:
             if self.intelligence_level != 2:
-                self.process_order()
+                value, cost = self.process_order()
+                # 更新本轮中低智能agent的agent_matrix
+                self.model.agent_matrix.get(str(self.model.schedule.steps)).update({str(self.unique_id): [value, cost]})
+
 
         elif self.state == 1:
             self.move()
@@ -211,7 +214,8 @@ class ServiceAgent(mesa.Agent):
             self.energy -= self.move_cost * self.distance(order)
             print("企业{}处理结束订单{}，已经分得订单利益{},过程中移动消耗为{},处理订单消耗为{}".format(
                 self.unique_id, order.unique_id, order.bonus / len(order.services),
-                self.move_cost * self.distance(order), order.cost / len(order.services)))
+                                                 self.move_cost * self.distance(order),
+                                                 order.cost / len(order.services)))
             order.process_times += 1
             #     order.done = True
             # else:
