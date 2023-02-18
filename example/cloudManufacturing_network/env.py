@@ -30,7 +30,11 @@ class CloudManufacturing_network(mesa.Model):
             is_training=True,
             trainer=None,
             reset_random=True,
-            episode_length=200
+            episode_length=200,
+            network_type='ER',
+            BA_add_edges=2,
+            RG_init_degree=3,
+            WS_init_neighbors=3
     ):
         super().__init__()
         self.done = None
@@ -50,8 +54,19 @@ class CloudManufacturing_network(mesa.Model):
         self.num_nodes = num_nodes  # node数目=企业agent数目
         self.avg_node_degree = avg_node_degree
         prob = avg_node_degree / self.num_nodes
-        # 初始网络状态是由num_nodes个节点组成的随机网络，平均节点度数由参数avg_node_degree调控
-        self.G = nx.erdos_renyi_graph(n=self.num_nodes, p=prob)
+        # WS:小世界网络 BA：无标度网络 RG:规则网络 ER：随机图
+        if network_type == 'ER':  # ER
+            # 初始网络状态是由num_nodes个节点组成的随机网络，平均节点度数由参数avg_node_degree调控
+            self.G = nx.erdos_renyi_graph(n=self.num_nodes, p=prob)
+        elif network_type == 'BA':  # BA
+            # 初始网络状态是由num_nodes个节点组成的无标度网络，每次加入的边数由参数type2_add_edges调控
+            self.G = nx.barabasi_albert_graph(n=self.num_nodes, m=BA_add_edges)
+        elif network_type == 'WS':  # WS
+            # 生成一个含有num_nodes个节点、每个节点有k个邻居、以概率prob随机化重连边的WS小世界网络
+            self.G = nx.watts_strogatz_graph(n=self.num_nodes, k=WS_init_neighbors, p=prob)
+        else:  # RG
+            # 初始网络状态是由num_nodes个节点组成的规则网络，每次加入的边数由参数type0_init_degree调控
+            self.G = nx.random_regular_graph(n=self.num_nodes, d=RG_init_degree)
         self.grid = mesa.space.NetworkGrid(self.G)
         self.schedule = mesa.time.RandomActivation(self)
         self.reset_random = reset_random  # 重置环境类型 True则为随机新生成，False 则使用固定随机树种子生成
@@ -717,5 +732,3 @@ def env_creator(env_config):  # 此处的 env_config对应 我们在建立traine
 
 
 register_env(CloudManufacturing_network.name, env_creator)
-
-

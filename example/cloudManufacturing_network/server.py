@@ -145,7 +145,25 @@ model_params = {
     "episode_length": mesa.visualization.Slider(
         "Length of one episode", description="Length of one episode", value=200, min_value=100, max_value=300,
         step=10
+    ),
+    "network_type": mesa.visualization.Choice(
+        'Type of network',
+        value='ER',
+        choices=['RG', 'ER','BA','WS']
+    ),
+    "BA_add_edges": mesa.visualization.Slider(
+        "BA_add_edges", description="BA_add_edges", value=2, min_value=1, max_value=4,
+        step=1
+    ),
+    "RG_init_degree": mesa.visualization.Slider(
+        "RG_init_degree", description="RG_init_degree", value=3, min_value=1, max_value=10,
+        step=1
+    ),
+    "WS_init_neighbors": mesa.visualization.Slider(
+        "WS_init_neighbors", description="WS_init_neighbors", value=3, min_value=1, max_value=10,
+        step=1
     )
+
 }
 
 server = mesa.visualization.ModularServer(
