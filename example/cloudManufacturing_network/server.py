@@ -121,7 +121,11 @@ chart = mesa.visualization.ChartModule(
         {"Label": "equality", "Color": "#008000"},
         {"Label": "SUtility", "Color": "#FF8C00"},  # 供给侧效能（社会层：联合效能）
         {"Label": "DUtility", "Color": "#040082"},  # 需求侧效能
-        {"Label": "Effectiveness", "Color": "red"}  # 服务效能
+        {"Label": "Effectiveness", "Color": "red"},  # 服务效能
+        {"Label": "new_order", "Color": "Black"},  # 新生成订单数目
+        {"Label": "finish_order", "Color": "Blue"}  # 此时间完成的订单数目
+
+
     ]
 )
 
@@ -149,7 +153,7 @@ model_params = {
     "network_type": mesa.visualization.Choice(
         'Type of network',
         value='ER',
-        choices=['RG', 'ER','BA','WS']
+        choices=['RG', 'ER', 'BA', 'WS']
     ),
     "BA_add_edges": mesa.visualization.Slider(
         "BA_add_edges", description="BA_add_edges", value=2, min_value=1, max_value=4,
@@ -175,3 +179,4 @@ server = mesa.visualization.ModularServer(
 server.port = 8523
 # model = CloudManufacturing_network(trainer=trainer, is_training=False)
 # model.run_model()
+

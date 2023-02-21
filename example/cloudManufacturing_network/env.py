@@ -10,7 +10,7 @@ from ray.tune import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper, recursive_list_to_np_array
 from base.utils.env_reward import get_equality, get_productivity_network, get_effectiveness, get_sutility, get_dutility, \
-    get_self_utility
+    get_self_utility, get_vge
 from example.cloudManufacturing_network.generateOrders import all_orders_list
 from example.cloudManufacturing_network.generateService import generate_service_type, generate_difficulty, \
     generate_energy
@@ -85,6 +85,8 @@ class CloudManufacturing_network(mesa.Model):
         self.social_matrix = dict()  # {时间t:[new_order,finish_order],}
         self.agent_matrix = dict()  # {时间t:{agent_id:[reward,cost],},}
         self.agent_utility_matrix = dict()  # 当前时刻系统中agent的个体效能值矩阵
+        self.total_energy = []  # 系统的历史总energy
+        self.vge = []  # 系统的历史价值生成效率
 
         # 环境中每个智能体的当前奖赏值
         self.curr_optimization_metric = dict()
@@ -108,7 +110,9 @@ class CloudManufacturing_network(mesa.Model):
                 "equality": lambda a: self.scenario_metrics()["social/equality"],
                 "SUtility": lambda a: self.scenario_metrics()["SUtility"],
                 "DUtility": lambda a: self.scenario_metrics()["DUtility"],
-                "Effectiveness": lambda a: self.scenario_metrics()["Effectiveness"]
+                "Effectiveness": lambda a: self.scenario_metrics()["Effectiveness"],
+                "new_order": lambda a: self.scenario_metrics()["Order"],
+                "finish_order" :lambda a: self.finish_orders
 
             }
         )
@@ -565,14 +569,17 @@ class CloudManufacturing_network(mesa.Model):
     def scenario_metrics(self):
         metrics = dict()
         energy = np.array([agent.energy for agent in self._agent_lookup.values()])
+        self.total_energy.append(sum(energy))
         # 当前系统中生态位数m
         m, niches = self.get_niche()
-        metrics["social/productivity"] = get_productivity_network(niches)
+        self.vge.append(get_vge(niches))
+        mul = list(np.multiply(np.array(self.vge), np.array(self.total_energy)))
+        metrics["social/productivity"] = get_productivity_network(mul)
         metrics["social/equality"] = get_equality(energy)
-        metrics["SUtility"] = get_sutility(energy, niches)
-        metrics["DUtility"] = get_dutility(self.social_matrix, self.schedule.steps, gamma=0.1)
-        metrics["Effectiveness"] = get_effectiveness(energy, niches, self.social_matrix, self.schedule.steps, gamma=0.1,
-                                                     alpha=0.5)
+        metrics["SUtility"] = get_sutility(energy, mul)
+        metrics["DUtility"] = get_dutility(self.social_matrix, self.schedule.steps, gamma=0.8)
+        metrics["Effectiveness"] = get_effectiveness(energy, mul, self, gamma=0.8)
+        metrics["Order"] = len(self.all_orders_list[self.schedule.steps]) # 系统在当前时刻新生成的订单数
 
         return metrics
 

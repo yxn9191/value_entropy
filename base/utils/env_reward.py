@@ -6,6 +6,7 @@
 import math
 
 import numpy as np
+import pandas as pd
 
 
 # 边际递减函数,eta 可调节
@@ -96,19 +97,24 @@ def get_self_utility(agent_matrix, agent_id, t, gamma=0.1):
 
 
 # 计算系统的联合效能（供应侧效能）,平等性*生产力
-def get_sutility(energy, niches):
-    return get_equality(energy) * get_productivity_network(niches)
+def get_sutility(energy, data):
+    return get_equality(energy) * get_productivity_network(data)
+
+
+def get_vge(niches):
+    return abs((H_t(niches) - H_b(sum(niches))) / H_b(sum(niches)))
 
 
 # 计算系统的生产力
-def get_productivity_network(niches):
-    return abs((H_t(niches) - H_b(sum(niches))) / H_b(sum(niches)))
+def get_productivity_network(data):
+    # 目前是对系统的总energy乘以价值生成效率取指数移动平均值
+    return ema(data, 10)[-1]
 
 
 # 计算需求侧效能
 # 设定一个social_matrix，用于存系统每个时间上新增的order和以及完成的order
 # 设定一个agent_matrix,用于存每个agent每个时间上的reward和cost
-def get_dutility(social_matrix, t, gamma=0.1):
+def get_dutility(social_matrix, t, gamma=0.8):
     dutility = 0
     for i in range(int(t + 1)):
         if social_matrix.get(str(i))[0] != 0:
@@ -117,8 +123,9 @@ def get_dutility(social_matrix, t, gamma=0.1):
 
 
 # 计算服务效能（考虑供需两侧）
-def get_effectiveness(energy, niches, social_matrix, t, gamma=0.1, alpha=0.5):
-    return alpha * get_sutility(energy, niches) + (1 - alpha) * get_dutility(social_matrix, t, gamma)
+def get_effectiveness(energy, data, env, gamma=0.8):
+    return get_sutility(energy, data) * get_dutility(env.social_matrix, env.schedule.steps,
+                                                     gamma)
 
 
 # 当前时刻的最优价值熵Hb
@@ -136,6 +143,7 @@ def H_t(niches):
             H_t += -p_i * math.log2(p_i)
     return H_t
 
+
 # 快速排序
 # def quick_sort(arr):
 #     if len(arr) <= 1:
@@ -144,3 +152,33 @@ def H_t(niches):
 #     left = [x for x in arr[1:] if x < pivot]
 #     right = [x for x in arr[1:] if x >= pivot]
 #     return quick_sort(left) + [pivot] + quick_sort(right)
+# ?平滑处理：
+
+modes = ['full', 'same', 'valid']  # 模式
+
+
+# mode可能的三种取值情况：
+# 'full’　默认值，返回每一个卷积值，长度是N+M-1,在卷积的边缘处，信号不重叠，存在边际效应。
+# ‘same’　返回的数组长度为max(M, N),边际效应依旧存在。
+# ‘valid’ 　返回的数组长度为max(M,N)-min(M,N)+1,此时返回的是完全重叠的点。边缘的点无效。
+
+# def moving_average(interval, windowsize):
+#     window = np.ones(int(windowsize)) / float(windowsize)
+#
+#     for m in modes:
+#         re = np.convolve(interval, window, 'full')
+#     return re
+
+# 获取EMA数据  days:日期 days=5 5日线
+def ema(data, days):
+    emas = data.copy()
+    for i in range(len(data)):
+        if i == 0:
+            emas[i] = data[i]
+        if i > 0:
+            emas[i] = ((days - 1) * emas[i - 1] + 2 * data[i]) / (days + 1)
+    return emas
+    # new_data = data[-5:]
+    # return max(new_data)
+
+# 是否需要对new/finish order这部分也加ema
