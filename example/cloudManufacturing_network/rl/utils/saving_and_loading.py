@@ -8,10 +8,10 @@ import shutil
 import numpy as np
 import torch
 
-
 logging.basicConfig(stream=sys.stdout, format="%(asctime)s %(message)s")
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
+print("sys.path",sys.path)
 
 
 def save_torch_model_weights(trainer, ckpt_dir, global_step):
@@ -43,7 +43,7 @@ def save_ckpt(trainer, result, ckpt_frequency, run_dir):
     if global_step % ckpt_frequency == 0:
         save_torch_model_weights(trainer, ckpt_dir, global_step)
         path = trainer.save(ckpt_dir)
-        #remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
+        # remote_env_fun(trainer, lambda env_wrapper: env_wrapper.save_game_object(ckpt_dir))
         print("checkpoint saved at", path)
         return path
     else:
@@ -58,6 +58,7 @@ def load_torch_model_weights(trainer, ckpt):
         trainer.set_weights(weights)
     logger.info("loaded torch model weights:\n\t%s\n", ckpt)
 
+
 def remote_env_fun(trainer, env_function):
     """
     Create a dictionary with the following mapping:
@@ -70,8 +71,8 @@ def remote_env_fun(trainer, env_function):
         lambda w: [(env.env_id, env_function(env)) for env in w.async_env.envs]
     )
     nested_env_ids_and_results = nested_env_ids_and_results[
-        1:
-    ]  # Ignore the local worker
+                                 1:
+                                 ]  # Ignore the local worker
 
     # Store them first this way in case they don't come out sorted
     # (gets sorted by env_id before being returned)
@@ -146,7 +147,6 @@ def collect_stored_rollouts(trainer):
 
 
 def load_snapshot(trainer, run_dir, ckpt=None, suffix="", load_latest=False):
-
     assert ckpt or load_latest
 
     loaded_ckpt_success = False
@@ -179,12 +179,12 @@ def load_snapshot(trainer, run_dir, ckpt=None, suffix="", load_latest=False):
         else:
             raise NotImplementedError
     elif ckpt:
-
+        print("ckpt", ckpt)
         trainer.restore(ckpt)
         loaded_ckpt_success = True
         logger.info(
-                "load_snapshot -> loading %s SUCCESS for %s %s", ckpt, suffix, trainer
-            )
+            "load_snapshot -> loading %s SUCCESS for %s %s", ckpt, suffix, trainer
+        )
         # else:
         #     logger.info(
         #         "load_snapshot -> loading %s FAILED,"
@@ -206,6 +206,7 @@ def load_snapshot(trainer, run_dir, ckpt=None, suffix="", load_latest=False):
 
     return loaded_ckpt_success
 
+
 def fill_out_run_dir(run_dir):
     dense_log_dir = os.path.join(run_dir, "dense_logs")
     ckpt_dir = os.path.join(run_dir, "ckpts")
@@ -217,6 +218,7 @@ def fill_out_run_dir(run_dir):
     restore = bool(os.path.isfile(latest_filepath))
 
     return dense_log_dir, ckpt_dir, restore
+
 
 def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj):
     # === Set up Logging & Saving, or Restore ===
@@ -262,7 +264,7 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
         )
     elif run_configuration["general"].get("ckpt_path", ""):
         at_loads_a_ok = load_snapshot(
-           trainer = trainer_obj, run_dir=run_directory, ckpt=run_configuration["general"].get("ckpt_path", "") 
+            trainer=trainer_obj, run_dir=run_directory, ckpt=run_configuration["general"].get("ckpt_path", "")
         )
 
         # at this point, we need at least one good ckpt restored
@@ -296,7 +298,6 @@ def set_up_dirs_and_maybe_restore(run_directory, run_configuration, trainer_obj)
             load_torch_model_weights(trainer_obj, starting_weights_path_agents)
         else:
             logger.info("Starting with fresh agent Torch weights.")
-
 
     return (
         dense_log_directory,

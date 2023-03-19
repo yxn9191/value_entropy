@@ -6,6 +6,7 @@ import ray
 import yaml
 
 current_path = os.path.split(os.path.realpath(__file__))[0]
+print("current_path", current_path)
 sys.path.append(current_path)
 
 import policy_model  # 必须引入，不然模型没有注册
