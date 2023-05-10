@@ -72,6 +72,7 @@ def all_orders_list(G, rand=True):
     n = 1
     all_list = []
     for i in range(1, 500):
+        i = (i % 150) * 3  # 调节波峰出现速率 | 取余，每150循环一遍
         order_num = n * int(fitting_dist(i))
         all_list.append(orders_list(order_num, G))
 

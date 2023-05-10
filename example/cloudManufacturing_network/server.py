@@ -117,11 +117,11 @@ def network_portrayal(G):
 network = mesa.visualization.NetworkModule(network_portrayal, 500, 800)
 chart = mesa.visualization.ChartModule(
     [
-        # {"Label": "productivity", "Color": "#FF0000"},
+        {"Label": "avg_utility", "Color": "#FF0000"},
         {"Label": "equality", "Color": "#008000"},
         {"Label": "SUtility", "Color": "#FF8C00"},  # 供给侧效能（社会层：联合效能）
         {"Label": "DUtility", "Color": "#040082"},  # 需求侧效能
-        {"Label": "Effectiveness", "Color": "red"},  # 服务效能
+        # {"Label": "Effectiveness", "Color": "red"},  # 服务效能
         {"Label": "new_order", "Color": "Black"},  # 新生成订单数目
         {"Label": "finish_order", "Color": "Blue"}  # 此时间完成的订单数目
 
@@ -141,6 +141,10 @@ model_params = {
     ),
     "ratio_medium": mesa.visualization.Slider(
         "The ratio of medium_intelligence", description="Initial ratio_medium", value=0.0, min_value=0, max_value=1,
+        step=0.1
+    ),
+    "ratio_imitate": mesa.visualization.Slider(
+        "The ratio of imitate_intelligence", description="Initial ratio_imitate", value=0.0, min_value=0, max_value=1,
         step=0.1
     ),
     "is_training": False,

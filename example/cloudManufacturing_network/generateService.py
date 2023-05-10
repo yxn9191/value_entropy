@@ -12,3 +12,7 @@ def generate_difficulty():
 
 def generate_energy():
     return random.uniform(100, 200)
+
+
+def generate_imitate_pro():
+    return random.random()

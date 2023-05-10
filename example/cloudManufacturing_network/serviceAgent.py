@@ -18,6 +18,7 @@ class ServiceAgent(mesa.Agent):
                  speed=1,
                  energy=random.uniform(100, 200),
                  failure_prob=0.1,
+                 imitate_pro=0.5,
                  cooperation=1,
                  move_cost=30,
                  intelligence_level=2,
@@ -51,6 +52,7 @@ class ServiceAgent(mesa.Agent):
         self.arrive_pos_time = 0  # 企业到达处理订单的地点的时间
         self.is_cooperating = 0  # 0不是在协作，1正在协作
         self.last_orders = []  # 企业曾经处理过的订单
+        self.imitate_pro = imitate_pro  # 模仿学习发生进化的概率值[0-1]，初始每个订单不一样
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -90,12 +92,15 @@ class ServiceAgent(mesa.Agent):
     # 执行订单（是接受了必要条件的检查后，确定要执行的订单），执行的结果将用于反馈给强化学习
     def process_order(self):
         value = 0
-        cost = 1
-        # 低和中智力
-        if self.intelligence_level == 0 or self.intelligence_level == 1:
+        cost = 1  # 为了防止计算强化学习奖励函数（rew = alpha * self.finish_orders / len(self.new_orders) + (1 - alpha) * value / cost）的时候，cost为0
+        if self.order:  # 目前的处理是，如果处理订单失败，也是有成本的
+            order = self.model._resource_lookup[str(self.order)]
+            cost = order.cost
+        # 随机、固定规则、模仿学习的Agent
+        if self.intelligence_level == 0 or self.intelligence_level == 1 or self.intelligence_level == 3:
             if self.action == -1:
                 self.order = None
-        # 高智力
+        # 强化学习的Agent
         if self.intelligence_level == 2:
             if self.action is None or self.action >= len(self.model.match_order) or self.action == -1:
                 self.order = None
@@ -152,6 +157,7 @@ class ServiceAgent(mesa.Agent):
             self.state = 0
             self.order = None
 
+        # 返回0,cost其实就是处理订单失败了
         return value, cost
 
     def step(self):
@@ -164,6 +170,9 @@ class ServiceAgent(mesa.Agent):
         # 假定每个step，企业的能量自动减少5
         if not self.order:
             self.energy -= 5
+
+        # 采用模仿学习的企业，在每个step发生进化
+        self.evolve_imitate()
 
         # 中低智能的process_order()在这里调用，而高智能的在env的step里调用，手动计算了reward，要在env的step最后返回
         if self.state == 0:
@@ -231,6 +240,24 @@ class ServiceAgent(mesa.Agent):
         # # 移动每一步都有消耗
         # # 只计算消耗，企业实际不移动了，pos不改变
         # self.energy -= self.move_cost * self.speed
+
+    # 模仿学习的进化行为
+    def evolve_imitate(self):
+        neighbors = []
+        for neighbor in list(self.model.grid.G[self.pos]):
+            for agent in self.model.all_agents:
+                if agent.pos == neighbor:
+                    neighbors.append(agent)
+        max_value = 0
+        max_value_imitate_pro = None
+        # 遍历周围邻居的energy
+        for neighbor in neighbors:
+            if neighbor.energy >= max_value:
+                max_value = neighbor.energy
+                max_value_imitate_pro = neighbor.imitate_pro
+        if max_value - self.energy >= 2 * self.energy:
+            self.imitate_pro = max_value_imitate_pro
+            print("企业{}通过模仿学习发生了进化，将概率值改为{}".format(self.unique_id, self.imitate_pro))
 
     def distance(self, order):
         if nx.has_path(self.model.grid.G, source=self.pos, target=order.pos):

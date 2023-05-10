@@ -87,13 +87,15 @@ def get_productivity(coin_endowments):
 
 # 获取个体效能
 # 为每个个体存一个矩阵，记录当前时间t的reward和cost
-def get_self_utility(agent_matrix, agent_id, t, gamma=0.1):
+def get_self_utility(agent_matrix, agent_id, t, gamma=1):
     self_utility = 0
     for i in range(t + 1):
         if agent_matrix.get(str(i)).get(str(agent_id)):  # 如果历史时间段有这个agent的数据，才加
             self_utility += (gamma ** (t - i)) * (agent_matrix.get(str(i)).get(str(agent_id))[0] -
                                                   agent_matrix.get(str(i)).get(str(agent_id))[1])
+
     return self_utility
+    # return agent_matrix.get(str(t)).get(str(agent_id))[0] - agent_matrix.get(str(t)).get(str(agent_id))[1]
 
 
 # 计算系统的联合效能（供应侧效能）,平等性*生产力

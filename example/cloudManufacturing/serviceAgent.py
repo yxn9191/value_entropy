@@ -6,6 +6,7 @@ import random
 import math
 from shapely.geometry import Point
 
+
 class ServiceAgent(GeoAgent):
     name = "Service"
 
@@ -14,13 +15,13 @@ class ServiceAgent(GeoAgent):
                  shape,
                  service_type,
                  difficulty,
-                 organization = None,
+                 organization=None,
                  speed=25,
                  energy=random.uniform(1e3, 5e3),
                  consumption=random.uniform(1, 10),
                  failure_prob=0.1,
                  cooperation=1,
-                 move_cost= 0.5,
+                 move_cost=0.5,
                  intelligence_level=2
                  ):
         super().__init__(unique_id, model, shape)
@@ -111,7 +112,7 @@ class ServiceAgent(GeoAgent):
         #
         # 高智力
         if self.intelligence_level == 2:
-            if self.action is  None or self.action >= len(self.model.match_order) or self.action ==-1:
+            if self.action is None or self.action >= len(self.model.match_order) or self.action == -1:
                 # 这里也要换成算法1的订单集合
                 self.order = None
 
@@ -122,19 +123,21 @@ class ServiceAgent(GeoAgent):
             try:
                 value = order.bonus / len(order.services)
             except ZeroDivisionError:
-                raise TypeError(self.model.necessary_constraint(order,[self.unique_id]),
-                order.occupied, order.order_type,order.order_difficulty,
-                self.difficulty, self.service_type, len(self.model.match_order),self.action, self.order,order.order_select, self.order_select)
+                raise TypeError(self.model.necessary_constraint(order, [self.unique_id]),
+                                order.occupied, order.order_type, order.order_difficulty,
+                                self.difficulty, self.service_type, len(self.model.match_order), self.action,
+                                self.order, order.order_select, self.order_select)
             cost = order.cost / len(order.services) + \
-                  math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(order.pos, self.pos)]))* self.move_cost
+                   math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(order.pos, self.pos)])) * self.move_cost
             self.state = 1  # 状态改变，开始移动
             # self.order.occupied = 1  # 任务被占用
 
             # 在order中保存它被处理结束的时间 !!!没有考虑除以speed无法取整的情况，speed我先设置为1了
-            #order.done_time = self.model.schedule.steps + order.handling_time + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)]) / self.speed
+            # order.done_time = self.model.schedule.steps + order.handling_time + sum([abs(a - b) for (a, b) in zip(order.pos, self.pos)]) / self.speed
 
             # 记录企业的订单处理完成时间
-            self.order_end_time = self.model.schedule.steps + order.handling_time + math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(order.pos, self.pos)]))/ self.speed
+            self.order_end_time = self.model.schedule.steps + order.handling_time + math.sqrt(
+                sum([(a - b) ** 2 for (a, b) in zip(order.pos, self.pos)])) / self.speed
 
             # 计算移动企业位置
             # self.delta_x = self.order.pos[0] - self.pos[0]
@@ -142,7 +145,7 @@ class ServiceAgent(GeoAgent):
 
             # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
             self.energy -= order.cost / len(order.services)
-            print("选择订单转为移动", value-cost, order.bonus)
+            print("选择订单转为移动", value - cost, order.bonus)
         else:
             self.state = 0
             self.order = None
@@ -153,14 +156,14 @@ class ServiceAgent(GeoAgent):
         if self.energy < 0:
             print("企业破产了")
             self.done = True
-        self.energy -= 20 # 假定每个step，企业的能量自动减少20
+        self.energy -= 20  # 假定每个step，企业的能量自动减少20
 
         # 如果当前时刻，订单完成
         if self.state == 2 and self.order_end_time <= self.model.schedule.steps:
             self.state = 0
             flag = 0
-            #所有合作的企业都处理完了，订单才算处理完了
-            order =  self.model._resource_lookup[str(self.order)]
+            # 所有合作的企业都处理完了，订单才算处理完了
+            order = self.model._resource_lookup[str(self.order)]
             for a_id in order.services:
                 agent = self.model._agent_lookup[a_id]
                 if agent.state != 0:
@@ -171,11 +174,11 @@ class ServiceAgent(GeoAgent):
                     agent = self.model._agent_lookup[a_id]
                     # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
                     agent.energy += order.bonus / len(order.services)
-                    print("获得收益", order.bonus ,  len(order.services), order.order_type)
+                    print("获得收益", order.bonus, len(order.services), order.order_type)
                 order.done = True
 
         if self.state == 0:
-            if self.intelligence_level !=2:
+            if self.intelligence_level != 2:
                 self.process_order()
 
             # self.model.total_rewards += value - cost
@@ -184,6 +187,7 @@ class ServiceAgent(GeoAgent):
             # 到达地点，转为处理订单状态
             if self.pos == self.model._resource_lookup[str(self.order)].pos:
                 self.state = 2
+
     # def move(self):
     #     print("企业移动了")
     #     if self.delta_x > 0:
@@ -201,7 +205,7 @@ class ServiceAgent(GeoAgent):
     #             self.delta_y += self.speed
     def move(self):
         try:
-            order =  self.model._resource_lookup[str(self.order)]
+            order = self.model._resource_lookup[str(self.order)]
         except KeyError:
             raise KeyError(self.action, self.state, self.order)
         if math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(self.pos, order.pos)])) > self.speed:
@@ -209,7 +213,7 @@ class ServiceAgent(GeoAgent):
             dy = self.pos[1] - order.pos[1]
             angle = math.atan2(dy, dx)
             # angle = int(angle * 180 / math.pi)
-            move_x = self.speed * math.cos(angle)#待修改
+            move_x = self.speed * math.cos(angle)  # 待修改
             move_y = self.speed * math.sin(angle)
             self.shape = self.move_point(-move_x, -move_y)  # Reassign shape
             self.pos = (self.shape.x, self.shape.y)
@@ -217,6 +221,5 @@ class ServiceAgent(GeoAgent):
         else:
             self.shape = Point(order.pos[0], order.pos[1])
             self.pos = order.pos
-            self.energy -= self.move_cost *  math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(self.pos, order.pos)]))
+            self.energy -= self.move_cost * math.sqrt(sum([(a - b) ** 2 for (a, b) in zip(self.pos, order.pos)]))
             # 移动每一步都有消耗
-        
