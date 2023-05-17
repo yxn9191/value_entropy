@@ -172,7 +172,8 @@ class ServiceAgent(mesa.Agent):
             self.energy -= 5
 
         # 采用模仿学习的企业，在每个step发生进化
-        self.evolve_imitate()
+        if self.intelligence_level == 3:
+            self.evolve_imitate()
 
         # 中低智能的process_order()在这里调用，而高智能的在env的step里调用，手动计算了reward，要在env的step最后返回
         if self.state == 0:
