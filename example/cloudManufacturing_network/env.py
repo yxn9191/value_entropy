@@ -165,11 +165,13 @@ class CloudManufacturing_network(mesa.Model):
             a = OrderAgent(self.next_id(), model=self, order_difficulty=ord[3], order_type=ord[0], bonus=ord[1],
                            cost=ord[2])
             a.pos = ord[-1]
-            self.schedule.add(a)
-            self.grid.place_agent(a, a.pos)
-            self.new_orders.append(a)
-            self.set_all_agents_list()
-        print("本轮订单已经生成,step:", self.schedule.steps)
+            # 检查该位置是否已有代理，如果有代理，则跳过此代理的放置
+            if self.grid.is_cell_empty(a.pos):
+                self.schedule.add(a)
+                self.grid.place_agent(a, a.pos)
+                self.new_orders.append(a)
+            else:
+                print(f"位置 {a.pos} 已有代理，跳过放置。")
 
     def set_all_agents_list(self):
         self.all_agents = []

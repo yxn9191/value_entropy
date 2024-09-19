@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 if __name__ == "__main__":
     # 准备数据
     data = pd.read_csv("catfish.csv")
-    legend_map = {0.5: '0.5:0.5',
+    legend_map = {0.3: '0.3:0.7',0.4:"0.4:0.6",0.6:"0.6:0.4",
               0.8: '0.8:0.2',
-              1: '1:0'}
+              1: '1:0',
+              0.5:'0.5:0.5'}
     # 清除之前的曲线
     plt.clf()
     # 绘制il平均个体效能曲线

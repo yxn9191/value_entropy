@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 # 订单的倍数
-n = 0.5
+n = 10
 
 def get_n():
     return n
