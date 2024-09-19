@@ -16,3 +16,6 @@ def generate_energy():
 
 def generate_imitate_pro():
     return random.random()
+
+def generate_cooperation():
+    return random.randint(0,1)

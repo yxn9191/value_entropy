@@ -1,6 +1,11 @@
 import numpy as np
 import random
 
+# 订单的倍数
+n = 0.5
+
+def get_n():
+    return n
 
 # 订单产生的函数
 def fitting_dist(x):
@@ -69,11 +74,10 @@ def all_orders_list(G, rand=True):
     # 目前生成的订单数量是针对两家企业产生的，如果订单的数量觉得不够的话可以修改n的大小，让订单成倍增长
     if not rand:
         random.seed(0)
-    n = 1
     all_list = []
-    for i in range(1, 500):
+    for i in range(1, 1000):
         i = (i % 150) * 3  # 调节波峰出现速率 | 取余，每150循环一遍
-        order_num = n * int(fitting_dist(i))
+        order_num = int(n * int(fitting_dist(i)))
         all_list.append(orders_list(order_num, G))
 
     return all_list

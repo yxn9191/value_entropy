@@ -52,7 +52,9 @@ class ServiceAgent(mesa.Agent):
         self.arrive_pos_time = 0  # 企业到达处理订单的地点的时间
         self.is_cooperating = 0  # 0不是在协作，1正在协作
         self.last_orders = []  # 企业曾经处理过的订单
-        self.imitate_pro = imitate_pro  # 模仿学习发生进化的概率值[0-1]，初始每个订单不一样
+        self.imitate_pro = imitate_pro  # 模仿学习发生进化的概率值[0-1]，初始每个企业不一样
+        self.daily_cost = 10  # 每天自动减少的能量
+        self.daily_cost_total = 0  # 记录企业移动过程中，没有减的daily_cost，放到最后一起减
 
     def match_vector(self, service_type, difficulty):
         if service_type == "A":
@@ -92,10 +94,10 @@ class ServiceAgent(mesa.Agent):
     # 执行订单（是接受了必要条件的检查后，确定要执行的订单），执行的结果将用于反馈给强化学习
     def process_order(self):
         value = 0
-        cost = 1  # 为了防止计算强化学习奖励函数（rew = alpha * self.finish_orders / len(self.new_orders) + (1 - alpha) * value / cost）的时候，cost为0
-        if self.order:  # 目前的处理是，如果处理订单失败，也是有成本的
-            order = self.model._resource_lookup[str(self.order)]
-            cost = order.cost
+        # 每个step，有self.daily_cost,如果执行订单失败，这里应该返回daily_cost
+        cost = self.daily_cost  # 为了防止计算强化学习奖励函数（rew = alpha * self.finish_orders / len(self.new_orders) + (1 -
+        # alpha) * value / cost）的时候，cost为0
+
         # 随机、固定规则、模仿学习的Agent
         if self.intelligence_level == 0 or self.intelligence_level == 1 or self.intelligence_level == 3:
             if self.action == -1:
@@ -105,7 +107,8 @@ class ServiceAgent(mesa.Agent):
             if self.action is None or self.action >= len(self.model.match_order) or self.action == -1:
                 self.order = None
 
-        prob = random.uniform(0, 1)
+        # prob = random.uniform(0, 1)
+        prob = 1  # 先不考虑会失败
         # 企业有一定几率处理订单失败，如果prob >= self.failure_prob则没有失败，接着处理
         if prob >= self.failure_prob and self.order:
             order = self.model._resource_lookup[str(self.order)]
@@ -141,7 +144,7 @@ class ServiceAgent(mesa.Agent):
                                 self.difficulty, self.service_type, len(self.model.match_order), self.action,
                                 self.order, order.order_select, self.order_select)
             # cost是企业为了处理订单的总消耗（处理订单本身的消耗和移动消耗）
-            cost = order.cost / len(order.services) + self.distance(order) * self.move_cost
+            cost_order = order.cost / len(order.services) + self.distance(order) * self.move_cost
             self.state = 1  # 状态改变，开始移动
 
             # 记录企业预计到达处理订单的地点的时间
@@ -150,14 +153,24 @@ class ServiceAgent(mesa.Agent):
             self.order_end_time = int(self.arrive_pos_time + order.handling_time)
             # print("企业预计到达处理订单的地点的时间:", self.arrive_pos_time)
 
-            # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）
+            # 计算这期间，随着时间流逝，企业产生的cost(日常运营cost)，假设每个step能量自动减少daily_cost
+            self.daily_cost_total = int(self.order_end_time - self.model.schedule.steps) * self.daily_cost
+            cost = cost_order + self.daily_cost_total
+            # 由于订单处理的消耗，企业的能量值变更（企业的成本消耗发生在开始处理订单时刻）。其他的移动消耗和随时间流逝的日常消耗，在别的函数减
             self.energy -= order.cost / len(order.services)
-            print("企业{}选择了订单{}，接下来开始移动，本次利润将为".format(self.unique_id, self.order), value - cost)
+            print("企业{}选择了订单{}，接下来开始移动，本次利润将为{},其中订单引起的消耗为{},日常消耗为{}".format(
+                self.unique_id, self.order,
+                value - cost, cost_order,
+                self.daily_cost_total))
         else:
             self.state = 0
             self.order = None
 
-        # 返回0,cost其实就是处理订单失败了
+        # 中低智能，即使当前时刻没有成功处理订单，也会在这个里面记录value=0和cost=5，然鹅，高智能只有在matchagent里，才会进入该process_order函数，才会被记录
+        # 所以我要在agent 的step里，判断它如果是高智能，且没有在match agent里，也应该有cost[!!我又没有考虑这个了，没有被match相当于不在系统中！！]
+        # 更新矩阵，这个矩阵存了agent在该时刻执行订单的cost和value（其实这样获得value在统计的时候记录在执行订单时刻了，而真正减是在执行订单结束后）
+        self.model.agent_matrix.get(str(self.model.schedule.steps)).update({str(self.unique_id): [value, cost]})
+        # 现在计算个体效能时，伽马=1，平等看待所有时刻收益，其实也无所谓。
         return value, cost
 
     def step(self):
@@ -167,9 +180,9 @@ class ServiceAgent(mesa.Agent):
             print("企业破产了，他的id:", self.unique_id)
             self.done = True
 
-        # 假定每个step，企业的能量自动减少5
+        # 假定每个step，企业的能量自动减少daily_cost。一旦他有需要处理的订单，能量就不再减少；和移动消耗一起放到最后再减
         if not self.order:
-            self.energy -= 5
+            self.energy -= self.daily_cost
 
         # 采用模仿学习的企业，在每个step发生进化
         if self.intelligence_level == 3:
@@ -182,6 +195,10 @@ class ServiceAgent(mesa.Agent):
                 # 更新本轮中低智能agent的agent_matrix
                 self.model.agent_matrix.get(str(self.model.schedule.steps)).update({str(self.unique_id): [value, cost]})
 
+        # 先不考虑没有被匹配的订单，没有被匹配，相当于不在系统中；参与匹配了但没中的才应该被考虑
+        # if self.intelligence_level == 2 and self not in self.model.match_agent:
+        #     self.model.agent_matrix.get(str(self.model.schedule.steps)).update(
+        #         {str(self.unique_id): [0, self.daliy_cost]})
 
         elif self.state == 1:
             self.move()
@@ -201,7 +218,7 @@ class ServiceAgent(mesa.Agent):
             self.state = 0
             self.is_cooperating = 0
             self.last_orders.append(self.order)
-            print(self.last_orders)
+            # print(self.last_orders)
             self.order = None
             # flag = 0
             # # 所有合作的企业都处理完了，订单才能被销毁，所有企业才能一起获得收益
@@ -218,10 +235,12 @@ class ServiceAgent(mesa.Agent):
             # if flag == 0:
             #     for a_id in order.services:
             #         agent = self.model._agent_lookup[str(a_id)]
-            #         # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
+            # 企业不是立刻获得收益，而是处理结束订单的同时获得收益
             self.energy += order.bonus / len(order.services)
             # 为了防止企业提前死去，移动消耗最后再减
             self.energy -= self.move_cost * self.distance(order)
+            # 这期间的日常消耗也是在这里减
+            self.energy -= self.daily_cost_total
             print("企业{}处理结束订单{}，已经分得订单利益{},过程中移动消耗为{},处理订单消耗为{}".format(
                 self.unique_id, order.unique_id, order.bonus / len(order.services),
                                                  self.move_cost * self.distance(order),
@@ -237,10 +256,7 @@ class ServiceAgent(mesa.Agent):
             print("企业{}正在向订单{}移动".format(self.unique_id, self.order))
         except KeyError:
             raise KeyError(self.action, self.state, self.order, self.unique_id)
-
-        # # 移动每一步都有消耗
-        # # 只计算消耗，企业实际不移动了，pos不改变
-        # self.energy -= self.move_cost * self.speed
+        # =》为了防止企业提前死去，移动消耗最后再减，在step里
 
     # 模仿学习的进化行为
     def evolve_imitate(self):
@@ -249,11 +265,12 @@ class ServiceAgent(mesa.Agent):
             for agent in self.model.all_agents:
                 if agent.pos == neighbor:
                     neighbors.append(agent)
+        print("将要发生进化的企业的邻居是：", neighbors)
         max_value = 0
-        max_value_imitate_pro = None
+        max_value_imitate_pro = 0
         # 遍历周围邻居的energy
         for neighbor in neighbors:
-            if neighbor.energy >= max_value:
+            if neighbor.energy >= max_value and neighbor.imitate_pro:
                 max_value = neighbor.energy
                 max_value_imitate_pro = neighbor.imitate_pro
         if max_value - self.energy >= 2 * self.energy:

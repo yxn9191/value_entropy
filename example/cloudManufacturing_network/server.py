@@ -1,6 +1,6 @@
 import os
 import mesa
-
+current_path = os.path.split(os.path.realpath(__file__))[0]
 from example.cloudManufacturing_network.rl.utils.saving_and_loading import load_torch_model_weights
 from example.cloudManufacturing_network.orderAgent import OrderAgent
 from example.cloudManufacturing_network.serviceAgent import ServiceAgent
@@ -9,7 +9,7 @@ from env import CloudManufacturing_network
 
 import rl.policy_model
 
-current_path = os.path.split(os.path.realpath(__file__))[0]
+
 
 # 获取参数
 run_dir, run_config = process_args()
@@ -157,7 +157,7 @@ model_params = {
     "network_type": mesa.visualization.Choice(
         'Type of network',
         value='ER',
-        choices=['RG', 'ER', 'BA', 'WS']
+        choices=['RG', 'ER', 'BA', 'WS','None']
     ),
     "BA_add_edges": mesa.visualization.Slider(
         "BA_add_edges", description="BA_add_edges", value=2, min_value=1, max_value=4,

@@ -9,13 +9,14 @@ import numpy as np
 from ray.tune import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper, recursive_list_to_np_array
-from base.utils.env_reward import get_equality, get_productivity_network, get_effectiveness, get_sutility, get_dutility, \
-    get_self_utility, get_vge, get_productivity
-from example.cloudManufacturing_network.generateOrders import all_orders_list
-from example.cloudManufacturing_network.generateService import generate_service_type, generate_difficulty, \
+from base.utils.env_reward import get_self_utility, H_t, get_vge, system_utility
+from example.cloudManufacturing_network.generateOrders import all_orders_list, get_n
+from example.cloudManufacturing_network.generateService import generate_cooperation, generate_service_type, generate_difficulty, \
     generate_energy, generate_imitate_pro
 from example.cloudManufacturing_network.orderAgent import OrderAgent
 from example.cloudManufacturing_network.serviceAgent import ServiceAgent
+from example.cloudManufacturing_network.wirte_csv import agent_utility_type_csv, diff_csv
+
 
 
 class CloudManufacturing_network(mesa.Model):
@@ -27,7 +28,7 @@ class CloudManufacturing_network(mesa.Model):
             avg_node_degree=3,
             ratio_low=0,
             ratio_medium=0,
-            ratio_imitate = 0,
+            ratio_imitate=0,
             is_training=True,
             trainer=None,
             reset_random=True,
@@ -50,12 +51,13 @@ class CloudManufacturing_network(mesa.Model):
         self._resource_lookup = dict()
         self.ratio_low = ratio_low  # 随机选择的agent的比例
         self.ratio_medium = ratio_medium  # 固定规则的agent的比例
-        self.ratio_imitate = ratio_imitate # 模仿学习的agent的比例
-        self.ratio_high = 1 - self.ratio_low - self.ratio_medium - self.ratio_imitate # 高智能agent的比例
+        self.ratio_imitate = ratio_imitate  # 模仿学习的agent的比例
+        self.ratio_high = 1 - self.ratio_low - self.ratio_medium - self.ratio_imitate  # 高智能agent的比例
         assert self.ratio_low + self.ratio_medium <= 1
         self.num_nodes = num_nodes  # node数目=企业agent数目
         self.avg_node_degree = avg_node_degree
         prob = avg_node_degree / self.num_nodes
+        self.network_type = network_type
         # WS:小世界网络 BA：无标度网络 RG:规则网络 ER：随机图
         if network_type == 'ER':  # ER
             # 初始网络状态是由num_nodes个节点组成的随机网络，平均节点度数由参数avg_node_degree调控
@@ -66,6 +68,8 @@ class CloudManufacturing_network(mesa.Model):
         elif network_type == 'WS':  # WS
             # 生成一个含有num_nodes个节点、每个节点有k个邻居、以概率prob随机化重连边的WS小世界网络
             self.G = nx.watts_strogatz_graph(n=self.num_nodes, k=WS_init_neighbors, p=prob)
+        elif network_type == "None":  # 无连边
+            self.G = nx.random_regular_graph(n=self.num_nodes, d=0)
         else:  # RG
             # 初始网络状态是由num_nodes个节点组成的规则网络，每次加入的边数由参数type0_init_degree调控
             self.G = nx.random_regular_graph(n=self.num_nodes, d=RG_init_degree)
@@ -86,9 +90,11 @@ class CloudManufacturing_network(mesa.Model):
         # 设定一个agent_matrix,用于存每个agent每个时间上的reward和cost
         self.social_matrix = dict()  # {时间t:[new_order,finish_order],}
         self.agent_matrix = dict()  # {时间t:{agent_id:[reward,cost],},}
-        self.agent_utility_matrix = dict()  # 当前时刻系统中agent的个体效能值矩阵
+        self.agent_utility_matrix = dict()  # 当前时刻系统中agent的个体效能值矩阵,不在match-agent的agent也会被存入，只是他们效能为0
         self.total_energy = []  # 系统的历史总energy
         self.vge = []  # 系统的历史价值生成效率
+        self.agent_zhineng_matrix = dict()
+        self.niches = []
 
         # 环境中每个智能体的当前奖赏值
         self.curr_optimization_metric = dict()
@@ -109,18 +115,18 @@ class CloudManufacturing_network(mesa.Model):
         self.datacollector = mesa.DataCollector(
             {
                 "avg_utility": lambda a: self.scenario_metrics()["agent/avg_utility"],
-                "productivity": lambda a: self.scenario_metrics()["social/productivity"],
-                "equality": lambda a: self.scenario_metrics()["social/equality"],
-                "SUtility": lambda a: self.scenario_metrics()["SUtility"],
-                "DUtility": lambda a: self.scenario_metrics()["DUtility"],
+                "value_entropy": lambda a: self.scenario_metrics()["social/value_entropy"],
+                # "productivity": lambda a: self.scenario_metrics()["social/productivity"],
+                # "equality": lambda a: self.scenario_metrics()["social/equality"],
+                "system_utility": lambda a: self.scenario_metrics()["social/utility"],
+                "entropy": lambda a: self.scenario_metrics()["social/entropy"],
+                # "DUtility": lambda a: self.scenario_metrics()["DUtility"],
                 # "Effectiveness": lambda a: self.scenario_metrics()["Effectiveness"],
-                "new_order": lambda a: self.scenario_metrics()["Order"],
-                "finish_order": lambda a: self.finish_orders
+                # "new_order": lambda a: self.scenario_metrics()["Order"],
+                # "finish_order": lambda a: self.finish_orders
 
             }
         )
-
-
 
     def init_services(self):
         self.new_services = []
@@ -133,7 +139,8 @@ class CloudManufacturing_network(mesa.Model):
                 service_type=generate_service_type(),
                 difficulty=generate_difficulty(),
                 energy=generate_energy(),
-                imitate_pro=generate_imitate_pro()
+                imitate_pro=generate_imitate_pro(),
+                cooperation=generate_cooperation()
             )
             # Add the agent to the node
             self.grid.place_agent(a, node)
@@ -277,6 +284,10 @@ class CloudManufacturing_network(mesa.Model):
     def necessary_constraint(self, order, services):
         total_move_cost = 0
         total_skill = [0, 0]
+        # # 如果订单不允许合作，那么潜在工人组的内工人的数量不能大于1 
+        # if order.cooperation == 0 and len(services) > 1:
+        #     return 0
+
         # 所有企业之间有通路，合作才能成立
         for i in range(0, len(services)):
             for j in range(i + 1, len(services)):
@@ -286,8 +297,9 @@ class CloudManufacturing_network(mesa.Model):
         for service in services:
             service = self._agent_lookup[str(service)]
             # 首先判断service与order之间有通路
-            if self.distance(order.pos, service.pos) < 0:
-                return 0
+            if self.network_type != "None":  # 如果为None，我们设定企业和订单没有通路时，企业也能执行订单
+                if self.distance(order.pos, service.pos) < 0:
+                    return 0
             # 合作组织中出现单个企业的收益小于0，则该合作无法成立
             if self.distance(order.pos, service.pos) * service.move_cost + order.cost / len(
                     services) > order.bonus / len(services):
@@ -521,7 +533,7 @@ class CloudManufacturing_network(mesa.Model):
         # print("action", actions)
         self.actions.update(actions)
 
-    def reset(self):
+    def reset(self, *args, **kwargs):
         # 重新生成企业
         self.schedule.steps = 0
         if self.reset_random:
@@ -600,77 +612,93 @@ class CloudManufacturing_network(mesa.Model):
         metrics = dict()
         energy = np.array([agent.energy for agent in self._agent_lookup.values()])
         self.total_energy.append(sum(energy))
-        # # 当前系统中生态位数m
-        # m, niches = self.get_niche()
+        # 当前系统中生态位数m
+        m, niches = self.get_niche()
         # self.vge.append(get_vge(niches))
         # mul = list(np.multiply(np.array(self.vge), np.array(self.total_energy)))
         # metrics["social/productivity"] = get_productivity_network(mul)
         # metrics["social/equality"] = get_equality(energy)
-        # metrics["SUtility"] = get_sutility(energy, mul)
-        metrics["DUtility"] = get_dutility(self.social_matrix, self.schedule.steps, gamma=0.8)
+        metrics["social/utility"] = system_utility(self)
+        # metrics["DUtility"] = get_dutility(self.social_matrix, self.schedule.steps, gamma=0.8)
         # metrics["Effectiveness"] = get_effectiveness(energy, mul, self, gamma=0.8)
-        metrics["Order"] = len(self.all_orders_list[self.schedule.steps])  # 系统在当前时刻新生成的订单数
-        metrics["social/productivity"] = get_productivity(energy)
-        metrics["social/equality"] = get_equality(energy)
+        # metrics["Order"] = len(self.all_orders_list[self.schedule.steps])  # 系统在当前时刻新生成的订单数
+        # metrics["social/productivity"] = get_productivity(energy)
+        # metrics["social/equality"] = get_equality(energy)
+        metrics["social/value_entropy"] = get_vge(niches)
+        metrics["social/entropy"] = H_t(niches)
         metrics["agent/avg_utility"] = self.get_avg_utility()
-        metrics[
-            "SUtility"
-        ] = metrics["social/productivity"] * metrics["social/equality"]
+        # metrics[
+        #     "SUtility"
+        # ] = metrics["social/productivity"] * metrics["social/equality"]
 
         return metrics
 
     def get_avg_utility(self):
         self.agent_utility_matrix = dict()
         # ids = np.array([agentId for agentId in self.agent_matrix.get(str(self.schedule.steps)).keys()])
+        # 这里用self.all_agents，而不是match_agent
         ids = np.array([agent.unique_id for agent in self.all_agents])
-        for id in ids:
-            self_utility = get_self_utility(self.agent_matrix, id, self.schedule.steps, gamma=1)
+        for idx in ids:
+            self_utility = get_self_utility(self.agent_matrix, idx, self.schedule.steps, gamma=1)
             # print("计算的该Agent的效能值", self_utility)
-            self.agent_utility_matrix.update({str(id): self_utility})
+            self.agent_utility_matrix.update({str(idx): self_utility})
         # 计算所有个体效能平均值
+        # print("match_agent",self.match_agent)
         N = len(self.agent_utility_matrix.keys())
         # print("N", N)
         V = sum(self.agent_utility_matrix.values())
         # print("V", V)
         return V / N
 
-    def get_avg_utility_by_type(self, type):
-        agent_utility_matrix = dict()
-        ids = np.array([agent.unique_id for agent in self.match_agent if agent.intelligence_level == type])
-        for id in ids:
-            self_utility = get_self_utility(self.agent_matrix, id, self.schedule.steps, gamma=1)
-            agent_utility_matrix.update({str(id): self_utility})
+    # 统计每个学习机制的平均个体效能，用于鲇鱼效应
+    def get_avg_utility_by_type(self, intelligence_type):
+        agent_utility_matrix_type = dict()
+        ids = np.array([agent.unique_id for agent in self.all_agents if agent.intelligence_level == intelligence_type])
+        for idx in ids:
+            self_utility = get_self_utility(self.agent_matrix, idx, self.schedule.steps, gamma=1)
+            agent_utility_matrix_type.update({str(idx): self_utility})
         # print("self_utility", self.agent_utility_matrix)  # 得到当前时间段的个体效能总矩阵
         # 计算该学习机制下的个体效能平均值
-        N = len(agent_utility_matrix.keys())
-        V = sum(agent_utility_matrix.values())
-        return V / N
+        N = len(agent_utility_matrix_type.keys())
+        V = sum(agent_utility_matrix_type.values())
+        if N and V:
+            return V / N
+        else:
+            return None
 
-    # 计算时，首先根据指定的生态位划分标准，利用常用的排序算法，对所有个体效能值进行排序，将个体纳入合适的生态位，从而得到生态位数m
-    # 目前只得到了所有的个体效能，接下来要实现对字典进行排序，要先打印出来看看效能的范围，自己确定一个生态位划分标准，然后计算生态位数
-    # def get_niche(self):
-    #     self.get_agent_utility()
-    #     # 生态位置的划分标准
-    #     # 生态位的最大值是6
-    #     # 计算每个生态位上的数目
-    #     niches = [0, 0, 0, 0, 0, 0, 0]
-    #     for v in self.agent_utility_matrix.values():
-    #         if v < -1:
-    #             niches[0] += 1
-    #         elif -1 <= v < 0:
-    #             niches[1] += 1
-    #         elif 0 <= v < 1:
-    #             niches[2] += 1
-    #         elif 1 <= v < 10:
-    #             niches[3] += 1
-    #         elif 10 <= v < 50:
-    #             niches[4] += 1
-    #         elif 50 <= v < 100:
-    #             niches[5] += 1
-    #         elif v >= 100:
-    #             niches[6] += 1
-    #     # 得到系统当前生态位数,当前系统生态位的分布情况
-    #     return sum(i > 0 for i in niches), niches
+    # 计算所有个体的个体智能，存入self.agent_zhineng_matrix
+    def get_zhineng(self):
+        self.agent_zhineng_matrix = dict()
+        avg_utility = self.get_avg_utility()
+        # 将个体智能值存入矩阵
+        for idx in self.agent_utility_matrix.keys():
+            if avg_utility != 0:
+                self.agent_zhineng_matrix.update({str(idx): (self.agent_utility_matrix[str(idx)] / avg_utility)})
+        return self.agent_zhineng_matrix
+
+    # 计算时，首先根据指定的生态位划分标准，利用常用的排序算法，对所有个体智能进行排序，将个体纳入合适的生态位，从而得到生态位数m
+    def get_niche(self):
+        # 生态位置的划分标准
+        # 计算每个生态位上的数目
+        niches = [0, 0, 0, 0, 0, 0]
+        print('个体智能:', self.get_zhineng().values())
+        for v in self.agent_zhineng_matrix.values():
+            if v < -1:
+                niches[0] += 1
+            elif -1 <= v < 0:
+                niches[1] += 1
+            elif 0 <= v < 1:
+                niches[2] += 1
+            elif 1 <= v < 2:
+                niches[3] += 1
+            elif 2 <= v < 3:
+                niches[4] += 1
+            elif 3 <= v:
+                niches[5] += 1
+        # 得到系统当前生态位数,当前系统生态位的分布情况
+        self.niches = niches
+        print('生态位', niches)
+        return sum(i > 0 for i in niches), niches
 
     def step(self):
         self.new_services = []
@@ -706,12 +734,18 @@ class CloudManufacturing_network(mesa.Model):
 
         self.set_all_agents_list()
         self.set_intelligence(self.new_services)
+        # 如果网络结构设置为None，则所有企业都不接受合作
+        if self.network_type == "None":
+            for agent in self.all_agents:
+                agent.cooperation = 0
 
         # 进行本轮订单繁殖
         self.generate_orders()
 
         # 获取本轮匹配的agent和order
         self.match_order, self.match_agent = self.matching_service_order()
+        # print('match_agent',len(self.match_agent))
+        # print('all_agents',len(self.all_agents))
 
         # 随机、固定规则、模仿学习的可能动作，存入agent，并填入model的self.actions
         self.get_actions()
@@ -724,8 +758,6 @@ class CloudManufacturing_network(mesa.Model):
 
         if not self.agent_matrix.get(str(self.schedule.steps)):
             self.agent_matrix.update({str(self.schedule.steps): {}})
-            # for agent in self.all_agents:
-            #     self.agent_matrix.get(str(self.schedule.steps)).update({str(agent.unique_id): [0, 0]})
 
         # 初始化的social_matrix
         if not self.social_matrix.get(str(self.schedule.steps)):
@@ -758,30 +790,103 @@ class CloudManufacturing_network(mesa.Model):
                     # value是获得的利润，cost是消耗
                     value, cost = agent.process_order()
                     reward[str(agent.unique_id)] = self.compute_agent_reward(cost, value, alpha)
-                    # 更新本轮高智能的agent_matrix（中低智能的在agent的step里更新）
-                    # 每次只有match_agent里的agent才会被记录进入agent_matrix
-                    # 没有被match的agent我认为不应该统计入这次的效能评价；并且企业的生存每时刻的消耗也不应该被统计
-                    self.agent_matrix.get(str(self.schedule.steps)).update({str(agent.unique_id): [value, cost]})
 
             # 生成虚拟企业
             num_agents = len(reward)
 
             # 更新本轮的social_matrix
             self.social_matrix.update({str(self.schedule.steps): [len(self.new_orders), self.finish_orders]})
-            print("self.social_matrix", self.social_matrix)
-            print("self.agent_matrix", self.agent_matrix)
+            # print("self.social_matrix", self.social_matrix)
+            # print("self.agent_matrix", self.agent_matrix)
 
             while num_agents < self.N:
                 reward[str(-num_agents)] = 0
                 num_agents += 1
 
+        self.set_all_agents_list()
+
+        # print('match_agent',len(self.match_agent))
+        # print('all_agents',len(self.all_agents))
+
         # collect data
         self.datacollector.collect(self)
+        # 将数据存入csv
+        # utility_csv(self, self.get_avg_utility(), H_t(self.niches), 'utility.csv')
 
+        scale = self.num_nodes  # 规模=节点数
+        # # 个体智能箱线图=>按个体写入数据
+        # for k in self.agent_zhineng_matrix.keys():
+        #     agent_intelligence = self._agent_lookup.get(str(k)).intelligence_level
+        #     agent_zhineng_csv(self, agent_intelligence, self.network_type,
+        #                       self.agent_zhineng_matrix[k], "agent_zhineng.csv")
+
+        # 统计每种学习机制内部的平均个体效能
+        arr = []
+        for i in range(4):
+            v = self.get_avg_utility_by_type(i)
+            if v:
+                arr.append(v)
+            else:
+                arr.append(0)
+
+        agent_utility_type_csv(self, self.get_avg_utility(), "catfish.csv", arr[0], arr[1], arr[2], arr[3],self.ratio_imitate, H_t(self.niches),get_vge(self.niches),system_utility(self))
+
+        # 按系统整体写入数据
+        # 不同学习机制下
+        if self.ratio_low == 1:
+            diff_csv(self, 'random', self.get_avg_utility(), H_t(self.niches), get_vge(self.niches),  system_utility(self),
+                     'matthew.csv')
+        elif self.ratio_medium == 1:
+            diff_csv(self, 'fix_rules', self.get_avg_utility(),  H_t(self.niches),get_vge(self.niches),  system_utility(self),
+                     'matthew.csv')
+        elif self.ratio_imitate == 1:
+            diff_csv(self, 'il', self.get_avg_utility(), H_t(self.niches), get_vge(self.niches),  system_utility(self),
+                     'matthew.csv')
+        elif self.ratio_high == 1:
+            diff_csv(self, 'rl', self.get_avg_utility(), H_t(self.niches), get_vge(self.niches), system_utility(self),
+                     'matthew.csv')
+
+        # # 不同拓扑结构下：平均个体效能、价值熵、系统效能
+        # diff_csv(self, self.network_type, self.get_avg_utility(), get_vge(self.niches),  system_utility(self),
+        #          'diff_topology.csv')
+        
+        # 不同订单倍数下：平均个体效能、价值熵、系统效能
+        diff_csv(self, get_n(), self.get_avg_utility(),  H_t(self.niches), get_vge(self.niches),  system_utility(self),
+                 'invotion.csv')
+        
+        # # 不同scale（即节点数）下：平均个体效能、价值熵、系统效能
+        # diff_csv(self, scale, self.get_avg_utility(), get_vge(self.niches), system_utility(self),
+        #          'diff_scale.csv')
+        
+        # # 不同平均节点度数下：平均个体效能、价值熵、系统效能
+        # diff_csv(self, self.avg_node_degree, self.get_avg_utility(), get_vge(self.niches), system_utility(self),
+        #          'diff_degree.csv')
+        #这里用self.all_agents，而不是match_agent
+        ids = np.array([agent.unique_id for agent in self.all_agents])
+        for idx in ids:
+            self_utility = get_self_utility(self.agent_matrix, idx, self.schedule.steps, gamma=1)
+            # print("计算的该Agent的效能值", self_utility)
+            self.agent_utility_matrix.update({str(idx): self_utility})
+
+        # # 因果推断
+        # # 分别选取100、150、200、250四个时间点，50个serviceAgent
+        # # "agent_id","time_step", "agent_utility", "avg_utility","system_utility","act_rules", "cooperation","topology", "agent_skill"
+        # if self.schedule.steps == 100:
+        #     # write_csv_hearders("casual.csv", ["agent_id","time_step", "agent_utility", "avg_utility","system_utility","act_rules", "cooperation","topology", "agent_skill"])
+        #     for agent in self.all_agents:
+        #          write_csv_rows("casual.csv",
+        #             [[agent.unique_id, self.schedule.steps,self.agent_utility_matrix.get(str(agent.unique_id)),self.get_avg_utility(), system_utility(self), agent.intelligence_level,agent.cooperation, self.network_type,agent.difficulty]])
+           
+        # if self.schedule.steps == 150 or  self.schedule.steps == 200 or  self.schedule.steps == 250:
+        #     for agent in self.all_agents:
+        #          write_csv_rows("casual.csv",
+        #             [[agent.unique_id, self.schedule.steps,self.agent_utility_matrix.get(str(agent.unique_id)),self.get_avg_utility(), system_utility(self), agent.intelligence_level,agent.cooperation, self.network_type,agent.difficulty]])
+    
         # 演化结束的判断和信息打印
         self.done = {"__all__": self.schedule.steps >= self.episode_length}
         info = {k: {} for k in self.obs.keys()}
 
+        # 新版本的gym :obs, rewards, terminateds, truncateds, infos = env.step(agent_dict)
         return self.obs, reward, self.done, info
 
     def run_model(self):
@@ -790,7 +895,7 @@ class CloudManufacturing_network(mesa.Model):
             # if i == 140:
             #     self.reset()
             self.step()
-            print(self.G.nodes)
+            # print(self.G.nodes)
 
 
 # 注册强化学习环境

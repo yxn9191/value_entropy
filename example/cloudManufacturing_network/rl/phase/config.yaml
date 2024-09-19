@@ -6,24 +6,26 @@ env:
     ratio_low: 0
     ratio_medium: 0
   env_name: CloudManufacturing_network
-
+# train_batch_size = num_workers × num_envs_per_worker × rollout_fragment_length
 trainer:
-  num_workers: 2
+  num_workers: 2 # 用于收集经验数据的工作线程数
   batch_mode: truncate_episodes
   ignore_worker_failures: true
   observation_filter: NoFilter
-  rollout_fragment_length: 200
-  train_batch_size: 200
+  rollout_fragment_length: 200 # rollout 片段长度 (多少个时间步的数据)
+  train_batch_size: 800 # 每次更新参数时要使用的样本数量
   num_gpus_per_worker: 0.5
-  num_envs_per_worker: 2
+  num_envs_per_worker: 2 # 每个工作线程的环境数量
   num_gpus: 1
 
 general:
   ckpt_frequency_steps: 100
   episodes: 100
   gpus: 1
-  ckpt_path: rl/phase/ckpts/checkpoint_000021
-  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-16800
+  ckpt_path: rl/phase/ckpts/checkpoint_000100
+  restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-30000
+  # ckpt_path: null
+  # restore_torch_weights_agents: null
 agent_policy:
   clip_param: 0.3
   entropy_coeff: 0.01

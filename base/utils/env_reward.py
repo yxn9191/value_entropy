@@ -89,28 +89,27 @@ def get_productivity(coin_endowments):
 # 为每个个体存一个矩阵，记录当前时间t的reward和cost
 def get_self_utility(agent_matrix, agent_id, t, gamma=1):
     self_utility = 0
-    for i in range(t + 1):
-        if agent_matrix.get(str(i)).get(str(agent_id)):  # 如果历史时间段有这个agent的数据，才加
-            self_utility += (gamma ** (t - i)) * (agent_matrix.get(str(i)).get(str(agent_id))[0] -
-                                                  agent_matrix.get(str(i)).get(str(agent_id))[1])
+    if t != 0:
+        for i in range(t + 1):
+            if agent_matrix.get(str(i)).get(str(agent_id)):  # 如果历史时间段有这个agent的数据，才加
+                self_utility += (gamma ** (t - i)) * (agent_matrix.get(str(i)).get(str(agent_id))[0] -
+                                                      agent_matrix.get(str(i)).get(str(agent_id))[1])
 
-    return self_utility
+        return self_utility / t
+    else:
+        return 0
     # return agent_matrix.get(str(t)).get(str(agent_id))[0] - agent_matrix.get(str(t)).get(str(agent_id))[1]
 
+# 假定独立时 niches= (80,15,5)
+# 独立熵H0 = 0.884
+H_0 = 0.884
+# 指数衰减函数=>修改为e*(1-x)
+def f(x,niches):
+    return math.exp(abs((H_0- H_b(sum(niches))) / H_b(sum(niches)))-x)
 
-# 计算系统的联合效能（供应侧效能）,平等性*生产力
-def get_sutility(energy, data):
-    return get_equality(energy) * get_productivity_network(data)
-
-
+# 计算了与最优熵的比值
 def get_vge(niches):
-    return abs((H_t(niches) - H_b(sum(niches))) / H_b(sum(niches)))
-
-
-# 计算系统的生产力
-def get_productivity_network(data):
-    # 目前是对系统的总energy乘以价值生成效率取指数移动平均值
-    return ema(data, 10)[-1]
+    return f(abs((H_t(niches) - H_b(sum(niches))) / H_b(sum(niches))),niches=niches)
 
 
 # 计算需求侧效能
@@ -124,63 +123,26 @@ def get_dutility(social_matrix, t, gamma=0.8):
     return dutility
 
 
-# 计算服务效能（考虑供需两侧）
-def get_effectiveness(energy, data, env, gamma=0.8):
-    return get_sutility(energy, data) * get_dutility(env.social_matrix, env.schedule.steps,
-                                                     gamma)
-
-
-# 当前时刻的最优价值熵Hb
+# 当前时刻的最优熵Hb
 def H_b(N):
-    return math.log2(math.sqrt(N))
+    if N > 0:
+        return math.log2(math.sqrt(N))
+    else:
+        return 1
 
 
-# 当前时刻的价值熵Ht
+# 当前时刻的熵Ht
 # niches:每个生态位上的数目组成的数组
 def H_t(niches):
     H_t = 0
     for n_i in niches:
-        p_i = n_i / sum(niches)
-        if p_i > 0:
-            H_t += -p_i * math.log2(p_i)
+        if sum(niches) != 0:
+            p_i = n_i / sum(niches)
+            if p_i > 0:
+                H_t += -p_i * math.log2(p_i)
     return H_t
 
-
-# 快速排序
-# def quick_sort(arr):
-#     if len(arr) <= 1:
-#         return arr
-#     pivot = arr[0]
-#     left = [x for x in arr[1:] if x < pivot]
-#     right = [x for x in arr[1:] if x >= pivot]
-#     return quick_sort(left) + [pivot] + quick_sort(right)
-# ?平滑处理：
-
-modes = ['full', 'same', 'valid']  # 模式
-
-
-# mode可能的三种取值情况：
-# 'full’　默认值，返回每一个卷积值，长度是N+M-1,在卷积的边缘处，信号不重叠，存在边际效应。
-# ‘same’　返回的数组长度为max(M, N),边际效应依旧存在。
-# ‘valid’ 　返回的数组长度为max(M,N)-min(M,N)+1,此时返回的是完全重叠的点。边缘的点无效。
-
-# def moving_average(interval, windowsize):
-#     window = np.ones(int(windowsize)) / float(windowsize)
-#
-#     for m in modes:
-#         re = np.convolve(interval, window, 'full')
-#     return re
-
-# 获取EMA数据  days:日期 days=5 5日线
-def ema(data, days):
-    emas = data.copy()
-    for i in range(len(data)):
-        if i == 0:
-            emas[i] = data[i]
-        if i > 0:
-            emas[i] = ((days - 1) * emas[i - 1] + 2 * data[i]) / (days + 1)
-    return emas
-    # new_data = data[-5:]
-    # return max(new_data)
-
-# 是否需要对new/finish order这部分也加ema
+# 获得系统效能
+def system_utility(model):
+    print('个体效能',model.agent_utility_matrix.values())
+    return get_vge(model.niches) * sum(model.agent_utility_matrix.values())
