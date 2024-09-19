@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     # 准备数据
-    data = pd.read_csv("invalution.csv", header=None)
+    data = pd.read_csv("involution.csv", header=None)
     print(data)
     new_palette = sns.color_palette("deep",5) 
 

@@ -2,7 +2,8 @@ import numpy as np
 import random
 
 # 订单的倍数
-n = 10
+n = 0.5
+random.seed(42)
 
 def get_n():
     return n
@@ -51,6 +52,7 @@ def order_process():
 
 # 订单位置-随机选择
 def order_position(G):
+
     random_node = random.choice(list(G.nodes))
     return random_node
 

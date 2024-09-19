@@ -4,7 +4,7 @@ import sys
 
 import ray
 import yaml
-sys.path.append('/data1/yxn/utility_network')
+
 current_path = os.path.split(os.path.realpath(__file__))[0]
 print("current_path", current_path)
 sys.path.append(current_path)

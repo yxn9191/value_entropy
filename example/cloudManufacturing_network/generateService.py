@@ -1,6 +1,6 @@
 import random
 
-
+random.seed(15)
 def generate_service_type():
     weight = {"A": 0.3, "B": 0.3, "C": 0.4}
     return random.choices(list(weight.keys()), weights=list(weight.values()), k=1)[0]
