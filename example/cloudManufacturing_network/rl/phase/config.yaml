@@ -22,8 +22,10 @@ general:
   ckpt_frequency_steps: 100
   episodes: 100
   gpus: 1
+  # 恢复训练或者运行run.py
   ckpt_path: rl/phase/ckpts/checkpoint_000100
   restore_torch_weights_agents: rl/phase/ckpts/torch.weights.global-step-30000
+  # 从0开始训练
   # ckpt_path: null
   # restore_torch_weights_agents: null
 agent_policy:

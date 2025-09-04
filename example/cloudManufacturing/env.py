@@ -352,6 +352,24 @@ class CloudManufacturing(BaseEnvironment):
             num_agent += 1
         return _obs
 
+    def safe_remove_agent(self, agent):
+        """Safely remove an agent from the GeoSpace, handling the mesa_geo idx_id bug."""
+        try:
+            # Try the normal removal first
+            self.grid.remove_agent(agent)
+        except AttributeError as e:
+            if "object has no attribute 'idx_id'" in str(e):
+                # Workaround for mesa_geo bug: recreate the rtree without this agent
+                current_agents = [a for a in self.grid.agents if a != agent]
+                if hasattr(self.grid, '_recreate_rtree'):
+                    self.grid._recreate_rtree(current_agents)
+                else:
+                    # Fallback: manually remove from agents list
+                    if hasattr(self.grid, 'agents') and agent in self.grid.agents:
+                        self.grid.agents.remove(agent)
+            else:
+                raise e
+
     def reset(self):
         # 重新生成企业
         self.schedule.steps = 0
@@ -359,7 +377,7 @@ class CloudManufacturing(BaseEnvironment):
             for agent in self.schedule.agents:
                 if isinstance(agent, OrderAgent) or isinstance(agent, ServiceAgent):
                     self.schedule.remove(agent)
-                    self.grid.remove_agent(agent)
+                    self.safe_remove_agent(agent)
             self.generate_orders()
             self.init_services(self.service_num)
         self.set_all_agents_list()
@@ -711,7 +729,7 @@ class CloudManufacturing(BaseEnvironment):
         for agent in self.schedule.agents:
             if agent.done:
                 self.schedule.remove(agent)
-                self.grid.remove_agent(agent)
+                self.safe_remove_agent(agent)
                 
                 print(agent in self.schedule.agents )
 

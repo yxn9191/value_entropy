@@ -9,7 +9,7 @@ import numpy as np
 from ray.tune import register_env
 
 from algorithm.rl.env_warpper import RLlibEnvWrapper, recursive_list_to_np_array
-from base.utils.env_reward import get_self_utility, H_t, get_vge, system_utility
+from base.utils.env_reward import get_self_utility, H_t, get_vge, system_utility, get_gini
 from example.cloudManufacturing_network.generateOrders import all_orders_list, get_n
 from example.cloudManufacturing_network.generateService import generate_cooperation, generate_service_type, generate_difficulty, \
     generate_energy, generate_imitate_pro
@@ -114,17 +114,11 @@ class CloudManufacturing_network(mesa.Model):
 
         self.datacollector = mesa.DataCollector(
             {
-                "avg_utility": lambda a: self.scenario_metrics()["agent/avg_utility"],
-                "value_entropy": lambda a: self.scenario_metrics()["social/value_entropy"],
-                # "productivity": lambda a: self.scenario_metrics()["social/productivity"],
-                # "equality": lambda a: self.scenario_metrics()["social/equality"],
-                "system_utility": lambda a: self.scenario_metrics()["social/utility"],
-                "entropy": lambda a: self.scenario_metrics()["social/entropy"],
-                # "DUtility": lambda a: self.scenario_metrics()["DUtility"],
-                # "Effectiveness": lambda a: self.scenario_metrics()["Effectiveness"],
-                # "new_order": lambda a: self.scenario_metrics()["Order"],
-                # "finish_order": lambda a: self.finish_orders
-
+                "ht": lambda a: self.scenario_metrics()["ht"],
+                "sys_utility": lambda a: self.scenario_metrics()["sys_utility"],
+                "avg_agent_utility": lambda a: self.scenario_metrics()["avg_agent_utility"],
+                "gini": lambda a: self.scenario_metrics()["gini"],
+                "value_entropy": lambda a: self.scenario_metrics()["value_entropy"],
             }
         )
 
@@ -629,6 +623,13 @@ class CloudManufacturing_network(mesa.Model):
         metrics["social/value_entropy"] = get_vge(niches)
         metrics["social/entropy"] = H_t(niches)
         metrics["agent/avg_utility"] = self.get_avg_utility()
+        
+        # 添加你需要的指标
+        metrics["ht"] = H_t(niches)  # 熵值
+        metrics["sys_utility"] = system_utility(self)  # 系统效能
+        metrics["avg_agent_utility"] = self.get_avg_utility()  # 平均个体效能
+        metrics["gini"] = get_gini(energy)  # 基尼系数
+        metrics["value_entropy"] = get_vge(niches)  # 价值熵
         # metrics[
         #     "SUtility"
         # ] = metrics["social/productivity"] * metrics["social/equality"]

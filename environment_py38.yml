@@ -1,0 +1,29 @@
+name: mesa_py38
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  # math / array
+  - numpy=1.23
+  - scipy=1.10
+  - pandas=1.5
+  - scikit-learn=1.2
+  - matplotlib=3.7
+  - seaborn=0.12
+  # jupyter
+  - jupyter
+  - ipykernel
+  # pytorch via conda (avoid pip +cu102 wheels)
+  - pytorch=1.11
+  # - torchvision=0.12
+  # - torchaudio=0.11
+  # - cudatoolkit=11.3  # adjust to your GPU/driver
+  # misc
+  - pip:
+      - mesa==1.1.1
+      - mesa-geo==0.4.0
+      - ray==2.2.0
+      - cadcad==0.4.28

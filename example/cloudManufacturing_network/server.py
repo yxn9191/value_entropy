@@ -117,15 +117,11 @@ def network_portrayal(G):
 network = mesa.visualization.NetworkModule(network_portrayal, 500, 800)
 chart = mesa.visualization.ChartModule(
     [
-        {"Label": "avg_utility", "Color": "#FF0000"},
-        {"Label": "equality", "Color": "#008000"},
-        {"Label": "SUtility", "Color": "#FF8C00"},  # 供给侧效能（社会层：联合效能）
-        {"Label": "DUtility", "Color": "#040082"},  # 需求侧效能
-        # {"Label": "Effectiveness", "Color": "red"},  # 服务效能
-        {"Label": "new_order", "Color": "Black"},  # 新生成订单数目
-        {"Label": "finish_order", "Color": "Blue"}  # 此时间完成的订单数目
-
-
+        {"Label": "ht", "Color": "#FF0000"},  # 熵值
+        {"Label": "sys_utility", "Color": "#008000"},  # 系统效能
+        {"Label": "avg_agent_utility", "Color": "#FF8C00"},  # 平均个体效能
+        {"Label": "gini", "Color": "#040082"},  # 基尼系数
+        {"Label": "value_entropy", "Color": "#800080"},  # 价值熵
     ]
 )
 
